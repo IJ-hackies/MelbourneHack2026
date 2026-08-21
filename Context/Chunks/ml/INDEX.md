@@ -1,12 +1,12 @@
 # ML Chunks
 
-This category is the planned ML/data-science half of the two-person project. It
-contains intent and integration constraints only until model or data source code
-is added.
+This category is the ML/data-science half of the two-person project. It now owns
+reproducible source acquisition and still carries the planned forecasting and
+software-integration boundary. No model or feature pipeline exists yet.
 
 - `ml/planned-forecasting` - intended crowd, traffic, and future-environment forecasting boundary -> `planned-forecasting.md`
+- `ml/data-acquisition` - official dataset catalog, local raw mirror, licences, and fetch workflow -> `data-acquisition.md`
 
-There is currently no `ml/`, `data/`, or backend source directory and no Python
-package. When the ML implementation starts, add chunks for real data pipelines,
-features, models, evaluation, and serving contracts rather than treating this
-roadmap chunk as implementation evidence.
+The repository has an `ml/` source directory and local data snapshots, but no
+Python package, feature transformations, trained models, evaluation, backend,
+or serving contract. Add focused chunks when those source areas appear.

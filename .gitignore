@@ -56,3 +56,9 @@ venv/
 
 # windows
 Thumbs.db
+
+# downloaded ML datasets and generated provenance
+/ml/data/raw/*
+!/ml/data/raw/.gitkeep
+/ml/data/provenance/*
+!/ml/data/provenance/.gitkeep

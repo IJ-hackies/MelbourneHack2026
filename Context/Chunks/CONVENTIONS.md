@@ -31,8 +31,9 @@ verified: initial
 The `id` must match the path under `Context/Chunks/` without `.md`.
 `sources` are repo-root-relative, existing, load-bearing files. `links` point
 to related chunk ids. `verified` records the commit at which the chunk was last
-checked against its sources. This repository has no history yet, so initial
-chunks use `initial` and `STATE.md` records that limitation.
+checked against its sources. Use `initial` only while a chunk's current sources
+do not yet have a usable committed verification baseline; record that limitation
+in `STATE.md`.
 
 ## Body and style
 

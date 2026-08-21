@@ -3,6 +3,7 @@ id: software/tooling
 title: Software package and build tooling
 sources:
   - package.json
+  - package-lock.json
   - next.config.ts
   - tsconfig.json
   - eslint.config.mjs
@@ -16,7 +17,7 @@ sources:
   - .claude/skills/reupdate/SKILL.md
   - .claude/skills/reaudit/SKILL.md
 links: [heatroute, software/frontend-shell]
-verified: initial
+verified: afd0526
 ---
 
 ## What this is
@@ -28,7 +29,8 @@ Next TypeScript/core-web-vitals configurations. (`package.json`,
 
 ## Key files
 
-- `package.json` - runtime, build, quality, and context-check scripts plus dependencies.
+- `package.json`, `package-lock.json` - runtime, build, quality, context-check
+  scripts, and the reproducible npm dependency graph.
 - `next.config.ts` - Next config; sets Turbopack's root to `process.cwd()`.
 - `tsconfig.json` - strict TypeScript, bundler resolution, no emit, and `@/*` -> `./src/*`.
 - `eslint.config.mjs` - Next core-web-vitals and TypeScript rules with generated-output ignores.
@@ -68,3 +70,6 @@ drift-check behavior aligned.
   strategy or runtime validation.
 - MapLibre, FastAPI, Pydantic, weather/sensor clients, and model runtimes are
   not installed in this package. (`package.json`)
+- `.agents/skills/*/agents/openai.yaml` files are skill presentation metadata,
+  not HeatRoute runtime or context-contract sources; keep them outside module
+  ownership unless their behavior becomes independently load-bearing.

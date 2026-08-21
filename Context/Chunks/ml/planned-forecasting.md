@@ -3,26 +3,28 @@ id: ml/planned-forecasting
 title: Planned ML and forecasting workstream
 sources:
   - Context/Chunks/heatroute.md
-links: [heatroute, software/frontend-shell]
+  - ml/README.md
+links: [heatroute, software/frontend-shell, ml/data-acquisition]
 verified: initial
 ---
 
 ## What this is
 
-The ML workstream is planned, not implemented. The product brief proposes
+Forecasting remains planned rather than implemented. The product brief proposes
 lightweight models for future crowd density, vehicle traffic, and local
 environmental conditions, using historical signals such as time, day of week,
-weather, and location. It also describes a time-dependent pedestrian graph and
-possible departure-time optimisation. (`Context/Chunks/heatroute.md`)
+weather, and location. The ML lane now has reproducible raw-source acquisition,
+but no features or predictions. (`Context/Chunks/heatroute.md`, `ml/README.md`)
 
-No model files, Python package, data pipeline, FastAPI service, feature store,
-or evaluation workflow exists in the current repository. Do not describe a
-prediction as available until its source, interface, and verification are added.
+No model files, Python package, transformation pipeline, FastAPI service,
+feature store, or evaluation workflow exists. Do not describe a prediction as
+available until its interface and verification are added.
 
 ## Key files
 
 - `Context/Chunks/heatroute.md` - ML intent, candidate inputs, graph concept, and V1/deferred scope.
-- No ML source path exists yet; this is an intentional coverage marker for the planned workstream.
+- `ml/README.md` - acquisition boundary and licence caveats; detailed dataset
+  ownership lives in `ml/data-acquisition`.
 
 ## Invariants
 
@@ -39,19 +41,16 @@ prediction as available until its source, interface, and verification are added.
 
 ## How to extend
 
-When ML work begins, add the actual package and data paths, then split this
-chunk into focused chunks for ingestion, features, models, evaluation, and
-serving if those concepts are independently load-bearing. Record the software
-integration contract in both workstreams and add sources to make drift checks
-meaningful.
+When modelling begins, add actual feature/model/evaluation package paths and
+split this chunk when those concepts become independently load-bearing. Record
+the software integration contract in both workstreams.
 
 ## Gotchas
 
 - The final client format is still undecided in the product brief, so do not
   couple the model design to a mobile or web-only assumption.
   (`Context/Chunks/heatroute.md`)
-- Historical sensor/weather data, licences, coverage, retraining, and failure
-  fallbacks are open design questions; they are not silently solved by this
-  chunk.
+- Source licences and coverage are catalogued, but schema harmonisation,
+  temporal joins, retraining, and prediction failure fallbacks remain open.
 - The V1 brief is broad and includes deferred ideas. Keep a first model narrow
   enough for a two-person project and document deliberate deferrals in `STATE.md`.

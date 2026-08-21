@@ -9,7 +9,10 @@ sources:
   - next.config.ts
   - tsconfig.json
   - scripts/context-drift.mjs
-links: [software/frontend-shell, software/tooling, ml/planned-forecasting]
+  - ml/README.md
+  - ml/data/catalog.json
+  - ml/scripts/fetch_datasets.py
+links: [software/frontend-shell, software/tooling, ml/planned-forecasting, ml/data-acquisition]
 verified: initial
 ---
 
@@ -22,9 +25,11 @@ walking-only; cycling and other modes come after the walking experience works
 well. The final client may be web, mobile, or another interface and is not yet
 decided.
 
-The repository currently contains only an intentionally empty Next.js frontend
-scaffold: `src/app/page.tsx` renders `Hello world!`. No map, routing graph, API,
-external data integration, persistence, or ML model is implemented.
+The application remains an intentionally empty Next.js frontend scaffold:
+`src/app/page.tsx` renders `Hello world!`. The ML lane now includes a versioned
+dataset catalog/downloader and an ignored local raw-data mirror, but no map,
+application routing graph, API, persistence, feature pipeline, or ML model is
+implemented. (`ml/README.md`, `ml/data/catalog.json`)
 
 This is a two-person project. The `software` workstream owns the application,
 routing system, and integration surface. The `ml` workstream owns forecasting
@@ -36,6 +41,9 @@ and data-science work. Their interface must be explicit before integration.
 - `package.json` - Next.js 16, React 19, TypeScript, Tailwind CSS 4, and project commands.
 - `next.config.ts`, `tsconfig.json`, `eslint.config.mjs`, `postcss.config.mjs` - build and quality configuration.
 - `scripts/context-drift.mjs` - validates chunk structure and source freshness.
+- `ml/README.md`, `ml/data/catalog.json`, `ml/scripts/fetch_datasets.py` - ML
+  source acquisition workflow, profiles, licences, known access restrictions,
+  official source URLs, and the executable fetch boundary.
 - `software/INDEX.md` - current application context; `ml/INDEX.md` - planned forecasting context.
 - Primary commands: `npm run dev`, `npm run lint`, `npm run build`, and
   `npm run context:drift`; `npm run start` serves a production build.
@@ -126,8 +134,12 @@ source changes.
 - This file is the product brief and context root, but product intent is not
   evidence that a feature, API, dataset, algorithm, or dependency exists.
 - The current web scaffold does not settle the final client or deployment model.
-- Dataset choice, licensing, geographic coverage, model evaluation, emissions
-  factors, safety constraints, privacy, and missing-data fallbacks remain open.
-- There are no tests, standalone type-check, backend, mapping, or ML commands.
-- The repository has no commits; `verified: initial` cannot provide freshness
-  comparison until the first commit and `/reupdate` pass.
+- Model evaluation, safety constraints, privacy, prediction missing-data
+  fallbacks, and the production data refresh policy remain open. Dataset
+  licences and geographic coverage are recorded but still require per-source
+  compliance during publication. (`ml/data/catalog.json`)
+- There are no tests, standalone type-check, backend, mapping, feature,
+  training, evaluation, or model-serving commands.
+- This chunk remains `verified: initial` while its new ML sources are untracked;
+  commit the acquisition work, then run `/reupdate` to establish a comparison
+  baseline.
