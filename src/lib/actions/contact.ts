@@ -4,7 +4,7 @@ import { Resend } from "resend";
 
 export type ContactState = { error: string | null; success?: boolean } | undefined;
 
-const CONTACT_INBOX = process.env.CONTACT_INBOX_EMAIL ?? "hello@heatroute.app";
+const CONTACT_INBOX = process.env.CONTACT_INBOX_EMAIL ?? "hello@leafroute.org";
 
 export async function sendContactMessage(
   _prevState: ContactState,
@@ -28,10 +28,10 @@ export async function sendContactMessage(
 
   const resend = new Resend(apiKey);
   const { error } = await resend.emails.send({
-    from: "HeatRoute <onboarding@resend.dev>",
+    from: "LeafRoute <onboarding@resend.dev>",
     to: CONTACT_INBOX,
     replyTo: email,
-    subject: `HeatRoute contact form from ${name}`,
+    subject: `LeafRoute contact form from ${name}`,
     text: `From: ${name} <${email}>\n\n${message}`,
   });
 

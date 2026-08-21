@@ -9,7 +9,7 @@ const NAV_LINKS = [
   { id: "contact", label: "Contact" },
 ];
 
-export function MarketingHeader() {
+export function MarketingHeader({ appOrigin = "" }: { appOrigin?: string }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export function MarketingHeader() {
             <path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21Z" />
             <circle cx="12" cy="9.5" r="2.4" />
           </svg>
-          HeatRoute
+          LeafRoute
         </div>
 
         <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
@@ -50,13 +50,13 @@ export function MarketingHeader() {
 
         <div className="hidden items-center gap-3 md:flex">
           <PendingLink
-            href="/login"
+            href={`${appOrigin}/login`}
             className="text-sm font-medium text-text-secondary transition-colors hover:text-text"
           >
             Log in
           </PendingLink>
           <PendingLink
-            href="/signup"
+            href={`${appOrigin}/signup`}
             className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-surface transition-opacity hover:opacity-90"
           >
             Get started

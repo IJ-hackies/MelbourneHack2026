@@ -1,10 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { APEX_HOSTS, APP_HOST } from "@/lib/hosts";
 
 const PUBLIC_PATHS = ["/login", "/signup"];
 const ONBOARDING_PATH = "/onboarding";
 
 export async function proxy(request: NextRequest) {
+  const host = request.headers.get("host") ?? "";
+
+  if (APEX_HOSTS.includes(host)) {
+    // The marketing page is the only thing this host ever serves — anything
+    // else (a stale bookmark to /history, an old link, etc.) goes to the app.
+    if (request.nextUrl.pathname !== "/") {
+      const url = new URL(request.nextUrl.pathname + request.nextUrl.search, `https://${APP_HOST}`);
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next({ request });
+  }
+
   if (request.nextUrl.pathname === "/auth/callback" || request.nextUrl.pathname === "/api/health") {
     return NextResponse.next({ request });
   }
@@ -37,10 +50,14 @@ export async function proxy(request: NextRequest) {
   const isAuthed = Boolean(userId);
   const { pathname } = request.nextUrl;
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
+  const isAppHost = host === APP_HOST;
 
   // "/" is the public marketing page for signed-out visitors and the Plan
   // screen for signed-in ones — page.tsx branches on auth state itself.
-  if (!isAuthed && pathname === "/") {
+  // Once the app subdomain is live it never shows marketing, so this
+  // shortcut only applies on hosts that still combine both (localhost,
+  // *.vercel.app, previews).
+  if (!isAuthed && pathname === "/" && !isAppHost) {
     return supabaseResponse;
   }
 

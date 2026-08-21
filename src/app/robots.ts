@@ -16,6 +16,6 @@ export default function robots(): MetadataRoute.Robots {
         "/api/",
       ],
     },
-    sitemap: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://heatroute.vercel.app"}/sitemap.xml`,
+    sitemap: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://leafroute.org"}/sitemap.xml`,
   };
 }

@@ -24,7 +24,7 @@ export default async function Onboarding() {
     <main className="mx-auto flex max-w-md flex-col gap-8 px-5 py-8 sm:px-8 lg:py-12">
       <div>
         <h1 className="font-display text-[1.6rem] font-semibold tracking-tight text-text lg:text-[1.9rem]">
-          {name ? `Welcome, ${name}` : "Welcome to HeatRoute"}
+          {name ? `Welcome, ${name}` : "Welcome to LeafRoute"}
         </h1>
         <p className="mt-1 text-sm text-text-secondary">
           A few quick preferences, sensible defaults are already set, so
