@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f6f9f8;
-  --surface: #ffffff;
-  --surface-alt: #eef4f2;
-  --surface-sunk: #e6efec;
-  --border: #dbe6e2;
-  --text: #0f201d;
-  --text-secondary: #4c635e;
-  --text-tertiary: #7c928c;
+  --bg: #f7f2e7;
+  --surface: #fffdf7;
+  --surface-alt: #f0e9d8;
+  --surface-sunk: #e8dfc9;
+  --border: #e2d7bd;
+  --text: #2b241a;
+  --text-secondary: #6b6252;
+  --text-tertiary: #948a75;
   --primary: #0e6e64;
   --primary-strong: #0a544c;
-  --primary-soft: #e2f2ee;
+  --primary-soft: #e3f0ec;
   --heat: #e8703a;
   --heat-soft: #fbeade;
   --crowd: #c98a1f;
   --crowd-soft: #f8ecd6;
   --traffic: #c0432b;
   --traffic-soft: #f8e3dd;
-  --shadow-color: 160 30% 15%;
+  --shadow-color: 32 30% 12%;
   --focus: #0e6e64;
   color-scheme: light;
 }
@@ -45,28 +45,31 @@
   color-scheme: dark;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0a1614;
-    --surface: #0f201d;
-    --surface-alt: #152925;
-    --surface-sunk: #0a1816;
-    --border: #22403a;
-    --text: #eaf4f1;
-    --text-secondary: #9fbdb6;
-    --text-tertiary: #6f8f88;
-    --primary: #52d6c4;
-    --primary-strong: #8ce8db;
-    --primary-soft: #173a34;
-    --heat: #ff9a63;
-    --heat-soft: #3a2318;
-    --crowd: #f0b449;
-    --crowd-soft: #3a2c12;
-    --traffic: #ff8266;
-    --traffic-soft: #3a1c14;
-    --focus: #52d6c4;
-    color-scheme: dark;
-  }
+/* Marketing page always renders in the brand's cream palette, independent of
+   the app's stored theme preference — it's a fixed brand look, not a
+   themeable surface. */
+.marketing {
+  --bg: #f7f2e7;
+  --surface: #fffdf7;
+  --surface-alt: #f0e9d8;
+  --surface-sunk: #e8dfc9;
+  --border: #e2d7bd;
+  --text: #2b241a;
+  --text-secondary: #6b6252;
+  --text-tertiary: #948a75;
+  --primary: #0e6e64;
+  --primary-strong: #0a544c;
+  --primary-soft: #e3f0ec;
+  --heat: #e8703a;
+  --heat-soft: #fbeade;
+  --crowd: #c98a1f;
+  --crowd-soft: #f8ecd6;
+  --traffic: #c0432b;
+  --traffic-soft: #f8e3dd;
+  --focus: #0e6e64;
+  color-scheme: light;
+  background: var(--bg);
+  color: var(--text);
 }
 
 @theme inline {

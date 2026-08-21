@@ -1,13 +1,21 @@
 import type { MetadataRoute } from "next";
 
-// Every route requires a signed-in session, so there's nothing here for a
-// crawler to usefully index — disallow everything rather than leaving a
-// default robots.txt that implies the opposite.
+// "/" is the public marketing page; everything else requires a signed-in
+// session and has nothing useful for a crawler to index.
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      disallow: "/",
+      allow: "/",
+      disallow: [
+        "/history",
+        "/preferences",
+        "/account",
+        "/onboarding",
+        "/route/",
+        "/api/",
+      ],
     },
+    sitemap: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://heatroute.vercel.app"}/sitemap.xml`,
   };
 }
