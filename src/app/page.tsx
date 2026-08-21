@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ConditionIcon } from "@/components/condition-icon";
 import { DestinationSearch } from "@/components/destination-search";
 import { SavedPlacesRow } from "@/components/saved-places-row";
+import { MarketingPage } from "@/components/marketing/marketing-page";
 import { formatDeparture } from "@/lib/routes";
 import { conditionProvider } from "@/lib/providers/condition-provider";
 import { routeProvider } from "@/lib/providers/route-provider";
@@ -9,10 +10,31 @@ import { listSavedPlaces } from "@/lib/actions/places";
 import { listRecentSearches } from "@/lib/actions/searches";
 import { createClient } from "@/lib/supabase/server";
 
+type HomeSearchParams = { to?: string; address?: string; lat?: string; lon?: string };
+
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ to?: string; address?: string; lat?: string; lon?: string }>;
+  searchParams: Promise<HomeSearchParams>;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return <MarketingPage />;
+  }
+
+  return <PlanScreen userId={user.id} searchParams={searchParams} />;
+}
+
+async function PlanScreen({
+  userId,
+  searchParams,
+}: {
+  userId: string;
+  searchParams: Promise<HomeSearchParams>;
 }) {
   const { to, address, lat, lon } = await searchParams;
   const destination = to?.trim() || null;
@@ -26,37 +48,32 @@ export default async function Home({
     : null;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  let preferences: Parameters<typeof routeProvider.listRoutes>[0]["preferences"];
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select(
-        "heat_sensitivity, comfort_balance, pace, prefer_quieter_streets, prefer_lower_traffic"
-      )
-      .eq("id", user.id)
-      .single();
-    if (profile) {
-      preferences = {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select(
+      "heat_sensitivity, comfort_balance, pace, prefer_quieter_streets, prefer_lower_traffic"
+    )
+    .eq("id", userId)
+    .single();
+
+  const preferences: Parameters<typeof routeProvider.listRoutes>[0]["preferences"] = profile
+    ? {
         heatSensitivity: profile.heat_sensitivity,
         comfortBalance: profile.comfort_balance,
         pace: profile.pace,
         preferQuieterStreets: profile.prefer_quieter_streets,
         preferLowerTraffic: profile.prefer_lower_traffic,
-      };
-    }
-  }
+      }
+    : undefined;
 
   const [conditions, routes, savedPlaces, recentSearches] = await Promise.all([
     destination ? conditionProvider.getConditions({ label: destination }) : Promise.resolve([]),
     destination
       ? routeProvider.listRoutes({ label: destination, departureTime: new Date(), preferences })
       : Promise.resolve([]),
-    user ? listSavedPlaces() : Promise.resolve([]),
-    user ? listRecentSearches() : Promise.resolve([]),
+    listSavedPlaces(),
+    listRecentSearches(),
   ]);
   const top = routes.find((r) => r.recommended) ?? routes[0];
   const routeHref = (id: string) => `/route/${id}?to=${encodeURIComponent(destination ?? "")}`;

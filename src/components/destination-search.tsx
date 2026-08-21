@@ -139,7 +139,7 @@ export function DestinationSearch({
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="flex items-center gap-2.5 rounded-2xl border border-border bg-surface px-4 py-3.5 text-text-tertiary">
+      <label className="flex items-center gap-2.5 rounded-2xl border border-border bg-surface px-4 py-3.5 text-text-tertiary has-[:focus]:border-primary">
         <svg
           viewBox="0 0 24 24"
           fill="none"

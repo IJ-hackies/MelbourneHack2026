@@ -33,7 +33,7 @@ export function AccountForm({
           type={field.type}
           autoComplete={field.autoComplete}
           required
-          className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:outline-none"
+          className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none"
         />
       </label>
 

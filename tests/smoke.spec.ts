@@ -8,8 +8,17 @@ test("health check responds", async ({ request }) => {
   expect(body.status).toBe("ok");
 });
 
-test("unauthenticated visitor is redirected to login", async ({ page }) => {
+test("unauthenticated visitor sees the marketing page", async ({ page }) => {
   await page.goto("/");
+  await expect(page).toHaveURL("/");
+  await expect(
+    page.getByRole("heading", { name: /Walk Melbourne smarter/ })
+  ).toBeVisible();
+});
+
+test("unauthenticated visitor can reach login from the marketing page", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Log in" }).first().click();
   await expect(page).toHaveURL(/\/login/);
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
 });
