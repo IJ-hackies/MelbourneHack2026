@@ -1,17 +1,24 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { logWalk } from "@/lib/actions/walks";
 
 export function ActiveWalk({
+  routeId,
+  destination,
   minutes,
   distanceKm,
 }: {
+  routeId: string;
+  destination: string;
   minutes: number;
   distanceKm: number;
 }) {
   const [status, setStatus] = useState<"idle" | "walking" | "done">("idle");
   const [elapsed, setElapsed] = useState(0);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isSaving, startSaving] = useTransition();
 
   useEffect(() => {
     if (status !== "walking") return;
@@ -24,6 +31,14 @@ export function ActiveWalk({
   const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
   const ss = String(elapsed % 60).padStart(2, "0");
   const emissionsKg = (distanceKm * 0.19).toFixed(2);
+
+  function endWalk() {
+    setStatus("done");
+    startSaving(async () => {
+      const result = await logWalk({ routeId, destination, minutes, distanceKm });
+      if (result.error) setSaveError(result.error);
+    });
+  }
 
   if (status === "done") {
     return (
@@ -45,7 +60,11 @@ export function ActiveWalk({
           </div>
         </div>
         <p className="mt-3 text-xs text-surface/80">
-          Estimated avoided emissions vs. an equivalent car trip. Saved to your history.
+          {saveError
+            ? "Couldn't save this walk to your history — it still counts, just not recorded."
+            : isSaving
+              ? "Saving to your history…"
+              : "Estimated avoided emissions vs. an equivalent car trip. Saved to your history."}
         </p>
       </div>
     );
@@ -67,7 +86,7 @@ export function ActiveWalk({
         </div>
         <button
           type="button"
-          onClick={() => setStatus("done")}
+          onClick={endWalk}
           className="mt-4 w-full rounded-xl border border-primary py-3 text-sm font-semibold text-primary-strong"
         >
           End walk

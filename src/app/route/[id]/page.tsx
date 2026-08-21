@@ -108,7 +108,12 @@ export default async function RouteDetail({
           </div>
         </div>
 
-        <ActiveWalk minutes={route.minutes} distanceKm={route.distanceKm} />
+        <ActiveWalk
+          routeId={route.id}
+          destination={destination}
+          minutes={route.minutes}
+          distanceKm={route.distanceKm}
+        />
       </div>
     </main>
   );
