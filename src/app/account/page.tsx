@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation";
 import { DeleteAccountForm } from "@/components/delete-account-form";
-import { ResetLinkButton } from "@/components/reset-link-button";
-import { sendPasswordResetLink } from "@/lib/actions/account";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function Account() {
@@ -20,16 +18,6 @@ export default async function Account() {
         <p className="mt-1 text-sm text-text-secondary">
           Signed in as <span className="text-text">{user.email}</span>
         </p>
-      </div>
-
-      <div>
-        <h2 className="font-display text-base font-semibold tracking-tight text-text">
-          Change password
-        </h2>
-        <p className="mt-1 mb-3 text-[0.82rem] text-text-tertiary">
-          We&apos;ll email you a secure link to set a new password.
-        </p>
-        <ResetLinkButton action={sendPasswordResetLink} label="Send reset link" />
       </div>
 
       <div>
