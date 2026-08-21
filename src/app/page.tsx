@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PendingLink } from "@/components/pending-link";
 import { ConditionIcon } from "@/components/condition-icon";
 import { DestinationSearch } from "@/components/destination-search";
 import { SavedPlacesRow } from "@/components/saved-places-row";
@@ -181,12 +182,12 @@ async function PlanScreen({
             </div>
 
             {top && (
-              <Link
+              <PendingLink
                 href={routeHref(top.id)}
                 className="rounded-2xl bg-primary py-3.5 text-center font-semibold text-surface shadow-[0_10px_22px_-12px_hsl(160_30%_15%/0.45)] lg:max-w-sm"
               >
-                Start walking — {top.minutes} min pick
-              </Link>
+                Start walking, {top.minutes} min pick
+              </PendingLink>
             )}
           </>
         )}

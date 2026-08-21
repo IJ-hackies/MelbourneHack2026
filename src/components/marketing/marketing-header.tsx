@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { PendingLink } from "@/components/pending-link";
 
 const NAV_LINKS = [
   { id: "features", label: "Features" },
@@ -49,18 +49,18 @@ export function MarketingHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link
+          <PendingLink
             href="/login"
             className="text-sm font-medium text-text-secondary transition-colors hover:text-text"
           >
             Log in
-          </Link>
-          <Link
+          </PendingLink>
+          <PendingLink
             href="/signup"
             className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-surface transition-opacity hover:opacity-90"
           >
             Get started
-          </Link>
+          </PendingLink>
         </div>
 
         <button
