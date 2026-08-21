@@ -7,6 +7,7 @@ const tabs = [
   { href: "/", label: "Plan" },
   { href: "/history", label: "History" },
   { href: "/preferences", label: "Preferences" },
+  { href: "/account", label: "Account" },
 ];
 
 export function NavTabs() {

@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Slider } from "@/components/slider";
 import { Toggle } from "@/components/toggle";
+import { useToast } from "@/components/toast-provider";
 import { paceLabels, type Profile } from "@/lib/profile";
 
 type ActionState = { error: string | null; saved?: boolean } | undefined;
@@ -19,6 +20,12 @@ export function PreferencesForm({
   layout?: "settings" | "onboarding";
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  const showToast = useToast();
+
+  useEffect(() => {
+    if (state?.saved) showToast("Preferences saved");
+  }, [state, showToast]);
+
   const [heatSensitivity, setHeatSensitivity] = useState(profile.heat_sensitivity);
   const [comfortBalance, setComfortBalance] = useState(profile.comfort_balance);
   const [pace, setPace] = useState(profile.pace);
@@ -114,11 +121,6 @@ export function PreferencesForm({
       {state?.error && (
         <p className="rounded-xl bg-heat-soft px-3.5 py-2.5 text-sm text-heat">
           {state.error}
-        </p>
-      )}
-      {state?.saved && (
-        <p className="rounded-xl bg-primary-soft px-3.5 py-2.5 text-sm text-primary-strong">
-          Saved.
         </p>
       )}
 

@@ -1,16 +1,62 @@
 import Link from "next/link";
 import { ConditionIcon } from "@/components/condition-icon";
 import { DestinationSearch } from "@/components/destination-search";
-import { DEFAULT_DESTINATION, conditions, departure, routeOptions } from "@/lib/routes";
+import { SavedPlacesRow } from "@/components/saved-places-row";
+import { DEFAULT_DESTINATION, formatDeparture } from "@/lib/routes";
+import { conditionProvider } from "@/lib/providers/condition-provider";
+import { routeProvider } from "@/lib/providers/route-provider";
+import { listSavedPlaces } from "@/lib/actions/places";
+import { listRecentSearches } from "@/lib/actions/searches";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ to?: string }>;
+  searchParams: Promise<{ to?: string; address?: string; lat?: string; lon?: string }>;
 }) {
-  const { to } = await searchParams;
+  const { to, address, lat, lon } = await searchParams;
   const destination = to?.trim() || DEFAULT_DESTINATION;
-  const top = routeOptions.find((r) => r.recommended) ?? routeOptions[0];
+  const current = to
+    ? {
+        label: destination,
+        address,
+        lat: lat ? Number(lat) : undefined,
+        lon: lon ? Number(lon) : undefined,
+      }
+    : null;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let preferences: Parameters<typeof routeProvider.listRoutes>[0]["preferences"];
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select(
+        "heat_sensitivity, comfort_balance, pace, prefer_quieter_streets, prefer_lower_traffic"
+      )
+      .eq("id", user.id)
+      .single();
+    if (profile) {
+      preferences = {
+        heatSensitivity: profile.heat_sensitivity,
+        comfortBalance: profile.comfort_balance,
+        pace: profile.pace,
+        preferQuieterStreets: profile.prefer_quieter_streets,
+        preferLowerTraffic: profile.prefer_lower_traffic,
+      };
+    }
+  }
+
+  const [conditions, routes, savedPlaces, recentSearches] = await Promise.all([
+    conditionProvider.getConditions({ label: destination }),
+    routeProvider.listRoutes({ label: destination, departureTime: new Date(), preferences }),
+    user ? listSavedPlaces() : Promise.resolve([]),
+    user ? listRecentSearches() : Promise.resolve([]),
+  ]);
+  const top = routes.find((r) => r.recommended) ?? routes[0];
   const routeHref = (id: string) => `/route/${id}?to=${encodeURIComponent(destination)}`;
 
   return (
@@ -25,19 +71,9 @@ export default async function Home({
           </p>
         </div>
 
-        <DestinationSearch initialValue={destination} />
+        <DestinationSearch initialValue={destination} recentSearches={recentSearches} />
 
-        <div className="-mx-5 flex gap-2 overflow-x-auto px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:flex-wrap lg:px-0">
-          {["Home", "Work", "Saved"].map((label) => (
-            <button
-              key={label}
-              type="button"
-              className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-surface-alt px-3.5 py-2 text-[0.82rem] text-text-secondary"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <SavedPlacesRow places={savedPlaces} current={current} />
 
         <div className="grid grid-cols-3 gap-2 lg:grid-cols-1 lg:gap-2.5">
           {conditions.map((c) => (
@@ -67,10 +103,10 @@ export default async function Home({
           <h2 className="font-display text-lg font-semibold tracking-tight text-text lg:text-xl">
             3 ways to {destination}
           </h2>
-          <p className="mt-1 text-sm text-text-secondary">{departure}</p>
+          <p className="mt-1 text-sm text-text-secondary">{formatDeparture(new Date())}</p>
 
           <div className="mt-4 flex flex-col gap-2.5 lg:grid lg:grid-cols-2 lg:items-start">
-            {routeOptions.map((route) => (
+            {routes.map((route) => (
               <Link
                 key={route.id}
                 href={routeHref(route.id)}
@@ -115,12 +151,14 @@ export default async function Home({
           </div>
         </div>
 
-        <Link
-          href={routeHref(top.id)}
-          className="rounded-2xl bg-primary py-3.5 text-center font-semibold text-surface shadow-[0_10px_22px_-12px_hsl(160_30%_15%/0.45)] lg:max-w-sm"
-        >
-          Start walking — {top.minutes} min pick
-        </Link>
+        {top && (
+          <Link
+            href={routeHref(top.id)}
+            className="rounded-2xl bg-primary py-3.5 text-center font-semibold text-surface shadow-[0_10px_22px_-12px_hsl(160_30%_15%/0.45)] lg:max-w-sm"
+          >
+            Start walking — {top.minutes} min pick
+          </Link>
+        )}
       </div>
     </main>
   );

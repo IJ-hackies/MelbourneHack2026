@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { WalkRow } from "@/components/walk-row";
 import { createClient } from "@/lib/supabase/server";
 
 const levelClass = [
@@ -133,20 +134,14 @@ export default async function History() {
         ) : (
           <div className="mt-3 grid grid-cols-1 gap-2.5 lg:grid-cols-2">
             {recentWalks.map((walk) => (
-              <div
+              <WalkRow
                 key={walk.id}
-                className="flex items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3.5"
-              >
-                <div>
-                  <div className="text-sm font-medium text-text">{walk.destination}</div>
-                  <div className="mt-0.5 text-[0.78rem] text-text-tertiary">
-                    {formatWalkDate(walk.completed_at)} · {walk.distance_km} km
-                  </div>
-                </div>
-                <div className="font-display text-sm font-semibold text-text">
-                  {walk.minutes} min
-                </div>
-              </div>
+                id={walk.id}
+                destination={walk.destination}
+                minutes={walk.minutes}
+                distanceKm={walk.distance_km}
+                dateLabel={formatWalkDate(walk.completed_at)}
+              />
             ))}
           </div>
         )}

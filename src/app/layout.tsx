@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk, Roboto_Mono } from "next/font/google";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NavTabs } from "@/components/nav-tabs";
 import { UserMenu } from "@/components/user-menu";
+import { ToastProvider } from "@/components/toast-provider";
 import { themeInitScript } from "./theme-script";
 import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
@@ -28,8 +29,21 @@ const robotoMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HeatRoute",
+  title: {
+    default: "HeatRoute",
+    template: "%s · HeatRoute",
+  },
   description: "Personalised walking routes for Melbourne.",
+  openGraph: {
+    title: "HeatRoute",
+    description: "Personalised walking routes for Melbourne.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "HeatRoute",
+    description: "Personalised walking routes for Melbourne.",
+  },
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -58,23 +72,25 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>
-        <div className="sticky top-0 z-20 border-b border-border bg-bg/90 backdrop-blur-md">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
-            <div className="flex items-center gap-2 font-display text-[1.05rem] font-semibold tracking-tight text-text">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[22px] w-[22px] text-primary">
-                <path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21Z" />
-                <circle cx="12" cy="9.5" r="2.4" />
-              </svg>
-              HeatRoute
-            </div>
-            <div className="flex items-center gap-3">
-              {user?.email && <UserMenu email={user.email} />}
-              <ThemeToggle />
+        <ToastProvider>
+          <div className="sticky top-0 z-20 border-b border-border bg-bg/90 backdrop-blur-md">
+            <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
+              <div className="flex items-center gap-2 font-display text-[1.05rem] font-semibold tracking-tight text-text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[22px] w-[22px] text-primary">
+                  <path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21Z" />
+                  <circle cx="12" cy="9.5" r="2.4" />
+                </svg>
+                HeatRoute
+              </div>
+              <div className="flex items-center gap-3">
+                {user?.email && <UserMenu email={user.email} />}
+                <ThemeToggle />
+              </div>
             </div>
           </div>
-        </div>
-        {user && onboarded && <NavTabs />}
-        {children}
+          {user && onboarded && <NavTabs />}
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

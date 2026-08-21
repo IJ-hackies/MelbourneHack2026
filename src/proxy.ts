@@ -5,7 +5,7 @@ const PUBLIC_PATHS = ["/login", "/signup"];
 const ONBOARDING_PATH = "/onboarding";
 
 export async function proxy(request: NextRequest) {
-  if (request.nextUrl.pathname === "/auth/callback") {
+  if (request.nextUrl.pathname === "/auth/callback" || request.nextUrl.pathname === "/api/health") {
     return NextResponse.next({ request });
   }
 

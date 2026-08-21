@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { logSearch, type RecentSearch } from "@/lib/actions/searches";
 
 type Suggestion = {
   label: string;
@@ -10,16 +11,38 @@ type Suggestion = {
   lon: number;
 };
 
-export function DestinationSearch({ initialValue }: { initialValue: string }) {
+// Shared across every mount within the session — retyping something you
+// already searched for shouldn't re-hit the network (Nominatim's public
+// endpoint is rate-limited and has no SLA).
+const searchCache = new Map<string, Suggestion[]>();
+
+export function DestinationSearch({
+  initialValue,
+  recentSearches = [],
+}: {
+  initialValue: string;
+  recentSearches?: RecentSearch[];
+}) {
   const router = useRouter();
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const showingRecents = query.trim().length < 3;
+  const items: Suggestion[] = showingRecents
+    ? recentSearches.map((r) => ({
+        label: r.label,
+        address: r.address ?? "",
+        lat: r.lat ?? 0,
+        lon: r.lon ?? 0,
+      }))
+    : suggestions;
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -34,13 +57,23 @@ export function DestinationSearch({ initialValue }: { initialValue: string }) {
   function handleChange(value: string) {
     setQuery(value);
     setActiveIndex(-1);
+    setError(null);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     abortRef.current?.abort();
 
     if (value.trim().length < 3) {
       setSuggestions([]);
-      setOpen(false);
+      setLoading(false);
+      setOpen(recentSearches.length > 0);
+      return;
+    }
+
+    const cacheKey = value.trim().toLowerCase();
+    const cached = searchCache.get(cacheKey);
+    if (cached) {
+      setSuggestions(cached);
+      setOpen(true);
       setLoading(false);
       return;
     }
@@ -54,10 +87,20 @@ export function DestinationSearch({ initialValue }: { initialValue: string }) {
           signal: controller.signal,
         });
         const data = await res.json();
-        setSuggestions(data.results ?? []);
+        if (!res.ok) {
+          setError(data.error ?? "Search is temporarily unavailable.");
+          setSuggestions([]);
+        } else {
+          searchCache.set(cacheKey, data.results ?? []);
+          setSuggestions(data.results ?? []);
+        }
         setOpen(true);
       } catch (err) {
-        if ((err as Error).name !== "AbortError") setSuggestions([]);
+        if ((err as Error).name !== "AbortError") {
+          setError("Search is temporarily unavailable.");
+          setSuggestions([]);
+          setOpen(true);
+        }
       } finally {
         setLoading(false);
       }
@@ -68,20 +111,27 @@ export function DestinationSearch({ initialValue }: { initialValue: string }) {
     setQuery(s.label);
     setOpen(false);
     setSuggestions([]);
-    router.push(`/?to=${encodeURIComponent(s.label)}`);
+    logSearch(s).catch(() => {});
+    const params = new URLSearchParams({
+      to: s.label,
+      address: s.address,
+      lat: String(s.lat),
+      lon: String(s.lon),
+    });
+    router.push(`/?${params.toString()}`);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (!open || suggestions.length === 0) return;
+    if (!open || items.length === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActiveIndex((i) => Math.min(i + 1, suggestions.length - 1));
+      setActiveIndex((i) => Math.min(i + 1, items.length - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex((i) => Math.max(i - 1, 0));
     } else if (e.key === "Enter" && activeIndex >= 0) {
       e.preventDefault();
-      select(suggestions[activeIndex]);
+      select(items[activeIndex]);
     } else if (e.key === "Escape") {
       setOpen(false);
     }
@@ -105,7 +155,7 @@ export function DestinationSearch({ initialValue }: { initialValue: string }) {
           type="text"
           value={query}
           onChange={(e) => handleChange(e.target.value)}
-          onFocus={() => suggestions.length > 0 && setOpen(true)}
+          onFocus={() => (items.length > 0 ? setOpen(true) : undefined)}
           onKeyDown={handleKeyDown}
           placeholder="Search a street, building, or place in Melbourne"
           role="combobox"
@@ -119,14 +169,29 @@ export function DestinationSearch({ initialValue }: { initialValue: string }) {
         )}
       </label>
 
-      {open && suggestions.length > 0 && (
+      {open && error && (
+        <div className="absolute z-30 mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-text-tertiary shadow-lg">
+          {error}
+        </div>
+      )}
+
+      {open && !error && items.length > 0 && (
         <ul
           id="destination-suggestions"
           role="listbox"
           className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-lg"
         >
-          {suggestions.map((s, i) => (
-            <li key={`${s.lat}-${s.lon}`}>
+          {showingRecents && (
+            <li className="flex items-center gap-1.5 px-4 pt-3 pb-1 text-[0.7rem] tracking-wide text-text-tertiary uppercase">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 3" />
+              </svg>
+              Recent
+            </li>
+          )}
+          {items.map((s, i) => (
+            <li key={`${s.label}-${s.lat}-${s.lon}`}>
               <button
                 type="button"
                 onClick={() => select(s)}
@@ -136,7 +201,7 @@ export function DestinationSearch({ initialValue }: { initialValue: string }) {
                 }`}
               >
                 <span className="text-sm font-medium text-text">{s.label}</span>
-                <span className="text-xs text-text-tertiary">{s.address}</span>
+                {s.address && <span className="text-xs text-text-tertiary">{s.address}</span>}
               </button>
             </li>
           ))}

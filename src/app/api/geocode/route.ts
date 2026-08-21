@@ -20,16 +20,30 @@ export async function GET(request: Request) {
   url.searchParams.set("viewbox", VIEWBOX);
   url.searchParams.set("bounded", "1");
 
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "HeatRoute/0.1 (Melbourne walking-route planner, hackathon project)",
-      "Accept-Language": "en-AU",
-    },
-    next: { revalidate: 0 },
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: {
+        "User-Agent": "HeatRoute/0.1 (Melbourne walking-route planner, hackathon project)",
+        "Accept-Language": "en-AU",
+      },
+      // Identical queries are served from Next's fetch cache for a minute —
+      // eases load on Nominatim's free public endpoint and its rate limit.
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch {
+    return NextResponse.json(
+      { results: [], error: "Search is temporarily unavailable." },
+      { status: 502 }
+    );
+  }
 
   if (!res.ok) {
-    return NextResponse.json({ results: [] }, { status: 502 });
+    return NextResponse.json(
+      { results: [], error: "Search is temporarily unavailable." },
+      { status: 502 }
+    );
   }
 
   const data: Array<{

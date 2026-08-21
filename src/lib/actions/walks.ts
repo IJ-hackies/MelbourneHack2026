@@ -36,3 +36,22 @@ export async function logWalk({
   revalidatePath("/history");
   return { error: null };
 }
+
+export async function deleteWalk(id: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in" };
+
+  const { error } = await supabase
+    .from("walks")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/history");
+  return { error: null };
+}
