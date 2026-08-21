@@ -1,7 +1,26 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+
+export async function loginWithGoogle() {
+  const supabase = await createClient();
+  const headerList = await headers();
+  const origin = headerList.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${origin}/auth/callback` },
+  });
+
+  if (error || !data.url) {
+    redirect("/login?error=oauth");
+  }
+
+  redirect(data.url);
+}
 
 export type AuthState = { error: string | null } | undefined;
 
@@ -20,6 +39,7 @@ export async function login(
     return { error: error.message };
   }
 
+  revalidatePath("/", "layout");
   redirect(next || "/");
 }
 
@@ -49,11 +69,13 @@ export async function signup(
     };
   }
 
+  revalidatePath("/", "layout");
   redirect("/onboarding");
 }
 
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  revalidatePath("/", "layout");
   redirect("/login");
 }

@@ -39,6 +39,7 @@ export async function skipOnboarding() {
   if (!user) redirect("/login");
 
   await supabase.from("profiles").update({ onboarded: true }).eq("id", user.id);
+  revalidatePath("/", "layout");
   redirect("/");
 }
 
@@ -58,5 +59,6 @@ export async function completeOnboarding(_prevState: unknown, formData: FormData
     return { error: error.message };
   }
 
+  revalidatePath("/", "layout");
   redirect("/");
 }

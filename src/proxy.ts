@@ -5,6 +5,10 @@ const PUBLIC_PATHS = ["/login", "/signup"];
 const ONBOARDING_PATH = "/onboarding";
 
 export async function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname === "/auth/callback") {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(

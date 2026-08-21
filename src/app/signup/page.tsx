@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AuthForm } from "@/components/auth-form";
+import { GoogleButton } from "@/components/google-button";
 import { signup } from "@/lib/actions/auth";
 
 export default function Signup() {
@@ -12,6 +13,14 @@ export default function Signup() {
         <p className="mt-1 text-sm text-text-secondary">
           Sensible defaults from the start, personalise after.
         </p>
+      </div>
+
+      <GoogleButton />
+
+      <div className="my-6 flex items-center gap-3 text-xs text-text-tertiary">
+        <span className="h-px flex-1 bg-border" />
+        or
+        <span className="h-px flex-1 bg-border" />
       </div>
 
       <AuthForm
