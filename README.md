@@ -1,6 +1,6 @@
-# HeatRoute
+# LeafRoute
 
-Empty frontend scaffold for HeatRoute, built with Next.js, React, TypeScript, and Tailwind CSS.
+Empty frontend scaffold for LeafRoute, built with Next.js, React, TypeScript, and Tailwind CSS.
 
 ## Getting Started
 

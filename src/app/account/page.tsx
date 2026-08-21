@@ -45,7 +45,7 @@ export default async function Account() {
         <p className="mt-1 mb-3 text-[0.82rem] text-text-tertiary">
           {hasPassword
             ? "Update the password you use to sign in."
-            : "You signed up with Google — add a password to also sign in with email."}
+            : "You signed up with Google, add a password to also sign in with email."}
         </p>
         <AccountForm
           action={changePassword}

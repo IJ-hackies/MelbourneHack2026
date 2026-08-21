@@ -4,7 +4,7 @@ import { Resend } from "resend";
 
 export type ContactState = { error: string | null; success?: boolean } | undefined;
 
-const CONTACT_INBOX = process.env.CONTACT_INBOX_EMAIL ?? "hello@heatroute.app";
+const CONTACT_INBOX = process.env.CONTACT_INBOX_EMAIL ?? "hello@leafroute.org";
 
 export async function sendContactMessage(
   _prevState: ContactState,
@@ -23,20 +23,20 @@ export async function sendContactMessage(
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    return { error: "Email isn't configured yet — try again shortly." };
+    return { error: "Email isn't configured yet, try again shortly." };
   }
 
   const resend = new Resend(apiKey);
   const { error } = await resend.emails.send({
-    from: "HeatRoute <onboarding@resend.dev>",
+    from: "LeafRoute <onboarding@resend.dev>",
     to: CONTACT_INBOX,
     replyTo: email,
-    subject: `HeatRoute contact form — ${name}`,
+    subject: `LeafRoute contact form from ${name}`,
     text: `From: ${name} <${email}>\n\n${message}`,
   });
 
   if (error) {
-    return { error: "Couldn't send that — try again in a moment." };
+    return { error: "Couldn't send that, try again in a moment." };
   }
 
   return { error: null, success: true };

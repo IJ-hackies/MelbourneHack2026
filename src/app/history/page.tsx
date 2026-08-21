@@ -100,8 +100,8 @@ export default async function History() {
             {totalEmissions.toFixed(1)} kg CO₂e
           </div>
           <p className="mt-1.5 text-[0.75rem] text-surface/80">
-            Vs. an equivalent car trip — illustrative, not a guarantee you would
-            have driven.
+            Compared to an equivalent car trip. It&apos;s an estimate, not a
+            guarantee you would have driven.
           </p>
         </div>
 
@@ -129,7 +129,7 @@ export default async function History() {
         </h2>
         {recentWalks.length === 0 ? (
           <p className="mt-3 rounded-2xl border border-dashed border-border px-4 py-6 text-center text-sm text-text-tertiary">
-            No walks yet — finish a route from the Plan tab and it&apos;ll show up here.
+            No walks yet. Finish a route from the Plan tab and it&apos;ll show up here.
           </p>
         ) : (
           <div className="mt-3 grid grid-cols-1 gap-2.5 lg:grid-cols-2">

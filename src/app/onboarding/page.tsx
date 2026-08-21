@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { PreferencesForm } from "@/components/preferences-form";
+import { FormStatusButton } from "@/components/form-status-button";
 import { completeOnboarding, skipOnboarding } from "@/lib/actions/profile";
 import { defaultProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
@@ -23,10 +24,10 @@ export default async function Onboarding() {
     <main className="mx-auto flex max-w-md flex-col gap-8 px-5 py-8 sm:px-8 lg:py-12">
       <div>
         <h1 className="font-display text-[1.6rem] font-semibold tracking-tight text-text lg:text-[1.9rem]">
-          {name ? `Welcome, ${name}` : "Welcome to HeatRoute"}
+          {name ? `Welcome, ${name}` : "Welcome to LeafRoute"}
         </h1>
         <p className="mt-1 text-sm text-text-secondary">
-          A few quick preferences — sensible defaults are already set, so
+          A few quick preferences, sensible defaults are already set, so
           skipping ahead is fine too.
         </p>
       </div>
@@ -39,9 +40,9 @@ export default async function Onboarding() {
       />
 
       <form action={skipOnboarding} className="text-center">
-        <button type="submit" className="text-sm text-text-secondary underline">
-          Skip for now — use sensible defaults
-        </button>
+        <FormStatusButton pendingLabel="Skipping…" className="text-sm text-text-secondary underline">
+          Skip for now, use sensible defaults
+        </FormStatusButton>
       </form>
     </main>
   );

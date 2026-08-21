@@ -28,18 +28,18 @@ const robotoMono = Roboto_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "HeatRoute",
-    template: "%s · HeatRoute",
+    default: "LeafRoute",
+    template: "%s · LeafRoute",
   },
   description: "Personalised walking routes for Melbourne.",
   openGraph: {
-    title: "HeatRoute",
+    title: "LeafRoute",
     description: "Personalised walking routes for Melbourne.",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "HeatRoute",
+    title: "LeafRoute",
     description: "Personalised walking routes for Melbourne.",
   },
 };
@@ -75,7 +75,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                     <path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21Z" />
                     <circle cx="12" cy="9.5" r="2.4" />
                   </svg>
-                  HeatRoute
+                  LeafRoute
                 </div>
                 <div className="flex items-center gap-3">
                   {user.email && <UserMenu email={user.email} />}
