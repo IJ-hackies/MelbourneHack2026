@@ -45,7 +45,7 @@ test("signed-in visitor reaches the Plan screen, then sees 404 for an unknown ro
   await expect(heading).toBeVisible();
 
   if ((await heading.textContent())?.startsWith("Welcome")) {
-    await page.getByRole("button", { name: "Skip for now — use sensible defaults" }).click();
+    await page.getByRole("button", { name: "Skip for now, use sensible defaults" }).click();
     await page.waitForURL((url) => url.pathname === "/", { timeout: 15_000 });
   }
 
