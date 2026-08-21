@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActiveWalk } from "@/components/active-walk";
 import { ConditionIcon } from "@/components/condition-icon";
-import { destination, getRoute, routeOptions } from "@/lib/routes";
+import { DEFAULT_DESTINATION, getRoute, routeOptions } from "@/lib/routes";
 
 export function generateStaticParams() {
   return routeOptions.map((r) => ({ id: r.id }));
@@ -10,10 +10,14 @@ export function generateStaticParams() {
 
 export default async function RouteDetail({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ to?: string }>;
 }) {
   const { id } = await params;
+  const { to } = await searchParams;
+  const destination = to?.trim() || DEFAULT_DESTINATION;
   const route = getRoute(id);
   if (!route) notFound();
 
@@ -21,7 +25,7 @@ export default async function RouteDetail({
     <main className="mx-auto grid max-w-xl grid-cols-1 gap-6 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[1fr_340px] lg:items-start lg:gap-12 lg:py-12">
       <div className="flex flex-col gap-6 lg:col-span-2">
         <Link
-          href="/"
+          href={`/?to=${encodeURIComponent(destination)}`}
           className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">

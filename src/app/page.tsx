@@ -1,9 +1,17 @@
 import Link from "next/link";
 import { ConditionIcon } from "@/components/condition-icon";
-import { conditions, departure, destination, routeOptions } from "@/lib/routes";
+import { DestinationSearch } from "@/components/destination-search";
+import { DEFAULT_DESTINATION, conditions, departure, routeOptions } from "@/lib/routes";
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ to?: string }>;
+}) {
+  const { to } = await searchParams;
+  const destination = to?.trim() || DEFAULT_DESTINATION;
   const top = routeOptions.find((r) => r.recommended) ?? routeOptions[0];
+  const routeHref = (id: string) => `/route/${id}?to=${encodeURIComponent(destination)}`;
 
   return (
     <main className="mx-auto grid max-w-xl grid-cols-1 gap-8 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[360px_1fr] lg:items-start lg:gap-12 lg:py-12">
@@ -17,24 +25,7 @@ export default function Home() {
           </p>
         </div>
 
-        <label className="flex items-center gap-2.5 rounded-2xl border border-border bg-surface px-4 py-3.5 text-text-tertiary">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            className="h-[17px] w-[17px] shrink-0"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-          <input
-            type="text"
-            defaultValue={destination}
-            className="w-full bg-transparent text-[0.95rem] text-text placeholder:text-text-tertiary focus:outline-none"
-          />
-        </label>
+        <DestinationSearch initialValue={destination} />
 
         <div className="-mx-5 flex gap-2 overflow-x-auto px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:flex-wrap lg:px-0">
           {["Home", "Work", "Saved"].map((label) => (
@@ -82,7 +73,7 @@ export default function Home() {
             {routeOptions.map((route) => (
               <Link
                 key={route.id}
-                href={`/route/${route.id}`}
+                href={routeHref(route.id)}
                 className={`block rounded-2xl border p-4 transition-colors ${
                   route.recommended
                     ? "border-primary bg-primary-soft"
@@ -125,7 +116,7 @@ export default function Home() {
         </div>
 
         <Link
-          href={`/route/${top.id}`}
+          href={routeHref(top.id)}
           className="rounded-2xl bg-primary py-3.5 text-center font-semibold text-surface shadow-[0_10px_22px_-12px_hsl(160_30%_15%/0.45)] lg:max-w-sm"
         >
           Start walking — {top.minutes} min pick

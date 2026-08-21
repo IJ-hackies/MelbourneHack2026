@@ -14,7 +14,7 @@ export type RouteOption = {
   }[];
 };
 
-export const destination = "Fitzroy Gardens";
+export const DEFAULT_DESTINATION = "Fitzroy Gardens";
 export const departure = "Leaving now · 3:40pm";
 
 export const conditions = [
@@ -23,6 +23,9 @@ export const conditions = [
   { label: "Shade", value: "62%", tone: "primary" as const },
 ];
 
+// Stub route data — the same three options for every destination until the
+// pedestrian routing graph and ML-side condition scoring exist. Swap this out
+// for a real per-destination route query once that lands.
 export const routeOptions: RouteOption[] = [
   {
     id: "comfort",
