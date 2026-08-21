@@ -73,6 +73,28 @@ export async function signup(
   redirect("/onboarding");
 }
 
+export async function requestPasswordReset(
+  _prevState: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  const email = String(formData.get("email") ?? "");
+  const headerList = await headers();
+  const origin = headerList.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/callback?next=/reset-password`,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return {
+    error: "If that email has an account, a reset link is on its way, check your inbox.",
+  };
+}
+
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();

@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { APEX_HOSTS, APP_HOST } from "@/lib/hosts";
 
-const PUBLIC_PATHS = ["/login", "/signup"];
+const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password"];
 const ONBOARDING_PATH = "/onboarding";
 
 export async function proxy(request: NextRequest) {
