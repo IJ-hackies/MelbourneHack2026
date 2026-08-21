@@ -51,14 +51,14 @@ export function MarketingHeader({ appOrigin = "" }: { appOrigin?: string }) {
         <div className="hidden items-center gap-3 md:flex">
           <PendingLink
             href={`${appOrigin}/login`}
-            newTabOnDesktop
+            newTabOnDesktop={Boolean(appOrigin)}
             className="text-sm font-medium text-text-secondary transition-colors hover:text-text"
           >
             Log in
           </PendingLink>
           <PendingLink
             href={`${appOrigin}/signup`}
-            newTabOnDesktop
+            newTabOnDesktop={Boolean(appOrigin)}
             className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-surface transition-opacity hover:opacity-90"
           >
             Get started
