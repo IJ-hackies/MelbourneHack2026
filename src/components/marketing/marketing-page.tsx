@@ -46,7 +46,7 @@ const STEPS = [
 
 export function MarketingPage() {
   return (
-    <div className="marketing">
+    <div>
       <MarketingHeader />
 
       <main>

@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk, Roboto_Mono } from "next/font/google";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { NavTabs } from "@/components/nav-tabs";
 import { UserMenu } from "@/components/user-menu";
 import { ToastProvider } from "@/components/toast-provider";
-import { themeInitScript } from "./theme-script";
 import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 
@@ -66,11 +64,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${inter.variable} ${spaceGrotesk.variable} ${robotoMono.variable}`}
-      suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-      </head>
       <body>
         <ToastProvider>
           {user && (
@@ -85,7 +79,6 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 </div>
                 <div className="flex items-center gap-3">
                   {user.email && <UserMenu email={user.email} />}
-                  <ThemeToggle />
                 </div>
               </div>
             </div>

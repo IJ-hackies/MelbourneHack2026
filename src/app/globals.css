@@ -23,55 +23,6 @@
   color-scheme: light;
 }
 
-:root[data-theme="dark"] {
-  --bg: #0a1614;
-  --surface: #0f201d;
-  --surface-alt: #152925;
-  --surface-sunk: #0a1816;
-  --border: #22403a;
-  --text: #eaf4f1;
-  --text-secondary: #9fbdb6;
-  --text-tertiary: #6f8f88;
-  --primary: #52d6c4;
-  --primary-strong: #8ce8db;
-  --primary-soft: #173a34;
-  --heat: #ff9a63;
-  --heat-soft: #3a2318;
-  --crowd: #f0b449;
-  --crowd-soft: #3a2c12;
-  --traffic: #ff8266;
-  --traffic-soft: #3a1c14;
-  --focus: #52d6c4;
-  color-scheme: dark;
-}
-
-/* Marketing page always renders in the brand's cream palette, independent of
-   the app's stored theme preference — it's a fixed brand look, not a
-   themeable surface. */
-.marketing {
-  --bg: #f7f2e7;
-  --surface: #fffdf7;
-  --surface-alt: #f0e9d8;
-  --surface-sunk: #e8dfc9;
-  --border: #e2d7bd;
-  --text: #2b241a;
-  --text-secondary: #6b6252;
-  --text-tertiary: #948a75;
-  --primary: #0e6e64;
-  --primary-strong: #0a544c;
-  --primary-soft: #e3f0ec;
-  --heat: #e8703a;
-  --heat-soft: #fbeade;
-  --crowd: #c98a1f;
-  --crowd-soft: #f8ecd6;
-  --traffic: #c0432b;
-  --traffic-soft: #f8e3dd;
-  --focus: #0e6e64;
-  color-scheme: light;
-  background: var(--bg);
-  color: var(--text);
-}
-
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -114,5 +65,12 @@ body {
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 3px;
-  border-radius: 4px;
+}
+
+/* Text inputs show focus as a border-colour change instead — the outline
+   above reads as a heavy double-border on top of their existing 1px border. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
 }

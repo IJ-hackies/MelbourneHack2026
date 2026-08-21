@@ -25,7 +25,7 @@ export function MarketingHeader() {
   }
 
   return (
-    <header className="marketing sticky top-0 z-30 border-b border-border bg-bg/85 backdrop-blur-md relative">
+    <header className="sticky top-0 z-30 border-b border-border bg-bg/85 backdrop-blur-md relative">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
         <div className="flex items-center gap-2 font-display text-[1.1rem] font-semibold tracking-tight text-text">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[22px] w-[22px] text-primary">

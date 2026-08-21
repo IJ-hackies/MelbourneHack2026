@@ -31,7 +31,7 @@ export function ContactForm() {
             name="name"
             type="text"
             required
-            className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:outline-none"
+            className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none"
           />
         </label>
         <label className="flex flex-col gap-1.5">
@@ -40,7 +40,7 @@ export function ContactForm() {
             name="email"
             type="email"
             required
-            className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:outline-none"
+            className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none"
           />
         </label>
       </div>
@@ -51,7 +51,7 @@ export function ContactForm() {
           name="message"
           required
           rows={5}
-          className="resize-none rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:outline-none"
+          className="resize-none rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none"
         />
       </label>
 
