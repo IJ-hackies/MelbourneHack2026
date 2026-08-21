@@ -1,5 +1,3 @@
-export const DEFAULT_DESTINATION = "Fitzroy Gardens";
-
 export function formatDeparture(date: Date) {
   const time = date.toLocaleTimeString("en-AU", {
     hour: "numeric",

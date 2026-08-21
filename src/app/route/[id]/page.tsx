@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ActiveWalk } from "@/components/active-walk";
 import { ConditionIcon } from "@/components/condition-icon";
-import { DEFAULT_DESTINATION } from "@/lib/routes";
 import { routeProvider } from "@/lib/providers/route-provider";
 
 export default async function RouteDetail({
@@ -14,7 +13,8 @@ export default async function RouteDetail({
 }) {
   const { id } = await params;
   const { to } = await searchParams;
-  const destination = to?.trim() || DEFAULT_DESTINATION;
+  const destination = to?.trim();
+  if (!destination) redirect("/");
   const route = await routeProvider.getRoute(id, { label: destination });
   if (!route) notFound();
 
