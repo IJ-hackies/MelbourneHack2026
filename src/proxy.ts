@@ -38,6 +38,12 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
 
+  // "/" is the public marketing page for signed-out visitors and the Plan
+  // screen for signed-in ones — page.tsx branches on auth state itself.
+  if (!isAuthed && pathname === "/") {
+    return supabaseResponse;
+  }
+
   if (!isAuthed && !isPublicPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

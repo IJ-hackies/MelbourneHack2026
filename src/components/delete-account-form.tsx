@@ -19,7 +19,7 @@ export function DeleteAccountForm() {
           value={confirmation}
           onChange={(e) => setConfirmation(e.target.value)}
           autoComplete="off"
-          className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text focus:outline-none"
+          className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text focus:border-primary focus:outline-none"
         />
       </label>
 
