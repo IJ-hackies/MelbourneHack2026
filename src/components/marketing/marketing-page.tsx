@@ -69,12 +69,14 @@ export function MarketingPage({ appOrigin = "" }: { appOrigin?: string }) {
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <PendingLink
                 href={`${appOrigin}/signup`}
+                newTabOnDesktop
                 className="w-full rounded-full bg-primary px-7 py-3.5 text-center text-[0.95rem] font-semibold text-surface shadow-[0_16px_36px_-16px_color-mix(in_srgb,var(--primary)_70%,transparent)] transition-opacity hover:opacity-90 sm:w-auto"
               >
                 Get started free
               </PendingLink>
               <PendingLink
                 href={`${appOrigin}/login`}
+                newTabOnDesktop
                 className="w-full rounded-full border border-border px-7 py-3.5 text-center text-[0.95rem] font-medium text-text transition-colors hover:bg-surface-alt sm:w-auto"
               >
                 Log in
@@ -221,6 +223,7 @@ export function MarketingPage({ appOrigin = "" }: { appOrigin?: string }) {
             </div>
             <PendingLink
               href={`${appOrigin}/signup`}
+              newTabOnDesktop
               className="shrink-0 rounded-full bg-primary px-7 py-3.5 text-center text-[0.95rem] font-semibold text-surface transition-opacity hover:opacity-90"
             >
               Start tracking
