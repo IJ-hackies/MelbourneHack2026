@@ -1,0 +1,4 @@
+interface:
+  display_name: "HeatRoute Context Sync"
+  short_description: "Sync HeatRoute chunks with current source code"
+  default_prompt: "Use $reupdate to synchronize HeatRoute context after code changes."

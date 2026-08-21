@@ -1,0 +1,4 @@
+interface:
+  display_name: "HeatRoute Context Loader"
+  short_description: "Load HeatRoute context and route relevant chunks"
+  default_prompt: "Use $recontext to load HeatRoute context for this change."

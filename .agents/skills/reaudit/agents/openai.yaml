@@ -1,0 +1,4 @@
+interface:
+  display_name: "HeatRoute Architecture Audit"
+  short_description: "Audit HeatRoute code against chunked architecture"
+  default_prompt: "Use $reaudit to perform a read-only HeatRoute architecture audit."
