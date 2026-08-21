@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { deleteAccount } from "@/lib/actions/account";
+import { Spinner } from "@/components/spinner";
 
 export function DeleteAccountForm() {
   const [state, formAction, pending] = useActionState(deleteAccount, undefined);
@@ -19,7 +20,8 @@ export function DeleteAccountForm() {
           value={confirmation}
           onChange={(e) => setConfirmation(e.target.value)}
           autoComplete="off"
-          className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text focus:border-primary focus:outline-none"
+          disabled={pending}
+          className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text focus:border-primary focus:outline-none disabled:opacity-60"
         />
       </label>
 
@@ -30,8 +32,10 @@ export function DeleteAccountForm() {
       <button
         type="submit"
         disabled={confirmation !== "DELETE" || pending}
-        className="rounded-xl bg-heat px-5 py-2.5 text-sm font-semibold text-surface disabled:opacity-40"
+        aria-busy={pending}
+        className="flex items-center justify-center gap-2 rounded-xl bg-heat px-5 py-2.5 text-sm font-semibold text-surface disabled:opacity-40"
       >
+        {pending && <Spinner className="h-3.5 w-3.5 text-surface" />}
         {pending ? "Deleting…" : "Delete my account"}
       </button>
     </form>

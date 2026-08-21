@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { PendingLink } from "@/components/pending-link";
 import { ConditionIcon } from "@/components/condition-icon";
 import { DestinationSearch } from "@/components/destination-search";
 import { SavedPlacesRow } from "@/components/saved-places-row";
 import { MarketingPage } from "@/components/marketing/marketing-page";
 import { formatDeparture } from "@/lib/routes";
+import { getAppOrigin } from "@/lib/hosts";
 import { conditionProvider } from "@/lib/providers/condition-provider";
 import { routeProvider } from "@/lib/providers/route-provider";
 import { listSavedPlaces } from "@/lib/actions/places";
@@ -23,7 +26,8 @@ export default async function Home({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <MarketingPage />;
+    const host = (await headers()).get("host");
+    return <MarketingPage appOrigin={getAppOrigin(host)} />;
   }
 
   return <PlanScreen userId={user.id} searchParams={searchParams} />;
@@ -181,12 +185,12 @@ async function PlanScreen({
             </div>
 
             {top && (
-              <Link
+              <PendingLink
                 href={routeHref(top.id)}
                 className="rounded-2xl bg-primary py-3.5 text-center font-semibold text-surface shadow-[0_10px_22px_-12px_hsl(160_30%_15%/0.45)] lg:max-w-sm"
               >
-                Start walking — {top.minutes} min pick
-              </Link>
+                Start walking, {top.minutes} min pick
+              </PendingLink>
             )}
           </>
         )}

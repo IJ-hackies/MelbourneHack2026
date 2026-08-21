@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { Slider } from "@/components/slider";
 import { Toggle } from "@/components/toggle";
 import { useToast } from "@/components/toast-provider";
+import { Spinner } from "@/components/spinner";
 import { paceLabels, type Profile } from "@/lib/profile";
 
 type ActionState = { error: string | null; saved?: boolean } | undefined;
@@ -127,8 +128,10 @@ export function PreferencesForm({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-2xl bg-primary py-3.5 text-center font-semibold text-surface shadow-[0_10px_22px_-12px_hsl(160_30%_15%/0.45)] disabled:opacity-60 lg:max-w-sm"
+        aria-busy={pending}
+        className="flex items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-center font-semibold text-surface shadow-[0_10px_22px_-12px_hsl(160_30%_15%/0.45)] disabled:opacity-60 lg:max-w-sm"
       >
+        {pending && <Spinner className="h-4 w-4 text-surface" />}
         {pending ? "Saving…" : submitLabel}
       </button>
     </form>

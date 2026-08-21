@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   try {
     res = await fetch(url, {
       headers: {
-        "User-Agent": "HeatRoute/0.1 (Melbourne walking-route planner, hackathon project)",
+        "User-Agent": "LeafRoute/0.1 (Melbourne walking-route planner, hackathon project)",
         "Accept-Language": "en-AU",
       },
       // Identical queries are served from Next's fetch cache for a minute —

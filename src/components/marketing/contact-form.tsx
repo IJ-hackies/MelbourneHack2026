@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { sendContactMessage } from "@/lib/actions/contact";
+import { Spinner } from "@/components/spinner";
 
 export function ContactForm() {
   const [state, formAction, pending] = useActionState(sendContactMessage, undefined);
@@ -16,7 +17,7 @@ export function ContactForm() {
       <div className="flex flex-col items-start gap-2 rounded-2xl border border-primary bg-primary-soft p-6">
         <h3 className="font-display text-base font-semibold text-text">Message sent</h3>
         <p className="text-sm text-text-secondary">
-          Thanks — we&apos;ll get back to you soon.
+          Thanks, we&apos;ll get back to you soon.
         </p>
       </div>
     );
@@ -31,7 +32,8 @@ export function ContactForm() {
             name="name"
             type="text"
             required
-            className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none"
+            disabled={pending}
+            className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none disabled:opacity-60"
           />
         </label>
         <label className="flex flex-col gap-1.5">
@@ -40,7 +42,8 @@ export function ContactForm() {
             name="email"
             type="email"
             required
-            className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none"
+            disabled={pending}
+            className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none disabled:opacity-60"
           />
         </label>
       </div>
@@ -51,7 +54,8 @@ export function ContactForm() {
           name="message"
           required
           rows={5}
-          className="resize-none rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none"
+          disabled={pending}
+          className="resize-none rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none disabled:opacity-60"
         />
       </label>
 
@@ -62,8 +66,10 @@ export function ContactForm() {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-surface transition-opacity hover:opacity-90 disabled:opacity-60 sm:self-start"
+        aria-busy={pending}
+        className="flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-surface transition-opacity hover:opacity-90 disabled:opacity-60 sm:self-start"
       >
+        {pending && <Spinner className="h-3.5 w-3.5 text-surface" />}
         {pending ? "Sending…" : "Send message"}
       </button>
     </form>

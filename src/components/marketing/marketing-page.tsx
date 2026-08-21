@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PendingLink } from "@/components/pending-link";
 import { ConditionIcon } from "@/components/condition-icon";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { ContactForm } from "@/components/marketing/contact-form";
@@ -7,7 +7,7 @@ const FEATURES = [
   {
     tone: "heat" as const,
     title: "Heat & shade aware",
-    body: "Routes weigh tree canopy, building shade, and solar position against sun exposure — not just distance.",
+    body: "Routes weigh tree canopy, building shade, and solar position against sun exposure, not just distance.",
   },
   {
     tone: "crowd" as const,
@@ -22,7 +22,7 @@ const FEATURES = [
   {
     tone: "primary" as const,
     title: "Tuned to you",
-    body: "Set your pace and your comfort-versus-speed balance once — every route respects it after that.",
+    body: "Set your pace and your comfort-versus-speed balance once, and every route respects it after that.",
   },
 ];
 
@@ -30,12 +30,12 @@ const STEPS = [
   {
     number: "01",
     title: "Search where you're headed",
-    body: "Type a street, building, or place anywhere in Melbourne — real addresses, not guesswork.",
+    body: "Type a street, building, or place anywhere in Melbourne, real addresses, not guesswork.",
   },
   {
     number: "02",
     title: "Compare the trade-off",
-    body: "See a few honest options: the fastest, the shadiest, the quietest — and exactly what each one costs you in minutes.",
+    body: "See a few honest options, the fastest, the shadiest, the quietest, and exactly what each one costs you in minutes.",
   },
   {
     number: "03",
@@ -44,10 +44,10 @@ const STEPS = [
   },
 ];
 
-export function MarketingPage() {
+export function MarketingPage({ appOrigin = "" }: { appOrigin?: string }) {
   return (
     <div>
-      <MarketingHeader />
+      <MarketingHeader appOrigin={appOrigin} />
 
       <main>
         {/* Hero */}
@@ -63,22 +63,22 @@ export function MarketingPage() {
               not just shorter.
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-[1.05rem] leading-relaxed text-text-secondary sm:text-lg">
-              HeatRoute finds the shadiest, quietest, most comfortable way to get
-              there — trading a few minutes for a walk you&apos;ll actually enjoy.
+              LeafRoute finds the shadiest, quietest, most comfortable way to get
+              there, trading a few minutes for a walk you&apos;ll actually enjoy.
             </p>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                href="/signup"
+              <PendingLink
+                href={`${appOrigin}/signup`}
                 className="w-full rounded-full bg-primary px-7 py-3.5 text-center text-[0.95rem] font-semibold text-surface shadow-[0_16px_36px_-16px_color-mix(in_srgb,var(--primary)_70%,transparent)] transition-opacity hover:opacity-90 sm:w-auto"
               >
                 Get started free
-              </Link>
-              <Link
-                href="/login"
+              </PendingLink>
+              <PendingLink
+                href={`${appOrigin}/login`}
                 className="w-full rounded-full border border-border px-7 py-3.5 text-center text-[0.95rem] font-medium text-text transition-colors hover:bg-surface-alt sm:w-auto"
               >
                 Log in
-              </Link>
+              </PendingLink>
             </div>
           </div>
 
@@ -136,7 +136,7 @@ export function MarketingPage() {
                   </div>
 
                   <div className="mt-4 rounded-full bg-primary py-3 text-center text-[0.9rem] font-semibold text-surface">
-                    Start walking — 17 min
+                    Start walking, 17 min
                   </div>
                 </div>
               </div>
@@ -153,7 +153,7 @@ export function MarketingPage() {
               </h2>
               <p className="mt-3 text-text-secondary">
                 Melbourne summers make the shortest path the wrong one more often
-                than you&apos;d think. HeatRoute accounts for what actually makes a walk
+                than you&apos;d think. LeafRoute accounts for what actually makes a walk
                 bearable.
               </p>
             </div>
@@ -215,16 +215,16 @@ export function MarketingPage() {
                 Every walk is one less car trip.
               </h2>
               <p className="mt-2 text-[0.92rem] text-text-secondary">
-                HeatRoute tracks your walking history and gives you a transparent,
+                LeafRoute tracks your walking history and gives you a transparent,
                 honest estimate of the emissions you avoided by choosing to walk.
               </p>
             </div>
-            <Link
-              href="/signup"
+            <PendingLink
+              href={`${appOrigin}/signup`}
               className="shrink-0 rounded-full bg-primary px-7 py-3.5 text-center text-[0.95rem] font-semibold text-surface transition-opacity hover:opacity-90"
             >
               Start tracking
-            </Link>
+            </PendingLink>
           </div>
         </section>
 
@@ -236,7 +236,7 @@ export function MarketingPage() {
                 Questions, feedback, ideas?
               </h2>
               <p className="mt-3 max-w-sm text-text-secondary">
-                We&apos;re building HeatRoute for Melbourne walkers — tell us what would
+                We&apos;re building LeafRoute for Melbourne walkers, tell us what would
                 make it better, or what&apos;s not working.
               </p>
             </div>
@@ -252,10 +252,10 @@ export function MarketingPage() {
               <path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21Z" />
               <circle cx="12" cy="9.5" r="2.4" />
             </svg>
-            HeatRoute
+            LeafRoute
           </div>
           <p className="text-xs text-text-tertiary">
-            © {new Date().getFullYear()} HeatRoute · Melbourne, Australia
+            © {new Date().getFullYear()} LeafRoute · Melbourne, Australia
           </p>
         </div>
       </footer>

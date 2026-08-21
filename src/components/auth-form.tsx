@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { AuthState } from "@/lib/actions/auth";
+import { Spinner } from "@/components/spinner";
 
 type Field = {
   name: string;
@@ -38,7 +39,8 @@ export function AuthForm({
             type={field.type}
             autoComplete={field.autoComplete}
             required
-            className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none"
+            disabled={pending}
+            className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none disabled:opacity-60"
           />
         </label>
       ))}
@@ -52,8 +54,10 @@ export function AuthForm({
       <button
         type="submit"
         disabled={pending}
-        className="mt-1 rounded-xl bg-primary py-3 text-center font-semibold text-surface disabled:opacity-60"
+        aria-busy={pending}
+        className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-center font-semibold text-surface disabled:opacity-60"
       >
+        {pending && <Spinner className="h-4 w-4 text-surface" />}
         {pending ? "Please wait…" : submitLabel}
       </button>
     </form>

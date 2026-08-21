@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import type { AccountState } from "@/lib/actions/account";
 import { useToast } from "@/components/toast-provider";
+import { Spinner } from "@/components/spinner";
 
 export function AccountForm({
   action,
@@ -33,15 +34,18 @@ export function AccountForm({
           type={field.type}
           autoComplete={field.autoComplete}
           required
-          className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none"
+          disabled={pending}
+          className="rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[0.95rem] text-text placeholder:text-text-tertiary focus:border-primary focus:outline-none disabled:opacity-60"
         />
       </label>
 
       <button
         type="submit"
         disabled={pending}
-        className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-surface disabled:opacity-60"
+        aria-busy={pending}
+        className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-surface disabled:opacity-60"
       >
+        {pending && <Spinner className="h-3.5 w-3.5 text-surface" />}
         {pending ? "Saving…" : submitLabel}
       </button>
 

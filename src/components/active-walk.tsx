@@ -61,7 +61,7 @@ export function ActiveWalk({
         </div>
         <p className="mt-3 text-xs text-surface/80">
           {saveError
-            ? "Couldn't save this walk to your history — it still counts, just not recorded."
+            ? "Couldn't save this walk to your history. It still counts, just not recorded."
             : isSaving
               ? "Saving to your history…"
               : "Estimated avoided emissions vs. an equivalent car trip. Saved to your history."}
@@ -101,7 +101,7 @@ export function ActiveWalk({
       onClick={() => setStatus("walking")}
       className="w-full rounded-2xl bg-primary py-3.5 text-center font-semibold text-surface shadow-[0_10px_22px_-12px_hsl(160_30%_15%/0.45)]"
     >
-      Start walking — {minutes} min
+      Start walking, {minutes} min
     </button>
   );
 }

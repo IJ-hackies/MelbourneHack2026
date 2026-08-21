@@ -45,7 +45,7 @@ export default async function Login({
       />
 
       <p className="mt-6 text-center text-sm text-text-secondary">
-        New to HeatRoute?{" "}
+        New to LeafRoute?{" "}
         <Link href="/signup" className="font-medium text-primary">
           Create an account
         </Link>

@@ -66,7 +66,7 @@ export default async function RouteDetail({
             <circle cx="300" cy="30" r="6" fill="var(--primary)" />
           </svg>
           <span className="absolute bottom-3 left-3 rounded-lg bg-surface/90 px-2.5 py-1 text-[0.72rem] text-text-tertiary">
-            Map preview — routing data not yet wired up
+            Map preview, routing data not yet wired up
           </span>
         </div>
 
