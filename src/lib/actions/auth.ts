@@ -22,7 +22,7 @@ export async function loginWithGoogle() {
   redirect(data.url);
 }
 
-export type AuthState = { error: string | null } | undefined;
+export type AuthState = { error: string | null; success?: string } | undefined;
 
 export async function login(
   _prevState: AuthState,
@@ -64,13 +64,36 @@ export async function signup(
 
   if (!data.session) {
     return {
-      error:
-        "Check your inbox to confirm your email, then sign in.",
+      error: null,
+      success: "Check your inbox to confirm your email, then sign in.",
     };
   }
 
   revalidatePath("/", "layout");
   redirect("/onboarding");
+}
+
+export async function requestPasswordReset(
+  _prevState: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  const email = String(formData.get("email") ?? "");
+  const headerList = await headers();
+  const origin = headerList.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/callback?next=/reset-password`,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return {
+    error: null,
+    success: "If that email has an account, a reset link is on its way, check your inbox.",
+  };
 }
 
 export async function logout() {

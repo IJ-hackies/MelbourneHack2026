@@ -6,24 +6,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type AccountState = { error: string | null; success?: string } | undefined;
 
-export async function changeEmail(
-  _prevState: AccountState,
-  formData: FormData
-): Promise<AccountState> {
-  const email = String(formData.get("email") ?? "").trim();
-  if (!email) return { error: "Enter a new email address." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({ email });
-
-  if (error) return { error: error.message };
-
-  return {
-    error: null,
-    success: "Check both your old and new inbox to confirm the change.",
-  };
-}
-
 export async function changePassword(
   _prevState: AccountState,
   formData: FormData

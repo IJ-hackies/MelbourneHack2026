@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ActiveWalk } from "@/components/active-walk";
 import { ConditionIcon } from "@/components/condition-icon";
 import { routeProvider } from "@/lib/providers/route-provider";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function RouteDetail({
   params,
@@ -17,6 +18,11 @@ export default async function RouteDetail({
   if (!destination) redirect("/");
   const route = await routeProvider.getRoute(id, { label: destination });
   if (!route) notFound();
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   return (
     <main className="mx-auto grid max-w-xl grid-cols-1 gap-6 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[1fr_340px] lg:items-start lg:gap-12 lg:py-12">
@@ -114,6 +120,7 @@ export default async function RouteDetail({
           destination={destination}
           minutes={route.minutes}
           distanceKm={route.distanceKm}
+          signedIn={Boolean(user)}
         />
       </div>
     </main>

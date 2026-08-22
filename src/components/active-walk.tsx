@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { logWalk } from "@/lib/actions/walks";
 
 export function ActiveWalk({
@@ -8,11 +9,13 @@ export function ActiveWalk({
   destination,
   minutes,
   distanceKm,
+  signedIn,
 }: {
   routeId: string;
   destination: string;
   minutes: number;
   distanceKm: number;
+  signedIn: boolean;
 }) {
   const [status, setStatus] = useState<"idle" | "walking" | "done">("idle");
   const [elapsed, setElapsed] = useState(0);
@@ -34,6 +37,7 @@ export function ActiveWalk({
 
   function endWalk() {
     setStatus("done");
+    if (!signedIn) return;
     startSaving(async () => {
       const result = await logWalk({ routeId, destination, minutes, distanceKm });
       if (result.error) setSaveError(result.error);
@@ -60,11 +64,21 @@ export function ActiveWalk({
           </div>
         </div>
         <p className="mt-3 text-xs text-surface/80">
-          {saveError
-            ? "Couldn't save this walk to your history. It still counts, just not recorded."
-            : isSaving
-              ? "Saving to your history…"
-              : "Estimated avoided emissions vs. an equivalent car trip. Saved to your history."}
+          {!signedIn ? (
+            <>
+              Estimated avoided emissions vs. an equivalent car trip.{" "}
+              <Link href="/login" className="underline hover:no-underline">
+                Sign in
+              </Link>{" "}
+              to save this to your history.
+            </>
+          ) : saveError ? (
+            "Couldn't save this walk to your history. It still counts, just not recorded."
+          ) : isSaving ? (
+            "Saving to your history…"
+          ) : (
+            "Estimated avoided emissions vs. an equivalent car trip. Saved to your history."
+          )}
         </p>
       </div>
     );

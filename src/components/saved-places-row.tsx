@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { deleteSavedPlace, savePlace, type SavedPlace } from "@/lib/actions/places";
 import { useToast } from "@/components/toast-provider";
 
@@ -81,13 +82,26 @@ function SlotChip({
 export function SavedPlacesRow({
   places,
   current,
+  signedIn,
 }: {
   places: SavedPlace[];
   current: Current;
+  signedIn: boolean;
 }) {
   const router = useRouter();
   const showToast = useToast();
   const [isPending, startTransition] = useTransition();
+
+  if (!signedIn) {
+    return (
+      <Link
+        href="/login"
+        className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-dashed border-border px-3.5 py-2 text-[0.82rem] text-text-tertiary transition-colors hover:border-text-tertiary hover:text-text-secondary"
+      >
+        Sign in to save home, work, and favourite places
+      </Link>
+    );
+  }
 
   const home = places.find((p) => p.kind === "home");
   const work = places.find((p) => p.kind === "work");
