@@ -10,10 +10,11 @@ This is a two-person project. The categories mirror the agreed split:
 - `software/` - the current Next.js/React/TypeScript application and its tooling -> `software/INDEX.md`
 - `ml/` - dataset acquisition, crowd processing, model training/evaluation, and planned forecasting integration -> `ml/INDEX.md`
 
-There is no backend, serving, or application routing implementation. The ML
-lane has canonical crowd and traffic targets, feature tables, CUDA evaluations,
-and Git-LFS-backed promoted crowd and source-stratified traffic models. Both
-fixed-site software handoffs and the compute envelope are documented, but their
-adapters and route mapping are not implemented.
+The software lane now has a Next.js application, Supabase authentication and
+user-owned persistence, a Melbourne-bounded geocoding endpoint, and explicit
+stub route/condition provider interfaces. The ML lane has canonical crowd and
+traffic targets, feature tables, CUDA evaluations, and Git-LFS-backed promoted
+models. The fixed-site software handoffs are documented, but inference adapters,
+route-edge mapping, and a real pedestrian routing engine are not implemented.
 Keep category names data-driven so future context skills do not assume a fixed
 architecture.

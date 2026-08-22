@@ -14,8 +14,8 @@ sources:
   - ml/traffic/SOFTWARE_HANDOFF.md
   - ml/data/catalog.json
   - ml/scripts/fetch_datasets.py
-links: [software/frontend-shell, software/tooling, ml/planned-forecasting, ml/data-acquisition, ml/crowd-processing, ml/crowd-training, ml/crowd-modeling, ml/model-handoff, ml/traffic-processing, ml/traffic-training, ml/traffic-modeling]
-verified: initial
+links: [software/frontend-shell, software/routing-boundary, software/auth-persistence, software/tooling, ml/planned-forecasting, ml/data-acquisition, ml/crowd-processing, ml/crowd-training, ml/crowd-modeling, ml/model-handoff, ml/traffic-processing, ml/traffic-training, ml/traffic-modeling]
+verified: 8c14561
 ---
 
 ## What this is
@@ -24,31 +24,33 @@ HeatRoute is a personalised Melbourne walking-route planner. It aims to balance
 travel time with the heat, sun, crowds, traffic, and urban environment a
 pedestrian will experience. V1 is walking-only; the final client is undecided.
 
-The Next.js scaffold still renders `Hello world!`. The ML lane has a versioned
-data mirror, a tested 7,295,962-row pedestrian target and promoted crowd model,
-plus a complete 17,744,407-row 2024–2026 traffic target, two feature views, a
-full CUDA evaluation, and a promoted source-stratified lag-enhanced bundle. No
-map, routing graph, API, persistence, route prediction, or serving adapter is
-implemented; both fixed-site model handoffs are documented. (`ml/README.md`)
+The Next.js application now provides a public LeafRoute marketing surface,
+Supabase authentication/onboarding, destination search, personalised planning
+screens, saved places, preferences, account controls, and walk history. Route
+and condition cards remain fixtures behind provider interfaces: there is no
+map, routing graph, route prediction, or ML serving adapter. The ML lane has a
+versioned data mirror, tested crowd/traffic targets, CUDA evaluations, and
+Git-LFS-backed promoted model releases. (`src/app/page.tsx`,
+`src/lib/providers/route-provider.ts`, `ml/README.md`)
 
 The `software` workstream owns the application/routing surface; `ml` owns
 forecasting and data science. Their interface must be explicit before integration.
 
 ## Key files
 
-- `src/app/` - current App Router shell; `package.json` and root config files -
-  Next.js 16, React 19, TypeScript, Tailwind CSS 4, build, and quality settings.
+- `src/app/`, `src/components/`, `src/lib/`, `src/proxy.ts` - current App Router
+  experience, Supabase-backed user flows, geocoding, and provider boundaries.
+- `package.json` and root config files - Next.js 16, React 19, TypeScript,
+  Tailwind CSS 4, Playwright, Supabase, build, and quality settings.
 - `scripts/context-drift.mjs` - validates chunk structure and source freshness.
 - `ml/README.md`, `ml/data/catalog.json`, `ml/scripts/fetch_datasets.py` - ML
   acquisition, profiles, licences, source URLs, and executable fetch boundary.
-- `ml/crowd/README.md` - target, feature-table, training, and evaluation
-  contracts; details are in `ml/crowd-processing`, `ml/crowd-training`, and
-  `ml/crowd-modeling`.
+- `ml/crowd/README.md` - target, feature-table, training, and evaluation contracts.
 - `ml/model-handoff` - ready releases, integration contracts, compute, and publication.
 - `ml/traffic/README.md`, `ml/traffic-processing`, `ml/traffic-training`, and
   `ml/traffic-modeling` - target, feature, CUDA evaluation, release, and software
   handoff contracts.
-- `software/INDEX.md` - current application context; `ml/INDEX.md` - planned forecasting context.
+- `software/INDEX.md`, `ml/INDEX.md` - workstream context indexes.
 - Commands: `npm run dev|lint|build|context:drift`; `npm run start` serves production.
 
 ## Invariants
@@ -61,9 +63,7 @@ forecasting and data science. Their interface must be explicit before integratio
   temperature, humidity, wind, tree canopy, building shade, and sun exposure.
 - Shade must vary with journey time by combining date/time and solar position
   with building geometry and tree canopy.
-- Recommendations may trade a small delay for comfort—for example, an
-  illustrative 17-minute route instead of 14 minutes when it is substantially
-  shadier, quieter, and less crowded.
+- Recommendations may trade a small delay for substantially greater comfort.
 
 ### Personalisation and history
 
@@ -71,16 +71,14 @@ forecasting and data science. Their interface must be explicit before integratio
   preference for quieter or less crowded routes, and lower-traffic preference.
 - Personalisation is optional: new users must receive useful routes immediately
   through sensible defaults.
-- Lightweight history may track distance, walking time, or journey count. A
-  possible GitHub-style daily contribution graph can visualise activity.
+- Lightweight history may track distance, walking time, or journey count.
 
 ### Current and future conditions
 
 - Current sensors and weather describe conditions now; forecasts estimate what
   conditions will be when the user leaves later.
-- Candidate lightweight models predict crowd density from historical sensors,
-  time, weekday, weather, and location; vehicle traffic from historical traffic
-  and temporal patterns; and local conditions from forecasts plus street traits.
+- The current UI accepts personalisation and route queries, but its provider
+  fixtures ignore destination coordinates, departure time, and preferences.
 - The implemented crowd model predicts hourly fixed-counter pedestrian flow,
   not area density; route-edge interpretation remains future integration work.
 - The implemented traffic bundle predicts one-hour-ahead fixed SCATS
@@ -88,8 +86,6 @@ forecasting and data science. Their interface must be explicit before integratio
   route congestion/travel-time interpretation remains future work.
 - Building and tree shade is primarily a geometry/solar calculation, not
   necessarily ML. Do not force every environmental feature into a model.
-- The result is a time-dependent pedestrian graph whose segment costs change
-  through the day, eventually supporting route and departure-time suggestions.
 
 ### Emissions
 
@@ -121,13 +117,14 @@ Keep routing and data systems independent of the final frontend where practical.
 
 ## How to extend
 
-For UI/application work, load `software/frontend-shell`. For crowd features,
+For UI/application work, load `software/frontend-shell`; load
+`software/auth-persistence` for user data and `software/routing-boundary` for
+geocoding/provider integration. For crowd features,
 load `ml/crowd-training`; for model work, load `ml/crowd-modeling` and the
 cross-domain boundary in `ml/planned-forecasting`. For traffic work, load
 `ml/traffic-processing`, `ml/traffic-training`, and `ml/traffic-modeling`.
 Define a versioned software/ML contract for route-segment identity, prediction
-time, value/unit, confidence, freshness, and
-missing-data behavior before route-level predictions cross between lanes. The
+time, value/unit, confidence, freshness, and missing-data behavior. The
 fixed-site adapters should implement their versioned contracts as documented.
 
 Add focused backend, data, routing, or mapping chunks only when real source
@@ -138,7 +135,8 @@ source changes.
 
 - This file is the product brief and context root, but product intent is not
   evidence that a feature, API, dataset, algorithm, or dependency exists.
-- The current web scaffold does not settle the final client or deployment model.
+- The current client is a Next.js application with a Vercel workflow, but the
+  production architecture for real routing and ML inference is still open.
 - Model evaluation, safety constraints, privacy, prediction missing-data
   fallbacks, and the production data refresh policy remain open. Dataset
   licences and geographic coverage are recorded but still require per-source

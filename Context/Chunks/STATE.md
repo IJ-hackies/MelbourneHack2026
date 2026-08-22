@@ -1,12 +1,15 @@
 # Current State
 
-- Git `HEAD` is `5f5caff`. The committed frontend/tooling chunks use their
-  verification baseline. Root and ML chunks remain `verified: initial` because
-  their new acquisition sources and context edits are not committed yet.
-- The application is still a Next.js/React/TypeScript/Tailwind scaffold whose
-  home route renders `Hello world!`; there is no backend, API, map integration,
-  persistence, prediction service, or Python package. Promoted crowd and
-  source-stratified traffic releases exist independently in the ML workspace.
+- Git source baseline `8c14561` merges cached `origin/main` into the preserved
+  ML work branch. The application is now LeafRoute: a Next.js/React/TypeScript/
+  Tailwind app with Supabase auth, onboarding, preferences, saved places,
+  recent searches, walk history, account controls, Nominatim geocoding, and
+  Playwright smoke tests. There is still no map, pedestrian graph, real route
+  scorer, prediction service, or fixed-site-to-route calibration.
+- `src/lib/providers/route-provider.ts` and `condition-provider.ts` expose the
+  software integration seam but return fixed fixtures and ignore query details.
+  `src/app/page.tsx` parses geocoded coordinates but currently passes only the
+  destination label into those providers.
 - The `ml` lane owns `ml/data/catalog.json` and `ml/scripts/fetch_datasets.py`.
   Crowd snapshots live under `ml/crowd/datasets/`, traffic snapshots under
   `ml/traffic/datasets/`, and shared inputs under `ml/data/raw/`. All are local,
@@ -55,8 +58,8 @@
   predates the corrected predictor allow-list: audited same-hour diagnostics
   account for about 0.37% of SCATS gain and about 28% of Transport Activity gain.
   Use SCATS as the primary hackathon signal and mark Transport Activity degraded.
-- Available commands are `npm run dev`, `npm run build`, `npm run start`,
-  `npm run lint`, and `npm run context:drift`. Crowd processing runs with
+- Application commands are `npm run dev`, `build`, `start`, `lint`, `test`,
+  `context:drift`, and `supabase:start|stop|reset|status`. Crowd processing runs with
   `python ml/scripts/build_crowd_dataset.py`; its contract tests run with
   `python -m unittest ml.tests.test_build_crowd_dataset -v`. Feature processing
   runs with `python ml/scripts/build_crowd_training_datasets.py`; both test
@@ -85,6 +88,11 @@
 
 - Define the software/ML contract for time-indexed route-segment predictions,
   including missing data, freshness, and confidence semantics.
+- Carry geocoded coordinates through `RouteQueryInput`; the current plan and
+  route-detail calls reduce destinations to labels before provider invocation.
+- Replace the fixed route/condition providers and ephemeral active-walk timer;
+  document the emissions factor before treating walk history as more than an
+  illustrative estimate.
 - Implement the documented crowd/traffic Python adapters and separately define
   route-edge calibration; do not pool intersection and countline scales.
 - Investigate why recent-enhanced is 13.0% worse in MAE than the matched recent
@@ -95,16 +103,24 @@
   route-edge mappings remain unresolved.
 - Confirm publication/redistribution terms for the City hourly pedestrian data
   and obtain registered BOM access if BOM becomes a production dependency.
-- Decide the final client/deployment model and add tests once behavior exists.
+- Reconcile local Supabase auth URLs (currently port 3001) with Next/Playwright
+  ports (3000/3100), add the referenced `supabase/seed.sql`, and align the smoke
+  test's onboarding skip label with the rendered punctuation.
+- Diagnose the default Turbopack production build's failure to resolve the
+  installed `lightningcss-linux-x64-gnu` optional package; the same source
+  currently builds successfully with `next build --webpack`.
+- Validate login `next` redirects as local paths and validate preference ranges
+  server-side before relying on form inputs.
 
 ## Landmines and deliberate deferrals
 
 - `Context/Chunks/heatroute.md` is product intent as well as root context; its
   planned features are not implemented APIs or algorithms.
-- MapLibre, FastAPI/Pydantic, application routing, shade modelling, traffic
-  serving/route calibration, environmental forecasting, history, and emissions
-  calculations are still deferred. Offline fixed-site models do not imply
-  route-level prediction.
+- MapLibre, FastAPI/Pydantic, a real pedestrian routing engine, shade modelling,
+  traffic serving/route calibration, and environmental forecasting are still
+  deferred. History exists, but emissions use a hard-coded illustrative
+  `distanceKm * 0.19` factor. Offline fixed-site models do not imply route-level
+  prediction.
 - Transport Activity timestamps are Melbourne wall time despite a trailing
   `Z`; annual `02:55 -> 02:00` records occur exactly on the DST rollback date.
   Do not reinterpret them as UTC or traffic patterns shift by 10-11 hours.
@@ -145,6 +161,8 @@
 - Calendar linking and automatic event-based trip suggestions are deferred.
   Manual route planning must not require calendar access; any future integration
   needs explicit consent, minimal permissions, and destination confirmation.
+- ESLint currently traverses ignored `.venv` JavaScript and reports three
+  scikit-learn generated-file warnings; exclude the environment from lint scope.
 - There is no `backend` or `infra` category. Dataset acquisition remains owned
   by `ml/data-acquisition`; add a new category only for a real independent
   source area.
