@@ -2,7 +2,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { APEX_HOSTS, APP_HOST } from "@/lib/hosts";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password"];
+// The map/planner is usable by anyone — only these need a real account.
+const PROTECTED_PATHS = ["/history", "/preferences", "/account", "/onboarding"];
+// Pointless to view once signed in, so bounce back to the app instead.
+const AUTH_ONLY_PATHS = ["/login", "/signup", "/forgot-password"];
 const ONBOARDING_PATH = "/onboarding";
 
 export async function proxy(request: NextRequest) {
@@ -49,26 +52,15 @@ export async function proxy(request: NextRequest) {
   const userId = data?.claims?.sub as string | undefined;
   const isAuthed = Boolean(userId);
   const { pathname } = request.nextUrl;
-  const isPublicPath = PUBLIC_PATHS.includes(pathname);
-  const isAppHost = host === APP_HOST;
 
-  // "/" is the public marketing page for signed-out visitors and the Plan
-  // screen for signed-in ones — page.tsx branches on auth state itself.
-  // Once the app subdomain is live it never shows marketing, so this
-  // shortcut only applies on hosts that still combine both (localhost,
-  // *.vercel.app, previews).
-  if (!isAuthed && pathname === "/" && !isAppHost) {
-    return supabaseResponse;
-  }
-
-  if (!isAuthed && !isPublicPath) {
+  if (!isAuthed && PROTECTED_PATHS.includes(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 
-  if (isAuthed && isPublicPath) {
+  if (isAuthed && AUTH_ONLY_PATHS.includes(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";

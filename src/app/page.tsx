@@ -6,7 +6,7 @@ import { DestinationSearch } from "@/components/destination-search";
 import { SavedPlacesRow } from "@/components/saved-places-row";
 import { MarketingPage } from "@/components/marketing/marketing-page";
 import { formatDeparture } from "@/lib/routes";
-import { getAppOrigin } from "@/lib/hosts";
+import { APEX_HOSTS, getAppOrigin } from "@/lib/hosts";
 import { conditionProvider } from "@/lib/providers/condition-provider";
 import { routeProvider } from "@/lib/providers/route-provider";
 import { listSavedPlaces } from "@/lib/actions/places";
@@ -20,24 +20,25 @@ export default async function Home({
 }: {
   searchParams: Promise<HomeSearchParams>;
 }) {
+  const host = (await headers()).get("host");
+
+  if (host && APEX_HOSTS.includes(host)) {
+    return <MarketingPage appOrigin={getAppOrigin(host)} />;
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    const host = (await headers()).get("host");
-    return <MarketingPage appOrigin={getAppOrigin(host)} />;
-  }
-
-  return <PlanScreen userId={user.id} searchParams={searchParams} />;
+  return <PlanScreen userId={user?.id ?? null} searchParams={searchParams} />;
 }
 
 async function PlanScreen({
   userId,
   searchParams,
 }: {
-  userId: string;
+  userId: string | null;
   searchParams: Promise<HomeSearchParams>;
 }) {
   const { to, address, lat, lon } = await searchParams;
@@ -51,25 +52,27 @@ async function PlanScreen({
       }
     : null;
 
-  const supabase = await createClient();
+  let preferences: Parameters<typeof routeProvider.listRoutes>[0]["preferences"];
+  if (userId) {
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select(
+        "heat_sensitivity, comfort_balance, pace, prefer_quieter_streets, prefer_lower_traffic"
+      )
+      .eq("id", userId)
+      .single();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select(
-      "heat_sensitivity, comfort_balance, pace, prefer_quieter_streets, prefer_lower_traffic"
-    )
-    .eq("id", userId)
-    .single();
-
-  const preferences: Parameters<typeof routeProvider.listRoutes>[0]["preferences"] = profile
-    ? {
+    if (profile) {
+      preferences = {
         heatSensitivity: profile.heat_sensitivity,
         comfortBalance: profile.comfort_balance,
         pace: profile.pace,
         preferQuieterStreets: profile.prefer_quieter_streets,
         preferLowerTraffic: profile.prefer_lower_traffic,
-      }
-    : undefined;
+      };
+    }
+  }
 
   const [conditions, routes, savedPlaces, recentSearches] = await Promise.all([
     destination ? conditionProvider.getConditions({ label: destination }) : Promise.resolve([]),

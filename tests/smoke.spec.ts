@@ -8,26 +8,22 @@ test("health check responds", async ({ request }) => {
   expect(body.status).toBe("ok");
 });
 
-test("unauthenticated visitor sees the marketing page", async ({ page }) => {
+test("guest reaches the Plan screen without signing in", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL("/");
-  await expect(
-    page.getByRole("heading", { name: /Walk Melbourne smarter/ })
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Where to?" })).toBeVisible();
 });
 
-test("unauthenticated visitor can reach login from the marketing page", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("link", { name: "Log in" }).first().click();
+test("guest is sent to login only when opening an account-only page", async ({ page }) => {
+  await page.goto("/history");
   await expect(page).toHaveURL(/\/login/);
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
 });
 
-test("unauthenticated visit to an unknown route also goes to login", async ({ page }) => {
-  // The whole app requires auth, so the proxy can't tell "doesn't exist"
-  // from "protected" without a session — this is expected, not a bug.
+test("guest visiting an unknown route sees a 404, not a login redirect", async ({ page }) => {
   await page.goto("/this-route-does-not-exist");
-  await expect(page).toHaveURL(/\/login/);
+  await expect(page).toHaveURL("/this-route-does-not-exist");
+  await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
 });
 
 test("signed-in visitor reaches the Plan screen, then sees 404 for an unknown route", async ({
