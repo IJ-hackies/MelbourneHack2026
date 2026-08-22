@@ -25,11 +25,14 @@ places, and account areas.
 The root layout reads Supabase auth/profile state to render authenticated
 navigation. (`src/app/layout.tsx`, `src/app/page.tsx`)
 
-The route detail page now renders a real MapLibre GL map
-(`src/components/route-map.tsx`, keyless OpenFreeMap tiles) in place of the
-former placeholder SVG, drawing a straight line between `RouteOption.geometry.start`
-and `.end` (or `.path` if a provider ever supplies one) — there is still no real
-pedestrian routing graph, so the line is illustrative, not a real walking route.
+The route detail page renders a real MapLibre GL map (`src/components/route-map.tsx`)
+in place of the former placeholder SVG. Tile style is MapTiler Streets when
+`NEXT_PUBLIC_MAPTILER_KEY` is set, falling back to keyless OpenFreeMap
+otherwise (both plugged into `MapLibre`, not a library swap). Since
+`ml/routing/` + `api/route-planner.py` now exist (see `software/routing-boundary`),
+`geometry.path` is usually a real routed path, not just a straight line
+between `start`/`end` — the straight-line case now only means routing
+was unavailable for that query.
 Destination coordinates now flow end-to-end from `DestinationSearch` through
 `page.tsx` and `/route/[id]` into the provider calls; a destination label
 without resolved coordinates is treated as "no destination yet" rather than

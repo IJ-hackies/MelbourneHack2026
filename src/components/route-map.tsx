@@ -7,9 +7,13 @@ import { useLiveLocation } from "@/lib/use-live-location";
 import { useLiveProgress } from "@/lib/live-progress-context";
 import type { Coordinates, RouteGeometry, RouteOption } from "@/lib/providers/types";
 
-// Free, keyless vector tile style — no account or API key required, in
-// keeping with the app's existing no-vendor-key pattern (Nominatim, Open-Meteo).
-const OPENFREEMAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+// MapTiler's "Streets" style (closest visual match to Google Maps) when a
+// free API key is configured; otherwise falls back to OpenFreeMap's
+// keyless "liberty" style so local dev works with zero setup.
+const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
+const MAP_STYLE_URL = MAPTILER_KEY
+  ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`
+  : "https://tiles.openfreemap.org/styles/liberty";
 const WALKING_SPEED_M_PER_MIN = 80;
 
 function haversineM(a: Coordinates, b: Coordinates): number {
@@ -76,7 +80,7 @@ export function RouteMap({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: OPENFREEMAP_STYLE_URL,
+      style: MAP_STYLE_URL,
       // Set explicitly so the camera starts over the actual route even if
       // fitBounds below never runs (a silent style/network failure
       // previously left the map on its style's built-in default view — the
@@ -87,6 +91,12 @@ export function RouteMap({
     });
     mapRef.current = map;
     followingRef.current = true;
+
+    // Surfaces tile/style load failures in devtools instead of silently
+    // falling back to whatever partial view rendered — this is exactly
+    // the kind of failure that previously looked like "wrong library" but
+    // was actually invisible until logged.
+    map.on("error", (e) => console.error("RouteMap: MapLibre error", e.error ?? e));
 
     // Manual pan/zoom suspends camera-follow until the user asks to resume.
     map.on("dragstart", () => {
