@@ -60,3 +60,42 @@ venv/
 
 # windows
 Thumbs.db
+
+# downloaded ML datasets and generated provenance
+/ml/data/raw/*
+!/ml/data/raw/.gitkeep
+/ml/data/provenance/*
+!/ml/data/provenance/.gitkeep
+/ml/crowd/datasets/*
+!/ml/crowd/datasets/.gitkeep
+/ml/crowd/processed/*
+!/ml/crowd/processed/.gitkeep
+/ml/crowd/training/*
+!/ml/crowd/training/.gitkeep
+/ml/traffic/datasets/*
+!/ml/traffic/datasets/.gitkeep
+/ml/traffic/processed/*
+!/ml/traffic/processed/.gitkeep
+/ml/traffic/training/*
+!/ml/traffic/training/.gitkeep
+
+# Promoted model bundles are the portable release layer.  Other model outputs
+# (including future unpromoted runs) remain ignored.
+/ml/crowd/models/**
+!/ml/crowd/models/
+!/ml/crowd/models/all-history-v1/
+!/ml/crowd/models/all-history-v1/README.md
+!/ml/crowd/models/all-history-v1/metadata.json
+!/ml/crowd/models/all-history-v1/model.ubj
+/ml/traffic/models/**
+!/ml/traffic/models/
+!/ml/traffic/models/source-stratified-v1/
+!/ml/traffic/models/source-stratified-v1/README.md
+!/ml/traffic/models/source-stratified-v1/checksums.json
+!/ml/traffic/models/source-stratified-v1/release_manifest.json
+!/ml/traffic/models/source-stratified-v1/scats-intersection/
+!/ml/traffic/models/source-stratified-v1/scats-intersection/metadata.json
+!/ml/traffic/models/source-stratified-v1/scats-intersection/model.ubj
+!/ml/traffic/models/source-stratified-v1/transport-activity-countline/
+!/ml/traffic/models/source-stratified-v1/transport-activity-countline/metadata.json
+!/ml/traffic/models/source-stratified-v1/transport-activity-countline/model.ubj

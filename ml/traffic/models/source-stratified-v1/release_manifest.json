@@ -1,0 +1,262 @@
+{
+  "candidate_tie_break_order": [
+    "base",
+    "lag_enhanced"
+  ],
+  "checksums_path": "checksums.json",
+  "cuda_evidence": {
+    "actual_devices": {
+      "base::scats|intersection": "cuda",
+      "base::transport_activity|countline": "cuda",
+      "lag_enhanced::scats|intersection": "cuda",
+      "lag_enhanced::transport_activity|countline": "cuda"
+    },
+    "evaluation_cuda_used": true,
+    "evaluation_requested_device": "cuda"
+  },
+  "provenance": {
+    "checksums_json": {
+      "bytes": 6326,
+      "path": "ml/traffic/training/evaluation/checksums.json",
+      "repository_path": "ml/traffic/training/evaluation/checksums.json",
+      "sha256": "a2342450e4c3494a1cc056e73f30594a359a86336f716a42913b66a560c2c1d5"
+    },
+    "evaluation_dir": "ml/traffic/training/evaluation",
+    "evaluation_manifest": {
+      "bytes": 10493,
+      "path": "ml/traffic/training/evaluation/evaluation_manifest.json",
+      "repository_path": "ml/traffic/training/evaluation/evaluation_manifest.json",
+      "sha256": "17835fb3d5adfc1b94ff5ccd8476291fc0c2775d09e8ebe2b9331a918b4e8a0c"
+    },
+    "metrics_json": {
+      "bytes": 6669281,
+      "path": "ml/traffic/training/evaluation/metrics.json",
+      "repository_path": "ml/traffic/training/evaluation/metrics.json",
+      "sha256": "e49d9f9a038a9b2e2139d6b8bfc5a47119a96665f176f0cf0183137407b5fd77"
+    }
+  },
+  "readme_path": "README.md",
+  "release": "source-stratified-v1",
+  "run_mode": "full",
+  "schema_version": 1,
+  "script": {
+    "path": "ml/scripts/promote_traffic_models.py",
+    "sha256": "f84a5034f390fe631d4c5742217240386f26bfc21f9156462b1a9c0f21641e49"
+  },
+  "selection_metric_order": [
+    "poisson_deviance",
+    "mae",
+    "rmse"
+  ],
+  "selection_split": "validation",
+  "source_groups": [
+    {
+      "candidate": "lag_enhanced",
+      "cuda": {
+        "actual_device": "cuda",
+        "cuda_attempted": true,
+        "cuda_used": true,
+        "metadata_device": "cuda",
+        "requested_device": "cuda"
+      },
+      "label_source": "scats",
+      "measurement_scope": "intersection",
+      "metadata": {
+        "bytes": 102233,
+        "path": "scats-intersection/metadata.json",
+        "sha256": "df9dea967876cd046cf59d1ceee57204cbe0fc0e18b62f52f5c462837f0e2547"
+      },
+      "model": {
+        "bytes": 33284016,
+        "path": "scats-intersection/model.ubj",
+        "sha256": "aefbbcdbf4dc7a6bbcb4ef966b58a494c4519cc35ae78245f7a0d3686a3b7f56"
+      },
+      "provenance": {
+        "original_artifacts": {
+          "metadata": {
+            "bytes": 102533,
+            "path": "ml/traffic/training/evaluation/models/lag_enhanced__scats__intersection.metadata.json",
+            "repository_path": "ml/traffic/training/evaluation/models/lag_enhanced__scats__intersection.metadata.json",
+            "sha256": "342d6cc8d1342e1f1810a6bdbb70b45c1f59441bfb5ac442508043afde3b4faa"
+          },
+          "model": {
+            "bytes": 33284016,
+            "path": "ml/traffic/training/evaluation/models/lag_enhanced__scats__intersection.ubj",
+            "repository_path": "ml/traffic/training/evaluation/models/lag_enhanced__scats__intersection.ubj",
+            "sha256": "aefbbcdbf4dc7a6bbcb4ef966b58a494c4519cc35ae78245f7a0d3686a3b7f56"
+          }
+        },
+        "source_metadata": {
+          "bytes": 102533,
+          "path": "ml/traffic/training/evaluation/models/lag_enhanced__scats__intersection.metadata.json",
+          "repository_path": "ml/traffic/training/evaluation/models/lag_enhanced__scats__intersection.metadata.json",
+          "sha256": "342d6cc8d1342e1f1810a6bdbb70b45c1f59441bfb5ac442508043afde3b4faa"
+        },
+        "source_model": {
+          "bytes": 33284016,
+          "path": "ml/traffic/training/evaluation/models/lag_enhanced__scats__intersection.ubj",
+          "repository_path": "ml/traffic/training/evaluation/models/lag_enhanced__scats__intersection.ubj",
+          "sha256": "aefbbcdbf4dc7a6bbcb4ef966b58a494c4519cc35ae78245f7a0d3686a3b7f56"
+        }
+      },
+      "row_counts": {
+        "test": 3988344,
+        "train": 6770394,
+        "validation": 6768092
+      },
+      "selection_key": [
+        14.153252141060447,
+        82.26503486656821,
+        156.9916802609327,
+        1
+      ],
+      "selection_split": "validation",
+      "source_group": "scats|intersection",
+      "test_metrics": {
+        "mae": 81.46219331766082,
+        "n": 3988344,
+        "poisson_deviance": 13.726651799185442,
+        "rmse": 150.77487519261467,
+        "target_mean": 1246.0567310643214
+      },
+      "validation_metrics": {
+        "mae": 82.26503486656821,
+        "n": 6768092,
+        "poisson_deviance": 14.153252141060447,
+        "rmse": 156.9916802609327,
+        "target_mean": 1269.7080998603446
+      }
+    },
+    {
+      "candidate": "lag_enhanced",
+      "cuda": {
+        "actual_device": "cuda",
+        "cuda_attempted": true,
+        "cuda_used": true,
+        "metadata_device": "cuda",
+        "requested_device": "cuda"
+      },
+      "label_source": "transport_activity",
+      "measurement_scope": "countline",
+      "metadata": {
+        "bytes": 13051,
+        "path": "transport-activity-countline/metadata.json",
+        "sha256": "c316aa6efa844073a41a949e62013b4fd97a5f0072dc734d2c68afe4947a1564"
+      },
+      "model": {
+        "bytes": 4531207,
+        "path": "transport-activity-countline/model.ubj",
+        "sha256": "e9419d9628ff5c179d5beb8f4dc69a62770ce4af276a9bbd86df0c88e7145b9f"
+      },
+      "provenance": {
+        "original_artifacts": {
+          "metadata": {
+            "bytes": 13351,
+            "path": "ml/traffic/training/evaluation/models/lag_enhanced__transport_activity__countline.metadata.json",
+            "repository_path": "ml/traffic/training/evaluation/models/lag_enhanced__transport_activity__countline.metadata.json",
+            "sha256": "14036f83cdca2024fc495ca71a5d87fcd4555837425e48127261e375fb548a80"
+          },
+          "model": {
+            "bytes": 4531207,
+            "path": "ml/traffic/training/evaluation/models/lag_enhanced__transport_activity__countline.ubj",
+            "repository_path": "ml/traffic/training/evaluation/models/lag_enhanced__transport_activity__countline.ubj",
+            "sha256": "e9419d9628ff5c179d5beb8f4dc69a62770ce4af276a9bbd86df0c88e7145b9f"
+          }
+        },
+        "source_metadata": {
+          "bytes": 13351,
+          "path": "ml/traffic/training/evaluation/models/lag_enhanced__transport_activity__countline.metadata.json",
+          "repository_path": "ml/traffic/training/evaluation/models/lag_enhanced__transport_activity__countline.metadata.json",
+          "sha256": "14036f83cdca2024fc495ca71a5d87fcd4555837425e48127261e375fb548a80"
+        },
+        "source_model": {
+          "bytes": 4531207,
+          "path": "ml/traffic/training/evaluation/models/lag_enhanced__transport_activity__countline.ubj",
+          "repository_path": "ml/traffic/training/evaluation/models/lag_enhanced__transport_activity__countline.ubj",
+          "sha256": "e9419d9628ff5c179d5beb8f4dc69a62770ce4af276a9bbd86df0c88e7145b9f"
+        }
+      },
+      "row_counts": {
+        "test": 116551,
+        "train": 42622,
+        "validation": 58404
+      },
+      "selection_key": [
+        7.602235821000433,
+        23.575628674413625,
+        58.18112227775693,
+        1
+      ],
+      "selection_split": "validation",
+      "source_group": "transport_activity|countline",
+      "test_metrics": {
+        "mae": 48.97604325087045,
+        "n": 116551,
+        "poisson_deviance": 19.55014587591302,
+        "rmse": 97.0135059722434,
+        "target_mean": 287.95273313828284
+      },
+      "validation_metrics": {
+        "mae": 23.575628674413625,
+        "n": 58404,
+        "poisson_deviance": 7.602235821000433,
+        "rmse": 58.18112227775693,
+        "target_mean": 229.36238956235874
+      }
+    }
+  ],
+  "split_contract": {
+    "observed_dates": {
+      "base": {
+        "test": {
+          "max_date": "2026-07-31",
+          "min_date": "2026-01-01"
+        },
+        "train": {
+          "max_date": "2024-12-31",
+          "min_date": "2024-01-01"
+        },
+        "validation": {
+          "max_date": "2025-12-31",
+          "min_date": "2025-01-01"
+        }
+      },
+      "lag_enhanced": {
+        "test": {
+          "max_date": "2026-07-31",
+          "min_date": "2026-01-01"
+        },
+        "train": {
+          "max_date": "2024-12-31",
+          "min_date": "2024-01-01"
+        },
+        "validation": {
+          "max_date": "2025-12-31",
+          "min_date": "2025-01-01"
+        }
+      }
+    },
+    "post_test": {
+      "end": null,
+      "policy": "retained in both candidates but excluded from the final test score",
+      "start": "2026-08-01"
+    },
+    "split_by": "local_date",
+    "strategy": "chronological local_date split",
+    "test": {
+      "end": "2026-07-31",
+      "start": "2026-01-01"
+    },
+    "test_end": "2026-07-31",
+    "train": {
+      "end": "2024-12-31",
+      "start": null
+    },
+    "train_end": "2024-12-31",
+    "validation": {
+      "end": "2025-12-31",
+      "start": "2025-01-01"
+    },
+    "validation_end": "2025-12-31"
+  }
+}

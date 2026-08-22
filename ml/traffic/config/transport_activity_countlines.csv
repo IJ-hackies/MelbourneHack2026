@@ -1,0 +1,168 @@
+count_location_id,countline_name,channel_type,traffic_eligible,review_status,notes
+43772,s1_SouthbankPromenade_bn001,other,false,excluded,Promenade label and pedestrian-dominant observations; excluded from motor-vehicle traffic target.
+43775,s2_Swanston_cyclelane_bn001,cycle,false,excluded,Explicit cyclelane label; excluded from motor-vehicle traffic target.
+43891,s2_Swanston_crossing_bn001,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+44862,S3_RoyalPark_East_bn003,unknown,false,ambiguous,No road/path/cycle marker; mixed classes but pedestrian-dominant observations.
+44863,S3_RoyalPark_West_bn003,unknown,false,ambiguous,No road/path/cycle marker; mixed classes but pedestrian-dominant observations.
+44864,S3_RoyalPark_North_bn003,unknown,false,ambiguous,No road/path/cycle marker; mixed classes but pedestrian-dominant observations.
+45038,S4_QueensBridgeSt_Road_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+45039,S4_QueensBridgeSt_CycleLane_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+45040,S4_QueensBridgeSt_Path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+45191,DrumondSt_Middle_East,unknown,false,ambiguous,Vehicle classes observed but no explicit road marker; ambiguous Middle channel.
+45192,DrumondSt_Middle_South,unknown,false,ambiguous,Vehicle classes observed but no explicit road marker; ambiguous Middle channel.
+45193,DrumondSt_Middle_North,unknown,false,ambiguous,Vehicle classes observed but no explicit road marker; ambiguous Middle channel.
+45216,S5_RoyalPark_path_1_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+45217,S5_RoyalPark_path_3_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+45218,S5_RoyalPark_path_2and4_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+45282,DrumondSt-Crossing,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+45283,DrumondSt-North-Crossing,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+45471,S07_WilliamSt_road_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+45472,S07_LaTrobeSt_road_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+45473,S07_WilliamSt_Crossing_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+45474,S07_LaTrobeSt_East_Crossing_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+45475,S07_LaTrobeSt_West_Crossing_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+45733,S08_ICRTrail_path_east_arm_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+46416,S08_ICRTrail_path_north_arm_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+46417,S08_ICRTrail_path_west_arm_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+46418,S08_ICRTrail_path_south_arm_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+47018,S9_PrincesWalk_path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+48806,DrumondSt-Road,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+48807,DrumondSt-Road_bike,cycle,false,excluded,Bike marker takes precedence over Road token; excluded from motor-vehicle traffic target.
+48808,DrumondSt-Road_cars,road,true,approved,Explicit Road/cars label and observed motor-vehicle classes; approved for traffic target.
+49129,S10_VicHarbourPromenade_path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+49131,S11_SouthernCrossBridge_path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+51228,S14_YarraPromenadeEast_Path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+51281,S15_YarraPromenadeWest_Path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+54629,S18_PowlettPark_path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+54630,S18_PowlettPark_gymWest_bn003,other,false,excluded,Gym/facility label; excluded from motor-vehicle traffic target.
+54632,S18_PowlettPark_gymNorth_bn003,other,false,excluded,Gym/facility label; excluded from motor-vehicle traffic target.
+54633,S18_PowlettPark_gymEast_bn003,other,false,excluded,Gym/facility label; excluded from motor-vehicle traffic target.
+55130,S18_PowlettPark_path2_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+56066,S19_BoathouseDr_road_south_clm01,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+56067,S19_BoathouseDr_road_north_clm01,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+56068,S19_BoathouseDr_path_clm01,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+56069,S19_BoathouseDr_road_west_clm01,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+56085,S19_BoathouseDr_path_clm01,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+56974,S20_BatmanAve_path_LHS_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+56975,S20_BatmanAve_path_RHS_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+56976,S20_BatmanAve_path_main_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+57054,S21_Docklands_path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+57075,S20_BatmanAve_road_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+57885,S30_SwanstonSt_path_LHS_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+57886,S30_SwanstonSt_path_steps_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+57887,S30_SwanstonSt_path_RHS_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+57964,Bike counts request,cycle,false,excluded,Bike label; excluded from motor-vehicle traffic target.
+57969,S17_ArdenStation_path_split1_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+57970,S17_ArdenStation_path_steps_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+57971,S17_ArdenStation_path_split2_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+57972,S17_ArdenStation_entrance_south_bn003,other,false,excluded,Station entrance label; excluded from motor-vehicle traffic target.
+58031,S6_Edge_Marina_path_Left_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+58032,S6_Edge_Marina_path_Right_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+58087,S26_SwanstonSt_road_bot_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58088,S26_SwanstonSt_road_top_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58089,S26_FlindersSt_road_east_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58090,S26_FlindersSt_road_west_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58091,S26_SwanstonSt_road_crossing_bn003,crossing,false,excluded,Crossing marker takes precedence over road token; excluded from motor-vehicle traffic target.
+58095,S27_RoyalParade_path_LHS_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+58096,S27_RoyalParade_path_RHS_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+58097,S27_ClaredonSt_road_south_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58098,S27_AlbertSt_road_west_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58099,S27_ClaredonSt_road_north_LHS_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58100,S27_ClaredonSt_road_north_RHS_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58101,S27_AlbertSt_road_east_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58102,S27_AlbertSt_corssing_west_bn003,crossing,false,excluded,Typo corssing label denotes crossing; excluded from motor-vehicle traffic target.
+58103,S27_ClaredonSt_crossing_north_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+58104,S27_AlbertSt_corssing_west_bn003,crossing,false,excluded,Typo corssing label denotes crossing; excluded from motor-vehicle traffic target.
+58141,S28_SwanstonSt_road_bot_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58142,S28_FlindersSt_road_LHS_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58143,S28_SwanstonSt_road_top_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58144,S28_FlindersSt_road_RHS_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58145,S28_SwanstonSt_road_bot_RHS_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58146,S28_SwanstonSt_crossing_bot_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+58147,S28_FlindersSt_crossing_LHS_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+58148,S28_SwanstonSt_crossing_top_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+58149,S28_FlindersSt_crossing_RHS_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+58248,S27_RoyalParade_road_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58250,S29_LaTrobeSt_cycleLane_RHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58251,S29_LaTrobeSt_cycleLane_LHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58252,S17_ArdenStation_entrance_north_bn003,other,false,excluded,Station entrance label; excluded from motor-vehicle traffic target.
+58254,S29_LaTrobeSt_crossing_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+58255,S29_LaTrobeSt_road_LHS_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58256,S29_LaTrobeSt_road_RHS_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58257,S29_SpencerSt_road_LHS_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58258,S29_SpencerSt_road_RHS_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58366,S29_LaTrobeSt_road_LHS__top_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58367,S29_LaTrobeSt_road_RHS__top_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58503,S31_GrattanSt_road_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58510,,unknown,false,ambiguous,Source countlineName and coordinates are blank/null in 2026 YTD; no invented label.
+58511,S31_GrattanSt_cycleLn_RHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58512,S31_GrattanSt_crossing_LHS_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+58513,S31_GrattanSt_crossing_RHS_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+58514,,unknown,false,ambiguous,Source countlineName and coordinates are blank/null in 2026 YTD; no invented label.
+58516,S31_GrattanSt_path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+58517,S31_RoyalParade_road_LHS_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58518,S32_MacaulaySt_cycleLn_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58519,S32_MacaulaySt_road_south_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58520,S32_StubbsSt_road_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58521,S32_MacaulaySt_road_north_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58522,S33_ExhibitionSt_cycleLn_LHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58523,S33_ExhibitionSt_road_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58524,S33_ExhibitionSt_cycleLn_RHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58525,S33_ExhibitionSt_crossing_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+58527,S34_MooneePondscreek_path_south_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+58528,S34_MooneePondscreek_path_east_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+58529,S34_MooneePondscreek_path_west_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+58530,S35_ExhibitionSt_cycleLn_LHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58531,S35_ExhibitionSt_road_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58532,S35_ExhibitionSt_cycleLn_RHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58533,S35_LaTrobeSt_cycleLn_LHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58535,S35_LaTrobeSt_cycleLn_RHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58616,S36_ElizabethSt_path_clm01,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+58617,S36_ElizabethSt_road_clm01,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58618,S36_CollinsSt_road_1_clm01,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58619,S36_CollinsSt_road_2_clm01,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58620,S36_CollinsSt_road_3_clm01,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58621,S36_CollinsSt_path_clm01,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+58798,S37_CapitalCityTrail_path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+58799,S37_CapitalCityTrail_road_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58824,S38_StKildaRd_path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+58825,S38_ArtsCentre_path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+58860,S37_CapitalCityTrail_cycleLane_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58893,S2_SwanstonSt_cycleLane_north_LHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58894,S2_SwanstonSt_road_north_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58895,S2_SwanstonSt_cycleLane_north_RHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58896,S2_FranklinSt_road_east_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58897,S2_SwanstonSt_elevatorEntrance_bn003,other,false,excluded,Elevator entrance label; excluded from motor-vehicle traffic target.
+58898,S2_SwanstonSt_cycleLane_south_RHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+58899,S2_SwanstonSt_road_south_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58900,S2_SwanstonSt_crossing_south_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+58901,S2_FranklinSt_road_west_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+58902,S2_FranklinSt_crossing_west_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+59435,S39_AbbotsfordSt_cycleLane_south_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+59436,S39_AbbotsfordSt_cycleLane_north_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+59437,S39_AbbotsfordSt_road_south_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+59438,S39_ArdenSt_cycleLane_south_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+59439,S39_ArdenSt_cycleLane_north_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+59440,S39_ArdenSt_road_west_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+59441,S39_AbbotsfordSt_crossing_east_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+59442,S39_AbbotsfordSt_crossing_north_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+59486,S25_CycleLn_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+59487,S25_DomainRd_path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+59488,S25_DomainRd_road_2_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+59489,S25_DomainRd_crossing_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+59490,S25_DomainRd_road_1_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+59491,S25_StKildaRd_crossing_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+59492,S25_StKildaRd_cycle_bn003,cycle,false,excluded,Explicit cycle label; excluded from motor-vehicle traffic target.
+59493,S25_StKildaRd_crossing_bn003,crossing,false,excluded,Explicit crossing label; excluded from motor-vehicle traffic target.
+59658,S41_SwanstonSt_road_north_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+59659,S41_SwanstonSt_road_south_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+59660,S41_GrattonSt_road_west_bn003,road,true,approved,Explicit road label and observed motor-vehicle classes; approved for traffic target.
+59661,S41_SwanstonSt_cyclelane_LHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+59662,S41_SwanstonSt_path_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+59663,S41_SwanstonSt_cyclelane_RHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+59664,S41_GrattonSt_cyclelane_west_LHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+59665,S41_GrattonSt_path_west_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.
+59666,S41_GrattonSt_cyclelane_west_RHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+59667,S41_GrattonSt_cyclelane_east_LHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+59668,S41_GrattonSt_cyclelane_east_RHS_bn003,cycle,false,excluded,Explicit cycle lane label; excluded from motor-vehicle traffic target.
+59669,S41_GrattonSt_path_east_bn003,path,false,excluded,Explicit path label; excluded from motor-vehicle traffic target.

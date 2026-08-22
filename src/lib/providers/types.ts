@@ -4,6 +4,22 @@
 
 export type RouteTag = { label: string; tone: "default" | "warm" };
 
+export type Coordinates = { lat: number; lon: number };
+
+// A place once geocoding has actually resolved coordinates for it. Distinct
+// from PlaceQuery, which also covers the loose "user typed something but we
+// don't have coordinates yet" case.
+export type ResolvedPlace = PlaceQuery & Coordinates;
+
+// V1 has no real pedestrian routing graph, so `path` is optional: absent
+// means the map draws a straight line between start/end rather than
+// inventing fake route geometry.
+export type RouteGeometry = {
+  start: Coordinates;
+  end: Coordinates;
+  path?: Coordinates[];
+};
+
 export type RouteOption = {
   id: string;
   minutes: number;
@@ -11,6 +27,7 @@ export type RouteOption = {
   recommended: boolean;
   description: string;
   tags: RouteTag[];
+  geometry: RouteGeometry;
   segments: {
     label: string;
     share: number;
@@ -22,6 +39,22 @@ export type Condition = {
   label: string;
   value: string;
   tone: "primary" | "heat" | "crowd" | "traffic";
+};
+
+// Raw ML model outputs. Neither release has calibrated uncertainty, so there
+// is deliberately no confidence field here — never fabricate one.
+export type QualityStatus = "ok" | "degraded" | "unavailable";
+
+export type CrowdSignal = {
+  pedestrianFlowPerHour: number;
+  qualityStatus: QualityStatus;
+  warnings: string[];
+};
+
+export type TrafficSignal = {
+  vehicleCountPerHour: number;
+  qualityStatus: QualityStatus;
+  warnings: string[];
 };
 
 export type UserPreferences = {
@@ -38,9 +71,11 @@ export type PlaceQuery = {
   lon?: number;
 };
 
-export type RouteQueryInput = PlaceQuery & {
+export type RouteQueryInput = {
+  destination: ResolvedPlace;
+  origin?: Coordinates;
   departureTime?: Date;
   preferences?: Partial<UserPreferences>;
 };
 
-export type ConditionQueryInput = PlaceQuery;
+export type ConditionQueryInput = ResolvedPlace;

@@ -1,13 +1,21 @@
 ---
 id: software/tooling
-title: Software package and build tooling
+title: Software package, test, and delivery tooling
 sources:
   - package.json
+  - package-lock.json
   - next.config.ts
   - tsconfig.json
   - eslint.config.mjs
   - postcss.config.mjs
   - README.md
+  - playwright.config.ts
+  - tests/global-setup.ts
+  - tests/helpers.ts
+  - tests/smoke.spec.ts
+  - .env.example
+  - .github/workflows/ci.yml
+  - .github/workflows/deploy.yml
   - scripts/context-drift.mjs
   - .agents/skills/recontext/SKILL.md
   - .agents/skills/reupdate/SKILL.md
@@ -15,56 +23,74 @@ sources:
   - .claude/skills/recontext/SKILL.md
   - .claude/skills/reupdate/SKILL.md
   - .claude/skills/reaudit/SKILL.md
-links: [heatroute, software/frontend-shell]
-verified: initial
+  - requirements.txt
+  - vercel.json
+  - .python-version
+  - api/crowd-inference.py
+  - api/traffic-inference.py
+  - api/_shared/model_loader.py
+  - api/_shared/feature_lookup.py
+links: [heatroute, software/frontend-shell, software/auth-persistence, ml/model-handoff]
+verified: edcfab5
 ---
 
 ## What this is
 
-The software package is a private npm project named `heatroute`. It uses
-Next.js 16.3.1, React 19.2.8, TypeScript, Tailwind CSS 4, ESLint 9, and the
-Next TypeScript/core-web-vitals configurations. (`package.json`,
-`eslint.config.mjs`, `postcss.config.mjs`)
+The private `leafroute` package uses Next.js 16.3.1, React 19.2.8, TypeScript,
+Tailwind CSS 4, Supabase SSR/JS clients, Resend, ESLint 9, Playwright, and
+`maplibre-gl`. GitHub Actions lint/build pull requests and run browser smoke
+tests against a local Supabase stack; pushes to `main` deploy to Vercel.
+(`package.json`, `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`)
+
+The repo also has root-level Python Vercel Functions under `/api` (crowd and
+traffic ML inference — see `ml/model-handoff`), deployed by the same
+`vercel build`/`vercel deploy` pipeline as the Next.js app, with dependencies
+declared in a root `requirements.txt` separate from `ml/requirements.txt`
+(which pins CUDA training-only packages unusable at serving time).
 
 ## Key files
 
-- `package.json` - runtime, build, quality, and context-check scripts plus dependencies.
-- `next.config.ts` - Next config; sets Turbopack's root to `process.cwd()`.
-- `tsconfig.json` - strict TypeScript, bundler resolution, no emit, and `@/*` -> `./src/*`.
-- `eslint.config.mjs` - Next core-web-vitals and TypeScript rules with generated-output ignores.
-- `postcss.config.mjs` - Tailwind PostCSS plugin.
-- `README.md` - local setup and command reference.
-- `scripts/context-drift.mjs` - validates chunk metadata, links, sources, size, and Git freshness.
-- `.agents/skills/*/SKILL.md` - canonical Codex definitions for loading,
-  updating, and auditing the chunk system.
-- `.claude/skills/*/SKILL.md` - identical Claude Code mirrors of those skills.
+- `package.json`, `package-lock.json` - application dependencies and npm scripts.
+- `next.config.ts` - Turbopack root, Codex agent-rules opt-out, and dev origins.
+- `playwright.config.ts`, `tests/` - Chromium smoke flow using a local app and
+  Supabase instance, covering guest planning, account guards, and signed-in flow.
+- `.github/workflows/ci.yml` - Node 24 lint/build and local-Supabase E2E jobs,
+  plus an additive `python-check` job that compiles the `/api` functions and
+  sanity-imports `xgboost`/`pandas`/`numpy` (no Git LFS pull here — it doesn't
+  need real model bytes, just import/syntax validity).
+- `.github/workflows/deploy.yml` - Vercel production build/deploy on `main`;
+  its checkout now has `lfs: true` so `model.ubj` files are real bytes before
+  `vercel build` runs (required — the inference functions refuse to load a
+  file whose SHA-256/byte count doesn't match its recorded checksum).
+- `requirements.txt`, `.python-version`, `vercel.json` - root-level Python
+  Vercel Function config (`api/**/*.py`, minimal `xgboost`/`pandas`/`numpy`
+  deps, Python 3.12, and `excludeFiles` bundle-size hygiene excluding the
+  offline `ml/*/datasets|processed|training` directories).
+- `scripts/context-drift.mjs` and context skills - chunk validation/maintenance.
 
 ## Invariants
 
-- Run npm commands from the repository root. (`next.config.ts`, `README.md`)
-- The currently defined commands are `npm run dev`, `npm run build`,
-  `npm run start`, `npm run lint`, and `npm run context:drift`; there is no test
-  or standalone type-check script yet. (`package.json`, `README.md`)
-- TypeScript is strict, emits no files, and supports the `@/*` source alias.
-  New imports should respect that configuration. (`tsconfig.json`)
-- Generated `.next`, `out`, `build`, and `next-env.d.ts` artifacts are ignored
-  by the ESLint configuration. (`eslint.config.mjs`)
+- Run commands from the repository root; Turbopack resolves from
+  `process.cwd()`. (`next.config.ts`)
+- Commands include `dev`, `build`, `start`, `lint`, `test`, `context:drift`, and
+  local `supabase:start|stop|reset|status`. (`package.json`)
+- TypeScript remains strict/no-emit and supports `@/*` -> `./src/*`.
+- CI browser tests require the Supabase CLI/Docker stack and Chromium, while
+  lint/build use placeholder public Supabase values. (`.github/workflows/ci.yml`)
 
 ## How to extend
 
-Add dependencies and scripts only when a concrete software feature needs them,
-and keep the lockfile aligned with `package.json`. Add tests/type-checking as
-the app gains behavior, then document the new commands in `README.md` and this
-chunk. Keep future ML dependencies in the ML workstream rather than coupling
-them to the browser package. Treat `.agents/skills/` as canonical; when context
-tooling changes, mirror each `SKILL.md` into `.claude/skills/` and keep the
-drift-check behavior aligned.
+Keep dependency and lockfile changes together. Add browser coverage to the
+existing Playwright setup and schema behavior through ordered migrations.
+Preserve the context skill mirrors when changing context tooling.
 
 ## Gotchas
 
-- `next.config.ts` uses the current working directory as the Turbopack root;
-  invoking commands from a parent directory can change resolution behavior.
-- The current ESLint ignores generated files but does not establish a test
-  strategy or runtime validation.
-- MapLibre, FastAPI, Pydantic, weather/sensor clients, and model runtimes are
-  not installed in this package. (`package.json`)
+- `README.md` still describes an empty scaffold and omits Supabase, Playwright,
+  auth environment variables, and the expanded npm scripts.
+- `package-lock.json` still records the root package name as `heatroute` while
+  `package.json` is `leafroute`.
+- Production deployment depends on repository secrets and Vercel project/team
+  identifiers configured in the workflow.
+- The smoke-test credentials are for the local Supabase instance only; never
+  reuse them for a hosted environment.
