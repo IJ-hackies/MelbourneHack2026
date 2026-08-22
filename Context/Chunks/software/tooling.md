@@ -23,17 +23,30 @@ sources:
   - .claude/skills/recontext/SKILL.md
   - .claude/skills/reupdate/SKILL.md
   - .claude/skills/reaudit/SKILL.md
-links: [heatroute, software/frontend-shell, software/auth-persistence]
-verified: a85a787
+  - requirements.txt
+  - vercel.json
+  - .python-version
+  - api/crowd-inference.py
+  - api/traffic-inference.py
+  - api/_shared/model_loader.py
+  - api/_shared/feature_lookup.py
+links: [heatroute, software/frontend-shell, software/auth-persistence, ml/model-handoff]
+verified: edcfab5
 ---
 
 ## What this is
 
 The private `leafroute` package uses Next.js 16.3.1, React 19.2.8, TypeScript,
-Tailwind CSS 4, Supabase SSR/JS clients, Resend, ESLint 9, and Playwright.
-GitHub Actions lint/build pull requests and run browser smoke tests against a
-local Supabase stack; pushes to `main` deploy to Vercel. (`package.json`,
-`.github/workflows/ci.yml`, `.github/workflows/deploy.yml`)
+Tailwind CSS 4, Supabase SSR/JS clients, Resend, ESLint 9, Playwright, and
+`maplibre-gl`. GitHub Actions lint/build pull requests and run browser smoke
+tests against a local Supabase stack; pushes to `main` deploy to Vercel.
+(`package.json`, `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`)
+
+The repo also has root-level Python Vercel Functions under `/api` (crowd and
+traffic ML inference — see `ml/model-handoff`), deployed by the same
+`vercel build`/`vercel deploy` pipeline as the Next.js app, with dependencies
+declared in a root `requirements.txt` separate from `ml/requirements.txt`
+(which pins CUDA training-only packages unusable at serving time).
 
 ## Key files
 
@@ -41,8 +54,18 @@ local Supabase stack; pushes to `main` deploy to Vercel. (`package.json`,
 - `next.config.ts` - Turbopack root, Codex agent-rules opt-out, and dev origins.
 - `playwright.config.ts`, `tests/` - Chromium smoke flow using a local app and
   Supabase instance, covering guest planning, account guards, and signed-in flow.
-- `.github/workflows/ci.yml` - Node 24 lint/build and local-Supabase E2E jobs.
-- `.github/workflows/deploy.yml` - Vercel production build/deploy on `main`.
+- `.github/workflows/ci.yml` - Node 24 lint/build and local-Supabase E2E jobs,
+  plus an additive `python-check` job that compiles the `/api` functions and
+  sanity-imports `xgboost`/`pandas`/`numpy` (no Git LFS pull here — it doesn't
+  need real model bytes, just import/syntax validity).
+- `.github/workflows/deploy.yml` - Vercel production build/deploy on `main`;
+  its checkout now has `lfs: true` so `model.ubj` files are real bytes before
+  `vercel build` runs (required — the inference functions refuse to load a
+  file whose SHA-256/byte count doesn't match its recorded checksum).
+- `requirements.txt`, `.python-version`, `vercel.json` - root-level Python
+  Vercel Function config (`api/**/*.py`, minimal `xgboost`/`pandas`/`numpy`
+  deps, Python 3.12, and `excludeFiles` bundle-size hygiene excluding the
+  offline `ml/*/datasets|processed|training` directories).
 - `scripts/context-drift.mjs` and context skills - chunk validation/maintenance.
 
 ## Invariants

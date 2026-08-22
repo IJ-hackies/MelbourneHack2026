@@ -11,8 +11,9 @@ sources:
   - src/components/marketing/marketing-page.tsx
   - src/components/destination-search.tsx
   - src/components/nav-tabs.tsx
+  - src/components/route-map.tsx
 links: [heatroute, software/tooling, software/routing-boundary, software/auth-persistence]
-verified: a85a787
+verified: edcfab5
 ---
 
 ## What this is
@@ -23,6 +24,16 @@ for guests. Signed-in users additionally receive history, preferences, saved
 places, and account areas.
 The root layout reads Supabase auth/profile state to render authenticated
 navigation. (`src/app/layout.tsx`, `src/app/page.tsx`)
+
+The route detail page now renders a real MapLibre GL map
+(`src/components/route-map.tsx`, keyless OpenFreeMap tiles) in place of the
+former placeholder SVG, drawing a straight line between `RouteOption.geometry.start`
+and `.end` (or `.path` if a provider ever supplies one) — there is still no real
+pedestrian routing graph, so the line is illustrative, not a real walking route.
+Destination coordinates now flow end-to-end from `DestinationSearch` through
+`page.tsx` and `/route/[id]` into the provider calls; a destination label
+without resolved coordinates is treated as "no destination yet" rather than
+being passed through. (`src/app/page.tsx`, `src/app/route/[id]/page.tsx`)
 
 ## Key files
 
@@ -56,8 +67,12 @@ the proxy/onboarding and row-level-security boundaries in
 
 ## Gotchas
 
-- The three route options and condition cards look functional but are fixed
-  fixtures; destination, preferences, and departure time do not affect them.
-- There is no map renderer or live route geometry.
+- The three route options are still fixed fixtures (minutes/distance/segments
+  unaffected by destination/preferences/departure time), but `geometry` now
+  reflects the real resolved origin/destination coordinates.
+- The "Feels hot" condition is now live (Open-Meteo via `/api/weather`, see
+  `software/routing-boundary`); crowds/shade conditions remain fixed
+  placeholders — no shade-geometry service exists, and crowd ML signals are
+  not wired into the condition list yet (see `ml/model-handoff` for why).
 - The marketing/app host split has production-domain assumptions in
   `src/lib/hosts.ts`; preview and localhost behavior intentionally differ.

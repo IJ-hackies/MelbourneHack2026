@@ -61,3 +61,25 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # Sanity-checks the /api Python inference functions independently of the
+  # Node/Playwright jobs above, so a Python issue never blocks unrelated
+  # frontend PRs. Model files aren't needed here (no Git LFS checkout) since
+  # this only checks that the functions import cleanly, not that they load
+  # a real model.
+  python-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Compile-check the inference functions
+        run: python -m py_compile api/_shared/model_loader.py api/_shared/feature_lookup.py api/crowd-inference.py api/traffic-inference.py
+
+      - name: Import sanity check
+        run: python -c "import xgboost; import pandas; import numpy"

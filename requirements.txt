@@ -1,0 +1,6 @@
+# Runtime dependencies for the Vercel Python Functions under /api. Separate
+# from ml/requirements.txt, which pins CUDA training-time packages (cupy,
+# duckdb) that don't belong in a serverless inference bundle.
+xgboost>=3.4,<4
+numpy>=1.26,<3
+pandas>=2.2,<3
