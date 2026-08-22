@@ -22,7 +22,7 @@ export async function loginWithGoogle() {
   redirect(data.url);
 }
 
-export type AuthState = { error: string | null } | undefined;
+export type AuthState = { error: string | null; success?: string } | undefined;
 
 export async function login(
   _prevState: AuthState,
@@ -64,8 +64,8 @@ export async function signup(
 
   if (!data.session) {
     return {
-      error:
-        "Check your inbox to confirm your email, then sign in.",
+      error: null,
+      success: "Check your inbox to confirm your email, then sign in.",
     };
   }
 
@@ -91,7 +91,8 @@ export async function requestPasswordReset(
   }
 
   return {
-    error: "If that email has an account, a reset link is on its way, check your inbox.",
+    error: null,
+    success: "If that email has an account, a reset link is on its way, check your inbox.",
   };
 }
 

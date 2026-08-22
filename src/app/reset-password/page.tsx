@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AccountForm } from "@/components/account-form";
 import { changePassword } from "@/lib/actions/account";
@@ -31,6 +32,12 @@ export default async function ResetPassword() {
           autoComplete: "new-password",
         }}
       />
+
+      <p className="mt-6 text-center text-sm text-text-secondary">
+        <Link href="/" className="font-medium text-primary">
+          Continue to LeafRoute
+        </Link>
+      </p>
     </main>
   );
 }
