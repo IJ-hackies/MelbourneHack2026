@@ -57,11 +57,11 @@ export function MarketingHeader({ appOrigin = "" }: { appOrigin?: string }) {
             Log in
           </PendingLink>
           <PendingLink
-            href={`${appOrigin}/signup`}
+            href={`${appOrigin}/`}
             newTabOnDesktop={Boolean(appOrigin)}
             className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-surface transition-opacity hover:opacity-90"
           >
-            Get started
+            Try it now
           </PendingLink>
         </div>
 

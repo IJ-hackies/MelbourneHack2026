@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { headers } from "next/headers";
 import { Inter, Space_Grotesk, Roboto_Mono } from "next/font/google";
 import { NavTabs } from "@/components/nav-tabs";
 import { UserMenu } from "@/components/user-menu";
 import { ToastProvider } from "@/components/toast-provider";
+import { APEX_HOSTS } from "@/lib/hosts";
 import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 
@@ -45,6 +48,9 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const host = (await headers()).get("host");
+  const isMarketing = Boolean(host && APEX_HOSTS.includes(host));
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -67,7 +73,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body>
         <ToastProvider>
-          {user && (
+          {!isMarketing && (
             <div className="sticky top-0 z-20 border-b border-border bg-bg/90 backdrop-blur-md">
               <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
                 <div className="flex items-center gap-2 font-display text-[1.05rem] font-semibold tracking-tight text-text">
@@ -78,12 +84,21 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                   LeafRoute
                 </div>
                 <div className="flex items-center gap-3">
-                  {user.email && <UserMenu email={user.email} />}
+                  {user?.email ? (
+                    <UserMenu email={user.email} />
+                  ) : (
+                    <Link
+                      href="/login"
+                      className="rounded-full border border-border bg-surface-alt px-3.5 py-2 text-[0.82rem] font-medium text-text-secondary transition-colors hover:text-text"
+                    >
+                      Sign in
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
           )}
-          {user && onboarded && <NavTabs />}
+          {!isMarketing && (!user || onboarded) && <NavTabs />}
           {children}
         </ToastProvider>
       </body>

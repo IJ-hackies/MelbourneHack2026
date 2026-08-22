@@ -68,11 +68,11 @@ export function MarketingPage({ appOrigin = "" }: { appOrigin?: string }) {
             </p>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <PendingLink
-                href={`${appOrigin}/signup`}
+                href={`${appOrigin}/`}
                 newTabOnDesktop={Boolean(appOrigin)}
                 className="w-full rounded-full bg-primary px-7 py-3.5 text-center text-[0.95rem] font-semibold text-surface shadow-[0_16px_36px_-16px_color-mix(in_srgb,var(--primary)_70%,transparent)] transition-opacity hover:opacity-90 sm:w-auto"
               >
-                Get started free
+                Try it now
               </PendingLink>
               <PendingLink
                 href={`${appOrigin}/login`}
