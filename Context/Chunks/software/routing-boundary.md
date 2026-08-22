@@ -11,21 +11,39 @@ sources:
   - src/app/api/weather/route.ts
   - src/lib/base-url.ts
   - src/lib/ml/ml-client.ts
+  - src/lib/routing/route-client.ts
+  - src/lib/use-live-location.ts
+  - src/components/route-map.tsx
 links: [heatroute, software/frontend-shell, ml/planned-forecasting, ml/model-handoff]
 verified: edcfab5
 ---
 
 ## What this is
 
-The application has a provider-agnostic TypeScript seam for future pedestrian
-routing and environmental conditions. Route options are still three fixed
-fixtures (minutes/distance/segments), but each now carries real `geometry`
-(start/end coordinates from the resolved destination, optional `path`).
-Conditions now mix two live signals (weather via `/api/weather`, crowd via
+The application has a provider-agnostic TypeScript seam for pedestrian
+routing and environmental conditions. Routing is now real: `route-provider.ts`
+calls `api/route-planner.py` (a checksum-verified graph over the City of
+Melbourne Pedestrian Network, `ml/routing/`) for a genuine shortest-path route
+with real geometry/distance/time; there is now only **one** route per query
+(not three), since per-edge heat/crowd/traffic costs don't exist to honestly
+differentiate "comfort/direct/quiet" — see `ml/model-handoff` for why. If the
+query falls outside the graph's coverage, it falls back to a straight-line
+estimate explicitly labelled "Estimated," never presented as equivalent to a
+real route (`RouteOption.quality`).
+
+Conditions mix two live signals (weather via `/api/weather`, crowd via
 `api/crowd-inference.py`) with one remaining fixed placeholder (shade).
 Destination search calls a server route that bounds Nominatim results to
 greater Melbourne.
 (`src/lib/providers/*.ts`, `src/app/api/geocode/route.ts`, `src/app/api/weather/route.ts`)
+
+The route-detail map now also does live location tracking: `use-live-location.ts`
+wraps `navigator.geolocation.watchPosition` (never fabricates a position — every
+non-tracking state is a distinct, honest reason there isn't one), and
+`route-map.tsx` replaces the static start marker with a live one once a fix
+arrives, auto-follows the camera (suspending on manual pan/zoom with a
+Recenter control), and recomputes distance/ETA-remaining live via
+`live-progress-context.tsx`, consumed by `ActiveWalk`.
 
 `conditionProvider` now calls `ml-client.ts`'s `callCrowdInference` with the
 destination's raw lat/lon; the Python endpoint resolves the nearest live
@@ -42,8 +60,13 @@ the UI as "Unavailable" rather than a fabricated number. Traffic inference
 - `src/lib/providers/types.ts` - place, coordinate, route geometry, preference,
   route, segment, condition, and raw ML signal (`CrowdSignal`/`TrafficSignal`,
   deliberately no confidence field) shapes shared by UI and provider implementations.
-- `src/lib/providers/route-provider.ts` - `RouteProvider` contract and fixture
-  implementation (now geometry-aware).
+- `src/lib/providers/route-provider.ts` - `RouteProvider` contract; calls
+  `callRoutePlanner` for one real route, falls back to a labelled
+  straight-line estimate on failure/out-of-coverage.
+- `src/lib/routing/route-client.ts` - typed fetch wrapper for
+  `api/route-planner.py`, degrading to `path: null` on any failure.
+- `src/lib/use-live-location.ts`, `src/components/route-map.tsx` - live
+  geolocation tracking and camera-follow on the route map.
 - `src/lib/providers/condition-provider.ts` - `ConditionProvider` contract;
   `LiveConditionProvider` calls `/api/weather` and `callCrowdInference` for two
   real conditions, and still returns one fixed placeholder for shade.
@@ -85,12 +108,14 @@ sensor-location + counts lookup.
 
 ## Gotchas
 
-- The three route options' minutes/distance/segments still ignore destination,
-  time, and preferences — only `geometry` reflects the real query now.
-- Route ids are reused route-type strings; a real provider must resolve them
-  together with the original query rather than as durable global identities.
-- The geocoder is discovery only; it does not construct a walking graph or
-  validate that a result is pedestrian-accessible.
-- `RouteMap` (`software/frontend-shell`) draws a straight line when `path` is
-  absent — this is intentionally not a real route, just a visualization of
-  start/end.
+- The single route still ignores preferences/departure time — only geometry,
+  distance, and time are now real.
+- The route id is a fixed constant (`"walking-route"`), not a durable
+  per-query identity — old bookmarked `/route/comfort` etc. links now 404.
+- The geocoder is discovery only; it does not validate that a result is
+  pedestrian-accessible.
+- `RouteMap` draws a straight line when `path` is absent (out-of-coverage
+  fallback) — this is intentionally not a real route.
+- The pedestrian graph (`ml/routing/`) covers only the City of Melbourne
+  municipality bbox; an OSM-based supplement for wider coverage is a
+  documented, unimplemented fast-follow (`ml/routing/README.md`).

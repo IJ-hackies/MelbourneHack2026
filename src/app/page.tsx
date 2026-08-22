@@ -182,7 +182,7 @@ async function PlanScreen({
           <>
             <div>
               <h2 className="font-display text-lg font-semibold tracking-tight text-text lg:text-xl">
-                3 ways to {destination}
+                {routes.length === 1 ? `Your route to ${destination}` : `${routes.length} ways to ${destination}`}
               </h2>
               <p className="mt-1 text-sm text-text-secondary">{formatDeparture(new Date())}</p>
 
@@ -204,9 +204,9 @@ async function PlanScreen({
                           min
                         </span>
                       </div>
-                      {route.recommended && (
+                      {route.recommended && routes.length > 1 && (
                         <span className="shrink-0 rounded-full bg-primary px-2.5 py-1 text-[0.68rem] font-semibold tracking-wide whitespace-nowrap text-surface uppercase">
-                          Comfort pick
+                          Recommended
                         </span>
                       )}
                     </div>

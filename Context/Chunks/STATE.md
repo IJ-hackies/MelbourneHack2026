@@ -4,8 +4,10 @@
   ML work branch. The application is now LeafRoute: a Next.js/React/TypeScript/
   Tailwind app with Supabase auth, onboarding, preferences, saved places,
   recent searches, walk history, account/password-reset controls, guest planning,
-  Nominatim geocoding, and Playwright smoke tests. There is still no map, pedestrian graph, real route
-  scorer, prediction service, or fixed-site-to-route calibration.
+  Nominatim geocoding, and Playwright smoke tests. A real MapLibre map and a
+  real pedestrian routing graph now exist (`ml/routing/`, `api/route-planner.py`
+  — see `software/routing-boundary`); route-edge ML calibration and shade
+  modelling remain unimplemented.
 - `src/lib/providers/route-provider.ts` and `condition-provider.ts` expose the
   software integration seam but return fixed fixtures and ignore query details.
   `src/app/page.tsx` parses geocoded coordinates but currently passes only the

@@ -78,6 +78,10 @@ Thumbs.db
 !/ml/traffic/processed/.gitkeep
 /ml/traffic/training/*
 !/ml/traffic/training/.gitkeep
+/ml/routing/datasets/*
+!/ml/routing/datasets/.gitkeep
+/ml/routing/processed/*
+!/ml/routing/processed/.gitkeep
 
 # Promoted model bundles are the portable release layer.  Other model outputs
 # (including future unpromoted runs) remain ignored.
@@ -99,3 +103,8 @@ Thumbs.db
 !/ml/traffic/models/source-stratified-v1/transport-activity-countline/
 !/ml/traffic/models/source-stratified-v1/transport-activity-countline/metadata.json
 !/ml/traffic/models/source-stratified-v1/transport-activity-countline/model.ubj
+/ml/routing/models/**
+!/ml/routing/models/
+!/ml/routing/models/melbourne-inner-v1/
+!/ml/routing/models/melbourne-inner-v1/metadata.json
+!/ml/routing/models/melbourne-inner-v1/graph.json

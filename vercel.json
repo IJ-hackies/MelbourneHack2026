@@ -2,10 +2,13 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "api/crowd-inference.py": {
-      "excludeFiles": "{ml/data/**,ml/scripts/**,ml/tests/**,ml/crowd/datasets/**,ml/crowd/processed/**,ml/crowd/training/**,ml/traffic/**,tests/**,src/**,supabase/**,**/*.test.py}"
+      "excludeFiles": "{ml/data/**,ml/scripts/**,ml/tests/**,ml/crowd/datasets/**,ml/crowd/processed/**,ml/crowd/training/**,ml/traffic/**,ml/routing/**,tests/**,src/**,supabase/**,**/*.test.py}"
     },
     "api/traffic-inference.py": {
-      "excludeFiles": "{ml/data/**,ml/scripts/**,ml/tests/**,ml/traffic/datasets/**,ml/traffic/processed/**,ml/traffic/training/**,ml/crowd/**,tests/**,src/**,supabase/**,**/*.test.py}"
+      "excludeFiles": "{ml/data/**,ml/scripts/**,ml/tests/**,ml/traffic/datasets/**,ml/traffic/processed/**,ml/traffic/training/**,ml/crowd/**,ml/routing/**,tests/**,src/**,supabase/**,**/*.test.py}"
+    },
+    "api/route-planner.py": {
+      "excludeFiles": "{ml/data/**,ml/scripts/**,ml/tests/**,ml/crowd/**,ml/traffic/**,ml/routing/datasets/**,ml/routing/processed/**,ml/routing/scripts/**,ml/routing/tests/**,tests/**,src/**,supabase/**,**/*.test.py}"
     }
   }
 }

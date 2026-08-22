@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { logWalk } from "@/lib/actions/walks";
+import { useLiveProgress } from "@/lib/live-progress-context";
 
 export function ActiveWalk({
   routeId,
@@ -22,6 +23,7 @@ export function ActiveWalk({
   const [saveError, setSaveError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isSaving, startSaving] = useTransition();
+  const { progress } = useLiveProgress();
 
   useEffect(() => {
     if (status !== "walking") return;
@@ -98,6 +100,12 @@ export function ActiveWalk({
           </div>
           <span className="flex h-2.5 w-2.5 rounded-full bg-primary" aria-hidden="true" />
         </div>
+        {progress && (
+          <p className="mt-2 text-xs text-text-secondary">
+            {progress.distanceRemainingKm} km remaining · ~{progress.etaMinutes} min, based on
+            your live location
+          </p>
+        )}
         <button
           type="button"
           onClick={endWalk}

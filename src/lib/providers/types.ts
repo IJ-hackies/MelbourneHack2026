@@ -33,6 +33,10 @@ export type RouteOption = {
     share: number;
     tone: "primary" | "heat" | "crowd" | "traffic";
   }[];
+  // "ok" when geometry.path is a real routed path from the pedestrian graph;
+  // "unavailable" when it fell back to a straight line (query outside graph
+  // coverage, or the routing function failed) — never silently identical.
+  quality: QualityStatus;
 };
 
 export type Condition = {

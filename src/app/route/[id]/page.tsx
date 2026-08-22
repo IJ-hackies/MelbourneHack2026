@@ -4,6 +4,7 @@ import { ActiveWalk } from "@/components/active-walk";
 import { ConditionIcon } from "@/components/condition-icon";
 import { RouteMap } from "@/components/route-map";
 import { routeProvider } from "@/lib/providers/route-provider";
+import { LiveProgressProvider } from "@/lib/live-progress-context";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function RouteDetail({
@@ -32,6 +33,7 @@ export default async function RouteDetail({
   } = await supabase.auth.getUser();
 
   return (
+    <LiveProgressProvider>
     <main className="mx-auto grid max-w-xl grid-cols-1 gap-6 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[1fr_340px] lg:items-start lg:gap-12 lg:py-12">
       <div className="flex flex-col gap-6 lg:col-span-2">
         <Link
@@ -49,9 +51,9 @@ export default async function RouteDetail({
             <h1 className="font-display text-[1.6rem] font-semibold tracking-tight text-text lg:text-[1.9rem]">
               {route.minutes} min
             </h1>
-            {route.recommended && (
-              <span className="rounded-full bg-primary px-2.5 py-1 text-[0.68rem] font-semibold tracking-wide text-surface uppercase">
-                Comfort pick
+            {route.quality === "unavailable" && (
+              <span className="rounded-full bg-heat-soft px-2.5 py-1 text-[0.68rem] font-semibold tracking-wide text-heat uppercase">
+                Estimated
               </span>
             )}
           </div>
@@ -74,6 +76,12 @@ export default async function RouteDetail({
           <h2 className="font-display text-base font-semibold tracking-tight text-text">
             Conditions along this route
           </h2>
+          {route.segments.length === 0 && (
+            <p className="mt-3 text-sm text-text-tertiary">
+              Not available yet — this needs per-segment heat/crowd/traffic data the app
+              doesn&apos;t have.
+            </p>
+          )}
           <div className="mt-3 flex flex-col gap-3">
             {route.segments.map((seg) => (
               <div key={seg.label}>
@@ -114,5 +122,6 @@ export default async function RouteDetail({
         />
       </div>
     </main>
+    </LiveProgressProvider>
   );
 }

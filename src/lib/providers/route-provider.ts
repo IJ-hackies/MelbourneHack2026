@@ -1,3 +1,4 @@
+import { callRoutePlanner } from "@/lib/routing/route-client";
 import type { Coordinates, RouteOption, RouteQueryInput } from "./types";
 
 export interface RouteProvider {
@@ -7,79 +8,69 @@ export interface RouteProvider {
 
 // Used as the walk's starting point when the caller doesn't supply an
 // `origin` (State Library of Victoria, central Melbourne CBD) — there is no
-// "current location" concept yet.
+// "current location" concept for the server-rendered route list yet (live
+// geolocation, once added, only affects the client-side map/tracking view).
 const DEFAULT_ORIGIN: Coordinates = { lat: -37.8098, lon: 144.9652 };
 
-type StubRouteTemplate = Omit<RouteOption, "geometry">;
+// Fallback walking speed for the straight-line estimate shown when the real
+// routing function reports the query is outside its graph coverage — kept
+// in one place so the "estimated" label and the number stay consistent.
+const FALLBACK_WALKING_SPEED_M_PER_MIN = 80;
 
-// Same three options for every destination, ignoring preferences and
-// departure time, until the pedestrian routing graph and ML-side condition
-// scoring exist. Every caller goes through the RouteProvider interface, so
-// swapping `routeProvider` below is where a real implementation plugs in —
-// but note `id` here is a route *type* ("comfort"/"direct"/"quiet"), not a
-// stable identity: it's reused across every destination/query. A real
-// backend's route IDs will be request- or session-scoped, so getRoute's
-// signature (both `id` and the original query `input`) is deliberately kept
-// together — a real implementation will need both to resolve a route, it
-// can't look one up from the bare id alone.
-const STUB_ROUTE_TEMPLATES: StubRouteTemplate[] = [
-  {
-    id: "comfort",
-    minutes: 17,
-    distanceKm: 2.1,
-    recommended: true,
-    description:
-      "Under tree canopy for 80% of the walk, quieter side streets past Carlton Gardens.",
-    tags: [
-      { label: "High shade", tone: "default" },
-      { label: "Low crowd", tone: "default" },
-    ],
-    segments: [
-      { label: "Shaded canopy", share: 80, tone: "primary" },
-      { label: "Direct sun", share: 20, tone: "heat" },
-      { label: "Quiet streets", share: 65, tone: "crowd" },
-    ],
-  },
-  {
-    id: "direct",
-    minutes: 14,
-    distanceKm: 1.9,
-    recommended: false,
-    description:
-      "Direct along Nicholson Street. Fastest, but exposed for most of the route.",
-    tags: [{ label: "Full sun", tone: "warm" }],
-    segments: [
-      { label: "Shaded canopy", share: 25, tone: "primary" },
-      { label: "Direct sun", share: 75, tone: "heat" },
-      { label: "Quiet streets", share: 30, tone: "crowd" },
-    ],
-  },
-  {
-    id: "quiet",
-    minutes: 19,
-    distanceKm: 2.4,
-    recommended: false,
-    description: "Longest, but lowest vehicle traffic the entire way.",
-    tags: [{ label: "Low traffic", tone: "default" }],
-    segments: [
-      { label: "Shaded canopy", share: 45, tone: "primary" },
-      { label: "Direct sun", share: 55, tone: "heat" },
-      { label: "Low traffic", share: 90, tone: "traffic" },
-    ],
-  },
-];
+function haversineKm(a: Coordinates, b: Coordinates): number {
+  const r = 6371;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * r * Math.asin(Math.sqrt(h));
+}
 
-class StubRouteProvider implements RouteProvider {
+const ROUTE_ID = "walking-route";
+
+class RealRouteProvider implements RouteProvider {
   async listRoutes(input: RouteQueryInput): Promise<RouteOption[]> {
-    // Stub still ignores minutes/distance/segment content, but geometry now
-    // reflects the real resolved destination and origin — no real routing
-    // graph exists yet, so the "path" is just a straight line.
     const origin = input.origin ?? DEFAULT_ORIGIN;
-    const end: Coordinates = { lat: input.destination.lat, lon: input.destination.lon };
-    return STUB_ROUTE_TEMPLATES.map((template) => ({
-      ...template,
-      geometry: { start: origin, end },
-    }));
+    const destination: Coordinates = { lat: input.destination.lat, lon: input.destination.lon };
+
+    const planned = await callRoutePlanner(origin, destination);
+
+    if (planned.qualityStatus === "ok" && planned.path && planned.distanceKm !== null) {
+      return [
+        {
+          id: ROUTE_ID,
+          minutes: planned.minutes ?? Math.round((planned.distanceKm * 1000) / 80),
+          distanceKm: planned.distanceKm,
+          recommended: true,
+          description: "Real walking route along the City of Melbourne pedestrian network.",
+          tags: [],
+          geometry: { start: origin, end: destination, path: planned.path },
+          segments: [],
+          quality: "ok",
+        },
+      ];
+    }
+
+    // Routing unavailable (outside graph coverage, or the function failed) —
+    // fall back to a straight-line estimate, but say so honestly rather than
+    // presenting it identically to a real route.
+    const straightLineKm = haversineKm(origin, destination);
+    return [
+      {
+        id: ROUTE_ID,
+        minutes: Math.round((straightLineKm * 1000) / FALLBACK_WALKING_SPEED_M_PER_MIN),
+        distanceKm: Math.round(straightLineKm * 1000) / 1000,
+        recommended: true,
+        description:
+          "Estimated straight-line distance — real street routing is unavailable for this destination.",
+        tags: [{ label: "Estimated", tone: "warm" }],
+        geometry: { start: origin, end: destination },
+        segments: [],
+        quality: "unavailable",
+      },
+    ];
   }
 
   async getRoute(id: string, input: RouteQueryInput): Promise<RouteOption | null> {
@@ -88,4 +79,4 @@ class StubRouteProvider implements RouteProvider {
   }
 }
 
-export const routeProvider: RouteProvider = new StubRouteProvider();
+export const routeProvider: RouteProvider = new RealRouteProvider();

@@ -79,7 +79,12 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Compile-check the inference functions
-        run: python -m py_compile api/_shared/model_loader.py api/_shared/feature_lookup.py api/crowd-inference.py api/traffic-inference.py
+        run: python -m py_compile api/_shared/model_loader.py api/_shared/feature_lookup.py api/crowd-inference.py api/traffic-inference.py api/_shared/graph_loader.py api/_shared/router.py api/route-planner.py
 
       - name: Import sanity check
         run: python -c "import xgboost; import pandas; import numpy"
+
+      - name: Routing graph unit tests
+        # Pure-Python Dijkstra/snap logic against a synthetic fixture — no
+        # real ~7MB graph.json or network access needed.
+        run: python -m unittest ml.routing.tests.test_router -v
