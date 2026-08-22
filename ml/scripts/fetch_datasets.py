@@ -4,7 +4,8 @@
 Direct HTTP downloads are written to ``.part`` files and atomically renamed only
 after completion.  An interrupted HTTP download is resumed with a Range request
 when the publisher supports it.  ArcGIS FeatureServer entries are fetched as
-paginated GeoJSON clipped to the catalog bbox.
+paginated GeoJSON clipped to the catalog bbox. Catalog entries may select a
+domain-specific storage root; ``--raw-dir`` overrides those roots when supplied.
 """
 
 from __future__ import annotations
@@ -70,6 +71,24 @@ def load_catalog(path: Path) -> dict[str, Any]:
             raise FetchError(
                 f"{dataset_id}: profile must be core, extended, or manual (got {profile!r})"
             )
+        storage = entry.get("storage")
+        if storage is not None:
+            storage_path = Path(str(storage))
+            if (
+                storage_path.is_absolute()
+                or bool(storage_path.drive)
+                or bool(storage_path.anchor)
+                or not storage_path.parts
+                or any(part in {".", ".."} for part in storage_path.parts)
+            ):
+                raise FetchError(
+                    f"{dataset_id}: storage must be a safe path relative to ml/"
+                )
+        domains = entry.get("domains", [])
+        if not isinstance(domains, list) or any(
+            not isinstance(domain, str) or not domain.strip() for domain in domains
+        ):
+            raise FetchError(f"{dataset_id}: domains must be a list of non-empty strings")
     catalog["datasets"] = entries
     return catalog
 
@@ -98,7 +117,7 @@ def select_entries(
 
 
 def print_list(entries: list[dict[str, Any]]) -> None:
-    print("ID\tPROFILE\tKIND\tTITLE")
+    print("ID\tPROFILE\tKIND\tDOMAINS\tSTORAGE\tTITLE")
     for entry in entries:
         print(
             "\t".join(
@@ -106,6 +125,8 @@ def print_list(entries: list[dict[str, Any]]) -> None:
                     str(entry["id"]),
                     str(entry.get("profile", "")),
                     str(entry.get("kind", "direct")),
+                    ",".join(str(domain) for domain in entry.get("domains", [])),
+                    str(entry.get("storage", "data/raw")),
                     str(entry.get("title", "")),
                 ]
             )
@@ -364,7 +385,7 @@ def arcgis_download(
 
 def fetch_entry(
     entry: dict[str, Any],
-    raw_dir: Path,
+    raw_dir: Path | None,
     provenance_dir: Path,
     bbox: list[float] | None,
     force: bool,
@@ -376,6 +397,8 @@ def fetch_entry(
     record: dict[str, Any] = {
         "dataset_id": dataset_id,
         "profile": entry.get("profile"),
+        "domains": entry.get("domains", []),
+        "storage": entry.get("storage", "data/raw"),
         "title": entry.get("title"),
         "url": url,
         "page_url": entry.get("page_url"),
@@ -390,7 +413,11 @@ def fetch_entry(
                 "message": entry.get("manual_reason") or entry.get("notes") or "manual retrieval required",
             }
         else:
-            destination = raw_dir / dataset_id / output_name(entry, str(url))
+            catalog_storage = entry.get("storage")
+            storage_root = raw_dir or (
+                ML_DIR / str(catalog_storage) if catalog_storage else DEFAULT_RAW_DIR
+            )
+            destination = storage_root / dataset_id / output_name(entry, str(url))
             if kind == "arcgis_geojson":
                 result = arcgis_download(entry, destination, bbox, force)
             elif kind == "direct":
@@ -414,7 +441,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--list", action="store_true", help="list selected catalog entries and exit")
     parser.add_argument("--force", action="store_true", help="redownload existing files from scratch")
     parser.add_argument("--bbox", help="ArcGIS clip bbox: min_lon,min_lat,max_lon,max_lat")
-    parser.add_argument("--raw-dir", type=Path, default=DEFAULT_RAW_DIR)
+    parser.add_argument(
+        "--raw-dir",
+        type=Path,
+        help="override all catalog storage roots with one raw-data directory",
+    )
     parser.add_argument("--provenance-dir", type=Path, default=DEFAULT_PROVENANCE_DIR)
     return parser
 
@@ -436,7 +467,8 @@ def main(argv: list[str] | None = None) -> int:
     except FetchError as exc:
         parser.error(str(exc))
 
-    args.raw_dir.mkdir(parents=True, exist_ok=True)
+    if args.raw_dir is not None:
+        args.raw_dir.mkdir(parents=True, exist_ok=True)
     args.provenance_dir.mkdir(parents=True, exist_ok=True)
     failures = 0
     for entry in entries:

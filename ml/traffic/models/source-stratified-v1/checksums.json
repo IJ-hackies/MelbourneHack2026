@@ -1,0 +1,54 @@
+{
+  "artifacts": [
+    {
+      "bytes": 3720,
+      "path": "README.md",
+      "relative_path": "README.md",
+      "release_path": "README.md",
+      "repository_path": "ml/traffic/models/source-stratified-v1/README.md",
+      "sha256": "22198162e550764a74dc8b50302f9d2e4152178fc8156e154a4b01f32f59ee8a"
+    },
+    {
+      "bytes": 9154,
+      "path": "release_manifest.json",
+      "relative_path": "release_manifest.json",
+      "release_path": "release_manifest.json",
+      "repository_path": "ml/traffic/models/source-stratified-v1/release_manifest.json",
+      "sha256": "c4011f01b00ad6aa17ddf15f71187d3996f7c0ae5583b4a8b44677d67cf70662"
+    },
+    {
+      "bytes": 102233,
+      "path": "scats-intersection/metadata.json",
+      "relative_path": "scats-intersection/metadata.json",
+      "release_path": "scats-intersection/metadata.json",
+      "repository_path": "ml/traffic/models/source-stratified-v1/scats-intersection/metadata.json",
+      "sha256": "df9dea967876cd046cf59d1ceee57204cbe0fc0e18b62f52f5c462837f0e2547"
+    },
+    {
+      "bytes": 33284016,
+      "path": "scats-intersection/model.ubj",
+      "relative_path": "scats-intersection/model.ubj",
+      "release_path": "scats-intersection/model.ubj",
+      "repository_path": "ml/traffic/models/source-stratified-v1/scats-intersection/model.ubj",
+      "sha256": "aefbbcdbf4dc7a6bbcb4ef966b58a494c4519cc35ae78245f7a0d3686a3b7f56"
+    },
+    {
+      "bytes": 13051,
+      "path": "transport-activity-countline/metadata.json",
+      "relative_path": "transport-activity-countline/metadata.json",
+      "release_path": "transport-activity-countline/metadata.json",
+      "repository_path": "ml/traffic/models/source-stratified-v1/transport-activity-countline/metadata.json",
+      "sha256": "c316aa6efa844073a41a949e62013b4fd97a5f0072dc734d2c68afe4947a1564"
+    },
+    {
+      "bytes": 4531207,
+      "path": "transport-activity-countline/model.ubj",
+      "relative_path": "transport-activity-countline/model.ubj",
+      "release_path": "transport-activity-countline/model.ubj",
+      "repository_path": "ml/traffic/models/source-stratified-v1/transport-activity-countline/model.ubj",
+      "sha256": "e9419d9628ff5c179d5beb8f4dc69a62770ce4af276a9bbd86df0c88e7145b9f"
+    }
+  ],
+  "schema_version": 1,
+  "selection_split": "validation"
+}

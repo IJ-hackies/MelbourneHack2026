@@ -10,47 +10,46 @@ sources:
   - tsconfig.json
   - scripts/context-drift.mjs
   - ml/README.md
+  - ml/crowd/SOFTWARE_HANDOFF.md
+  - ml/traffic/SOFTWARE_HANDOFF.md
   - ml/data/catalog.json
   - ml/scripts/fetch_datasets.py
-links: [software/frontend-shell, software/tooling, ml/planned-forecasting, ml/data-acquisition]
+links: [software/frontend-shell, software/tooling, ml/planned-forecasting, ml/data-acquisition, ml/crowd-processing, ml/crowd-training, ml/crowd-modeling, ml/model-handoff, ml/traffic-processing, ml/traffic-training, ml/traffic-modeling]
 verified: initial
 ---
 
 ## What this is
 
-HeatRoute is a personalised Melbourne walking-route planner. Instead of always
-choosing the shortest route, it aims to balance travel time with the heat, sun,
-crowds, traffic, and urban environment a pedestrian will experience. V1 is
-walking-only; cycling and other modes come after the walking experience works
-well. The final client may be web, mobile, or another interface and is not yet
-decided.
+HeatRoute is a personalised Melbourne walking-route planner. It aims to balance
+travel time with the heat, sun, crowds, traffic, and urban environment a
+pedestrian will experience. V1 is walking-only; the final client is undecided.
 
-The application remains an intentionally empty Next.js frontend scaffold:
-`src/app/page.tsx` renders `Hello world!`. The ML lane now includes a versioned
-dataset catalog/downloader and an ignored local raw-data mirror, but no map,
-application routing graph, API, persistence, feature pipeline, or ML model is
-implemented. (`ml/README.md`, `ml/data/catalog.json`)
+The Next.js scaffold still renders `Hello world!`. The ML lane has a versioned
+data mirror, a tested 7,295,962-row pedestrian target and promoted crowd model,
+plus a complete 17,744,407-row 2024–2026 traffic target, two feature views, a
+full CUDA evaluation, and a promoted source-stratified lag-enhanced bundle. No
+map, routing graph, API, persistence, route prediction, or serving adapter is
+implemented; both fixed-site model handoffs are documented. (`ml/README.md`)
 
-This is a two-person project. The `software` workstream owns the application,
-routing system, and integration surface. The `ml` workstream owns forecasting
-and data-science work. Their interface must be explicit before integration.
+The `software` workstream owns the application/routing surface; `ml` owns
+forecasting and data science. Their interface must be explicit before integration.
 
 ## Key files
 
-- `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/globals.css` - current App Router shell.
-- `package.json` - Next.js 16, React 19, TypeScript, Tailwind CSS 4, and project commands.
-- `next.config.ts`, `tsconfig.json`, `eslint.config.mjs`, `postcss.config.mjs` - build and quality configuration.
+- `src/app/` - current App Router shell; `package.json` and root config files -
+  Next.js 16, React 19, TypeScript, Tailwind CSS 4, build, and quality settings.
 - `scripts/context-drift.mjs` - validates chunk structure and source freshness.
 - `ml/README.md`, `ml/data/catalog.json`, `ml/scripts/fetch_datasets.py` - ML
-  source acquisition workflow, profiles, licences, known access restrictions,
-  official source URLs, and the executable fetch boundary.
+  acquisition, profiles, licences, source URLs, and executable fetch boundary.
+- `ml/crowd/README.md` - target, feature-table, training, and evaluation
+  contracts; details are in `ml/crowd-processing`, `ml/crowd-training`, and
+  `ml/crowd-modeling`.
+- `ml/model-handoff` - ready releases, integration contracts, compute, and publication.
+- `ml/traffic/README.md`, `ml/traffic-processing`, `ml/traffic-training`, and
+  `ml/traffic-modeling` - target, feature, CUDA evaluation, release, and software
+  handoff contracts.
 - `software/INDEX.md` - current application context; `ml/INDEX.md` - planned forecasting context.
-- Primary commands: `npm run dev`, `npm run lint`, `npm run build`, and
-  `npm run context:drift`; `npm run start` serves a production build.
-
-Planned V1 stack beyond the installed frontend is MapLibre GL JS for mapping
-and Python with FastAPI and Pydantic for the backend API. These dependencies and
-services do not exist yet. (`package.json`)
+- Commands: `npm run dev|lint|build|context:drift`; `npm run start` serves production.
 
 ## Invariants
 
@@ -82,6 +81,11 @@ services do not exist yet. (`package.json`)
 - Candidate lightweight models predict crowd density from historical sensors,
   time, weekday, weather, and location; vehicle traffic from historical traffic
   and temporal patterns; and local conditions from forecasts plus street traits.
+- The implemented crowd model predicts hourly fixed-counter pedestrian flow,
+  not area density; route-edge interpretation remains future integration work.
+- The implemented traffic bundle predicts one-hour-ahead fixed SCATS
+  intersection and Transport Activity countline volumes on separate scales;
+  route congestion/travel-time interpretation remains future work.
 - Building and tree shade is primarily a geometry/solar calculation, not
   necessarily ML. Do not force every environmental feature into a model.
 - The result is a time-dependent pedestrian graph whose segment costs change
@@ -112,18 +116,19 @@ Keep routing and data systems independent of the final frontend where practical.
 - City infrastructure-planning tools and urban-intervention simulations.
 - Advanced accessibility modes.
 - Large-scale social or community features.
-- Optional calendar linking that can read an upcoming event's time and location,
-  suggest the destination and departure window, and avoid manual trip entry.
-  It must be opt-in, request minimal permissions, let users confirm or edit the
-  inferred trip, fall back to manual entry when an event has no usable time or
-  location, and preserve fully manual routing without calendar access.
+- Optional calendar linking must be opt-in, request minimal permissions, let
+  users confirm inferred trips, and preserve fully manual routing.
 
 ## How to extend
 
-For UI/application work, load `software/frontend-shell`. For forecasting work,
-load `ml/planned-forecasting`. Define a versioned software/ML contract for
-route-segment identity, prediction time, value/unit, confidence, freshness, and
-missing-data behavior before either lane consumes the other's output.
+For UI/application work, load `software/frontend-shell`. For crowd features,
+load `ml/crowd-training`; for model work, load `ml/crowd-modeling` and the
+cross-domain boundary in `ml/planned-forecasting`. For traffic work, load
+`ml/traffic-processing`, `ml/traffic-training`, and `ml/traffic-modeling`.
+Define a versioned software/ML contract for route-segment identity, prediction
+time, value/unit, confidence, freshness, and
+missing-data behavior before route-level predictions cross between lanes. The
+fixed-site adapters should implement their versioned contracts as documented.
 
 Add focused backend, data, routing, or mapping chunks only when real source
 areas appear. Update the owning chunk and `verified` value whenever a listed
@@ -138,8 +143,8 @@ source changes.
   fallbacks, and the production data refresh policy remain open. Dataset
   licences and geographic coverage are recorded but still require per-source
   compliance during publication. (`ml/data/catalog.json`)
-- There are no tests, standalone type-check, backend, mapping, feature,
-  training, evaluation, or model-serving commands.
-- This chunk remains `verified: initial` while its new ML sources are untracked;
-  commit the acquisition work, then run `/reupdate` to establish a comparison
-  baseline.
+- Retain the archived City hourly snapshot whole, but use only 1 November 2022
+  through 20 August 2024 when harmonising; overlapping publisher revisions are
+  not identical. (`ml/README.md`, `ml/data/catalog.json`)
+- Crowd/traffic processing, training, and promotion have Python tests; there is
+  no TypeScript check, backend, route mapping, inference API, or serving command.

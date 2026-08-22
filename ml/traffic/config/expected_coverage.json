@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "transport_activity_sources": [
+    "com_transport_activity_2023",
+    "com_transport_activity_2024",
+    "com_transport_activity_2025",
+    "com_transport_activity_2026"
+  ],
+  "scats": {
+    "start_year": 2023,
+    "end_year": 2026,
+    "expected_start": "2023-01-01",
+    "expected_end": "2026-07-31",
+    "source_datasets": [
+      "vic_scats_2023",
+      "vic_scats_2024",
+      "vic_scats_2025_01",
+      "vic_scats_2025_02",
+      "vic_scats_2025_03",
+      "vic_scats_2025_04",
+      "vic_scats_2025_05",
+      "vic_scats_2025_06",
+      "vic_scats_2025_07",
+      "vic_scats_2025_08",
+      "vic_scats_2025_09",
+      "vic_scats_2025_10",
+      "vic_scats_2025_11",
+      "vic_scats_2025_12",
+      "vic_scats_2026_01",
+      "vic_scats_2026_02",
+      "vic_scats_2026_03",
+      "vic_scats_2026_04",
+      "vic_scats_2026_05",
+      "vic_scats_2026_06",
+      "vic_scats_2026_07"
+    ],
+    "allowed_missing_dates": [
+      "2023-07-31",
+      "2024-09-30",
+      "2025-02-28",
+      "2025-12-31"
+    ]
+  },
+  "notes": "V1 requires SCATS from 2023 through the latest complete month available at the August 2026 cleaning cutoff. The official archives omit 31 July 2023, 30 September 2024, 28 February 2025, and 31 December 2025; those four publisher gaps remain absent and are explicitly allowlisted rather than imputed. Advance expected_end deliberately when new complete months are acquired."
+}
