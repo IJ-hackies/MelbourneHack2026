@@ -1,8 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/**/*.py": {
-      "excludeFiles": "{ml/data/**,ml/scripts/**,ml/tests/**,ml/crowd/datasets/**,ml/crowd/processed/**,ml/crowd/training/**,ml/traffic/datasets/**,ml/traffic/processed/**,ml/traffic/training/**,tests/**,src/**,supabase/**,**/*.test.py}"
+    "api/crowd-inference.py": {
+      "excludeFiles": "{ml/data/**,ml/scripts/**,ml/tests/**,ml/crowd/datasets/**,ml/crowd/processed/**,ml/crowd/training/**,ml/traffic/**,tests/**,src/**,supabase/**,**/*.test.py}"
+    },
+    "api/traffic-inference.py": {
+      "excludeFiles": "{ml/data/**,ml/scripts/**,ml/tests/**,ml/traffic/datasets/**,ml/traffic/processed/**,ml/traffic/training/**,ml/crowd/**,tests/**,src/**,supabase/**,**/*.test.py}"
     }
   }
 }

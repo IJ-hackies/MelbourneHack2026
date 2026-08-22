@@ -25,6 +25,12 @@ jobs:
 
       - run: npm ci
 
+      - name: Install uv
+        # vercel build shells out to uv to resolve/install the /api Python
+        # function's requirements.txt. Vercel's own infrastructure has it
+        # preinstalled; a GitHub Actions runner does not.
+        uses: astral-sh/setup-uv@v3
+
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 

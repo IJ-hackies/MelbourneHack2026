@@ -1,6 +1,9 @@
 # Runtime dependencies for the Vercel Python Functions under /api. Separate
 # from ml/requirements.txt, which pins CUDA training-time packages (cupy,
 # duckdb) that don't belong in a serverless inference bundle.
-xgboost>=3.4,<4
+# xgboost-cpu is the CPU-only PyPI distribution (same `xgboost` import) —
+# the regular `xgboost` wheel pulls in nvidia-nccl-cu13 as a hard dependency
+# (~290 MB) purely for optional multi-GPU support this serverless function
+# never uses, which alone blew past Vercel's 500 MB bundle limit.
+xgboost-cpu>=3.4,<4
 numpy>=1.26,<3
-pandas>=2.2,<3

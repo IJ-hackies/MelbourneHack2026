@@ -52,39 +52,47 @@ def _ensure_loaded():
 
 
 def _build_dmatrix(features: dict, metadata: dict):
+    # Built directly from numpy, not pandas — a pandas.Categorical dtype
+    # isn't required for XGBoost's native categorical support, and skipping
+    # it keeps this function's dependency footprint (and Vercel bundle size)
+    # much smaller. Categorical columns are encoded as the integer position
+    # of their value in metadata's `categories` list, which is exactly the
+    # code pandas.Categorical would have assigned at training time.
+    import numpy as np
     import xgboost as xgb
 
     encoder = metadata["encoder"]
     columns = encoder["model_feature_columns"]
     categorical_columns = set(encoder["categorical_columns"])
-    known_sensors = set(encoder["categories"]["sensor_id"])
+    category_lists = encoder["categories"]
+    known_sensors = category_lists["sensor_id"]
 
     sensor_token = f"int:{features['sensor_id']}"
     unseen = sensor_token not in known_sensors
 
-    row = []
+    row: list[float] = []
+    feature_types: list[str] = []
     for col in columns:
+        feature_types.append("c" if col in categorical_columns else "q")
         if col == "sensor_id__unseen":
-            row.append(1 if unseen else 0)
+            row.append(1.0 if unseen else 0.0)
         elif col == "sensor_id":
-            row.append(float("nan") if unseen else features["sensor_id"])
+            row.append(float("nan") if unseen else float(known_sensors.index(sensor_token)))
+        elif col == "is_dst":
+            # Training encoded booleans as "bool:True"/"bool:False" tokens,
+            # matching sensor_id's "int:N" token scheme.
+            token = f"bool:{features.get('is_dst')}"
+            categories = category_lists.get(col, [])
+            row.append(float(categories.index(token)) if token in categories else float("nan"))
         else:
             value = features.get(col)
-            row.append(value if value is not None else float("nan"))
+            row.append(float(value) if value is not None else float("nan"))
 
-    frame_dtypes = {
-        col: ("category" if col in categorical_columns else "float64") for col in columns
-    }
-    import pandas as pd
-
-    df = pd.DataFrame([row], columns=columns)
-    for col, dtype in frame_dtypes.items():
-        if dtype == "category":
-            df[col] = df[col].astype("category")
-        else:
-            df[col] = df[col].astype("float64")
-
-    return xgb.DMatrix(df, enable_categorical=True), unseen
+    array = np.array([row], dtype=np.float64)
+    return (
+        xgb.DMatrix(array, feature_names=columns, feature_types=feature_types, enable_categorical=True),
+        unseen,
+    )
 
 
 def predict(sensor_id: str, target_hour_str: str) -> dict:
