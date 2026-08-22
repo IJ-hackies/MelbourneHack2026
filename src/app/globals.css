@@ -1,1 +1,76 @@
 @import "tailwindcss";
+
+:root {
+  --bg: #f7f2e7;
+  --surface: #fffdf7;
+  --surface-alt: #f0e9d8;
+  --surface-sunk: #e8dfc9;
+  --border: #e2d7bd;
+  --text: #2b241a;
+  --text-secondary: #6b6252;
+  --text-tertiary: #948a75;
+  --primary: #0e6e64;
+  --primary-strong: #0a544c;
+  --primary-soft: #e3f0ec;
+  --heat: #e8703a;
+  --heat-soft: #fbeade;
+  --crowd: #c98a1f;
+  --crowd-soft: #f8ecd6;
+  --traffic: #c0432b;
+  --traffic-soft: #f8e3dd;
+  --shadow-color: 32 30% 12%;
+  --focus: #0e6e64;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-surface-sunk: var(--surface-sunk);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-soft: var(--primary-soft);
+  --color-heat: var(--heat);
+  --color-heat-soft: var(--heat-soft);
+  --color-crowd: var(--crowd);
+  --color-crowd-soft: var(--crowd-soft);
+  --color-traffic: var(--traffic);
+  --color-traffic-soft: var(--traffic-soft);
+  --font-display: var(--font-space-grotesk);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-roboto-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* Text inputs show focus as a border-colour change instead — the outline
+   above reads as a heavy double-border on top of their existing 1px border. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
