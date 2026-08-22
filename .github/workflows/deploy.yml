@@ -13,6 +13,11 @@ jobs:
       VERCEL_PROJECT_ID: prj_Kxm4SiwBFGHm2uNLJ0DiBqbXq8IV
     steps:
       - uses: actions/checkout@v4
+        with:
+          # model.ubj files are Git-LFS pointers without this — the ML
+          # inference functions would fail their checksum verification at
+          # runtime otherwise.
+          lfs: true
 
       - uses: actions/setup-node@v4
         with:

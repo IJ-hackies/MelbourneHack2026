@@ -42,13 +42,23 @@ async function PlanScreen({
   searchParams: Promise<HomeSearchParams>;
 }) {
   const { to, address, lat, lon } = await searchParams;
-  const destination = to?.trim() || null;
-  const current = destination
+  const destinationLabel = to?.trim() || null;
+  const resolvedLat = lat ? Number(lat) : undefined;
+  const resolvedLon = lon ? Number(lon) : undefined;
+  const hasCoordinates =
+    typeof resolvedLat === "number" &&
+    Number.isFinite(resolvedLat) &&
+    typeof resolvedLon === "number" &&
+    Number.isFinite(resolvedLon);
+  // Providers require resolved coordinates; a destination label without them
+  // (e.g. a geocode result missing lat/lon) can't be routed or scored yet.
+  const destination = destinationLabel && hasCoordinates ? destinationLabel : null;
+  const current = destinationLabel
     ? {
-        label: destination,
+        label: destinationLabel,
         address,
-        lat: lat ? Number(lat) : undefined,
-        lon: lon ? Number(lon) : undefined,
+        lat: resolvedLat,
+        lon: resolvedLon,
       }
     : null;
 
@@ -74,16 +84,31 @@ async function PlanScreen({
     }
   }
 
-  const [conditions, routes, savedPlaces, recentSearches] = await Promise.all([
-    destination ? conditionProvider.getConditions({ label: destination }) : Promise.resolve([]),
-    destination
-      ? routeProvider.listRoutes({ label: destination, departureTime: new Date(), preferences })
-      : Promise.resolve([]),
-    listSavedPlaces(),
-    listRecentSearches(),
-  ]);
+  const [conditions, routes, savedPlaces, recentSearches] =
+    destination && hasCoordinates
+      ? await Promise.all([
+          conditionProvider.getConditions({
+            label: destination,
+            lat: resolvedLat!,
+            lon: resolvedLon!,
+          }),
+          routeProvider.listRoutes({
+            destination: { label: destination, lat: resolvedLat!, lon: resolvedLon! },
+            departureTime: new Date(),
+            preferences,
+          }),
+          listSavedPlaces(),
+          listRecentSearches(),
+        ])
+      : await Promise.all([
+          Promise.resolve([]),
+          Promise.resolve([]),
+          listSavedPlaces(),
+          listRecentSearches(),
+        ]);
   const top = routes.find((r) => r.recommended) ?? routes[0];
-  const routeHref = (id: string) => `/route/${id}?to=${encodeURIComponent(destination ?? "")}`;
+  const routeHref = (id: string) =>
+    `/route/${id}?to=${encodeURIComponent(destination ?? "")}&lat=${resolvedLat}&lon=${resolvedLon}`;
 
   return (
     <main className="mx-auto grid max-w-xl grid-cols-1 gap-8 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[360px_1fr] lg:items-start lg:gap-12 lg:py-12">

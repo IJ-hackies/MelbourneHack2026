@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ActiveWalk } from "@/components/active-walk";
 import { ConditionIcon } from "@/components/condition-icon";
+import { RouteMap } from "@/components/route-map";
 import { routeProvider } from "@/lib/providers/route-provider";
 import { createClient } from "@/lib/supabase/server";
 
@@ -10,13 +11,19 @@ export default async function RouteDetail({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ to?: string }>;
+  searchParams: Promise<{ to?: string; lat?: string; lon?: string }>;
 }) {
   const { id } = await params;
-  const { to } = await searchParams;
+  const { to, lat, lon } = await searchParams;
   const destination = to?.trim();
-  if (!destination) redirect("/");
-  const route = await routeProvider.getRoute(id, { label: destination });
+  const resolvedLat = lat ? Number(lat) : NaN;
+  const resolvedLon = lon ? Number(lon) : NaN;
+  if (!destination || !Number.isFinite(resolvedLat) || !Number.isFinite(resolvedLon)) {
+    redirect("/");
+  }
+  const route = await routeProvider.getRoute(id, {
+    destination: { label: destination, lat: resolvedLat, lon: resolvedLon },
+  });
   if (!route) notFound();
 
   const supabase = await createClient();
@@ -28,7 +35,7 @@ export default async function RouteDetail({
     <main className="mx-auto grid max-w-xl grid-cols-1 gap-6 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[1fr_340px] lg:items-start lg:gap-12 lg:py-12">
       <div className="flex flex-col gap-6 lg:col-span-2">
         <Link
-          href={`/?to=${encodeURIComponent(destination)}`}
+          href={`/?to=${encodeURIComponent(destination)}&lat=${resolvedLat}&lon=${resolvedLon}`}
           className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -55,25 +62,8 @@ export default async function RouteDetail({
       </div>
 
       <div className="flex flex-col gap-6">
-        <div
-          className="relative flex h-48 items-center justify-center overflow-hidden rounded-2xl border border-border bg-surface-alt lg:h-80"
-          aria-hidden="true"
-        >
-          <svg viewBox="0 0 320 160" className="h-full w-full">
-            <path
-              d="M20 130 C 80 130, 70 40, 140 40 S 220 110, 260 90 S 300 40, 300 30"
-              fill="none"
-              stroke="var(--primary)"
-              strokeWidth="3.5"
-              strokeLinecap="round"
-              strokeDasharray="1 12"
-            />
-            <circle cx="20" cy="130" r="6" fill="var(--surface)" stroke="var(--primary)" strokeWidth="3" />
-            <circle cx="300" cy="30" r="6" fill="var(--primary)" />
-          </svg>
-          <span className="absolute bottom-3 left-3 rounded-lg bg-surface/90 px-2.5 py-1 text-[0.72rem] text-text-tertiary">
-            Map preview, routing data not yet wired up
-          </span>
+        <div className="h-48 overflow-hidden rounded-2xl border border-border bg-surface-alt lg:h-80">
+          <RouteMap geometry={route.geometry} segments={route.segments} />
         </div>
 
         <p className="text-sm text-text-secondary">{route.description}</p>

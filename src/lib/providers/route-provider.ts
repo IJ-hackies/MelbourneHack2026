@@ -1,9 +1,16 @@
-import type { RouteOption, RouteQueryInput } from "./types";
+import type { Coordinates, RouteOption, RouteQueryInput } from "./types";
 
 export interface RouteProvider {
   listRoutes(input: RouteQueryInput): Promise<RouteOption[]>;
   getRoute(id: string, input: RouteQueryInput): Promise<RouteOption | null>;
 }
+
+// Used as the walk's starting point when the caller doesn't supply an
+// `origin` (State Library of Victoria, central Melbourne CBD) — there is no
+// "current location" concept yet.
+const DEFAULT_ORIGIN: Coordinates = { lat: -37.8098, lon: 144.9652 };
+
+type StubRouteTemplate = Omit<RouteOption, "geometry">;
 
 // Same three options for every destination, ignoring preferences and
 // departure time, until the pedestrian routing graph and ML-side condition
@@ -15,7 +22,7 @@ export interface RouteProvider {
 // signature (both `id` and the original query `input`) is deliberately kept
 // together — a real implementation will need both to resolve a route, it
 // can't look one up from the bare id alone.
-const STUB_ROUTES: RouteOption[] = [
+const STUB_ROUTE_TEMPLATES: StubRouteTemplate[] = [
   {
     id: "comfort",
     minutes: 17,
@@ -64,8 +71,15 @@ const STUB_ROUTES: RouteOption[] = [
 
 class StubRouteProvider implements RouteProvider {
   async listRoutes(input: RouteQueryInput): Promise<RouteOption[]> {
-    void input; // stub ignores the query; a real provider would use it
-    return STUB_ROUTES;
+    // Stub still ignores minutes/distance/segment content, but geometry now
+    // reflects the real resolved destination and origin — no real routing
+    // graph exists yet, so the "path" is just a straight line.
+    const origin = input.origin ?? DEFAULT_ORIGIN;
+    const end: Coordinates = { lat: input.destination.lat, lon: input.destination.lon };
+    return STUB_ROUTE_TEMPLATES.map((template) => ({
+      ...template,
+      geometry: { start: origin, end },
+    }));
   }
 
   async getRoute(id: string, input: RouteQueryInput): Promise<RouteOption | null> {
