@@ -12,14 +12,15 @@ sources:
   - src/components/destination-search.tsx
   - src/components/nav-tabs.tsx
 links: [heatroute, software/tooling, software/routing-boundary, software/auth-persistence]
-verified: 8c14561
+verified: a85a787
 ---
 
 ## What this is
 
-LeafRoute is a responsive Next.js App Router experience. Signed-out visitors
-see a marketing page; signed-in users see a destination planner, three route
-choices, route detail/start-walk flow, history, preferences, and account areas.
+LeafRoute is a responsive Next.js App Router experience. The apex host serves
+marketing, while the application planner and route detail/start-walk flow work
+for guests. Signed-in users additionally receive history, preferences, saved
+places, and account areas.
 The root layout reads Supabase auth/profile state to render authenticated
 navigation. (`src/app/layout.tsx`, `src/app/page.tsx`)
 
@@ -37,12 +38,11 @@ navigation. (`src/app/layout.tsx`, `src/app/page.tsx`)
 
 ## Invariants
 
-- `src/app/page.tsx` is intentionally dual-purpose: marketing for signed-out
-  visitors and planning for signed-in users; host/auth routing in `src/proxy.ts`
-  must remain consistent with that split.
+- `src/app/page.tsx` is host-sensitive: apex domains always render marketing;
+  app/preview/local hosts render planning for guests and signed-in users.
 - Route and condition UI must call the provider interfaces rather than embed a
   future routing or ML backend contract directly. (`src/app/page.tsx`)
-- New users remain useful through defaults, while persisted preferences may be
+- Guests and new users remain useful through defaults, while persisted preferences may be
   passed into route queries. (`src/app/page.tsx`, `src/app/preferences/page.tsx`)
 - Global styles and font variables enter through the root layout.
 

@@ -15,7 +15,7 @@ sources:
   - ml/data/catalog.json
   - ml/scripts/fetch_datasets.py
 links: [software/frontend-shell, software/routing-boundary, software/auth-persistence, software/tooling, ml/planned-forecasting, ml/data-acquisition, ml/crowd-processing, ml/crowd-training, ml/crowd-modeling, ml/model-handoff, ml/traffic-processing, ml/traffic-training, ml/traffic-modeling]
-verified: 8c14561
+verified: a85a787
 ---
 
 ## What this is
@@ -24,9 +24,9 @@ HeatRoute is a personalised Melbourne walking-route planner. It aims to balance
 travel time with the heat, sun, crowds, traffic, and urban environment a
 pedestrian will experience. V1 is walking-only; the final client is undecided.
 
-The Next.js application now provides a public LeafRoute marketing surface,
-Supabase authentication/onboarding, destination search, personalised planning
-screens, saved places, preferences, account controls, and walk history. Route
+The Next.js application now provides an apex-host marketing surface plus a
+guest-accessible planner, Supabase authentication/onboarding, password reset,
+destination search, saved places, preferences, account controls, and walk history. Route
 and condition cards remain fixtures behind provider interfaces: there is no
 map, routing graph, route prediction, or ML serving adapter. The ML lane has a
 versioned data mirror, tested crowd/traffic targets, CUDA evaluations, and

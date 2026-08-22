@@ -1,10 +1,10 @@
 # Current State
 
-- Git source baseline `8c14561` merges cached `origin/main` into the preserved
+- Git source baseline `a85a787` merges refreshed `origin/main` into the preserved
   ML work branch. The application is now LeafRoute: a Next.js/React/TypeScript/
   Tailwind app with Supabase auth, onboarding, preferences, saved places,
-  recent searches, walk history, account controls, Nominatim geocoding, and
-  Playwright smoke tests. There is still no map, pedestrian graph, real route
+  recent searches, walk history, account/password-reset controls, guest planning,
+  Nominatim geocoding, and Playwright smoke tests. There is still no map, pedestrian graph, real route
   scorer, prediction service, or fixed-site-to-route calibration.
 - `src/lib/providers/route-provider.ts` and `condition-provider.ts` expose the
   software integration seam but return fixed fixtures and ignore query details.
@@ -104,8 +104,7 @@
 - Confirm publication/redistribution terms for the City hourly pedestrian data
   and obtain registered BOM access if BOM becomes a production dependency.
 - Reconcile local Supabase auth URLs (currently port 3001) with Next/Playwright
-  ports (3000/3100), add the referenced `supabase/seed.sql`, and align the smoke
-  test's onboarding skip label with the rendered punctuation.
+  ports (3000/3100) and add the referenced `supabase/seed.sql`.
 - Diagnose the default Turbopack production build's failure to resolve the
   installed `lightningcss-linux-x64-gnu` optional package; the same source
   currently builds successfully with `next build --webpack`.

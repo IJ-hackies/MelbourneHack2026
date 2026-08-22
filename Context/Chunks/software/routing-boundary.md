@@ -9,7 +9,7 @@ sources:
   - src/lib/routes.ts
   - src/app/route/[id]/page.tsx
 links: [heatroute, software/frontend-shell, ml/planned-forecasting, ml/model-handoff]
-verified: 8c14561
+verified: a85a787
 ---
 
 ## What this is
@@ -52,6 +52,7 @@ models into route scoring.
 ## Gotchas
 
 - The fixtures ignore destination, time, and preferences despite accepting them.
-- Route ids are fixture-local strings, not durable graph or database identities.
+- Route ids are reused route-type strings; a real provider must resolve them
+  together with the original query rather than as durable global identities.
 - The geocoder is discovery only; it does not construct a walking graph or
   validate that a result is pedestrian-accessible.

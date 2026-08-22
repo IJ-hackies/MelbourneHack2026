@@ -24,7 +24,7 @@ sources:
   - .claude/skills/reupdate/SKILL.md
   - .claude/skills/reaudit/SKILL.md
 links: [heatroute, software/frontend-shell, software/auth-persistence]
-verified: 8c14561
+verified: a85a787
 ---
 
 ## What this is
@@ -40,7 +40,7 @@ local Supabase stack; pushes to `main` deploy to Vercel. (`package.json`,
 - `package.json`, `package-lock.json` - application dependencies and npm scripts.
 - `next.config.ts` - Turbopack root, Codex agent-rules opt-out, and dev origins.
 - `playwright.config.ts`, `tests/` - Chromium smoke flow using a local app and
-  Supabase instance.
+  Supabase instance, covering guest planning, account guards, and signed-in flow.
 - `.github/workflows/ci.yml` - Node 24 lint/build and local-Supabase E2E jobs.
 - `.github/workflows/deploy.yml` - Vercel production build/deploy on `main`.
 - `scripts/context-drift.mjs` and context skills - chunk validation/maintenance.
