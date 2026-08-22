@@ -47,28 +47,33 @@ export async function savePlace({
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not signed in" };
 
-  const payload = {
+  // Home/Work are single slots per user — replace rather than append.
+  // Delete-then-insert atomically via an RPC (see the partial unique
+  // indexes + replace_saved_slot() in the saved_places migrations), so a
+  // failure mid-swap can't wipe a slot without replacing it.
+  if (kind !== "favorite") {
+    const { error } = await supabase.rpc("replace_saved_slot", {
+      p_kind: kind,
+      p_label: label,
+      p_address: address ?? null,
+      p_lat: lat ?? null,
+      p_lon: lon ?? null,
+    });
+
+    if (error) return { error: error.message };
+
+    revalidatePath("/");
+    return { error: null };
+  }
+
+  const { error } = await supabase.from("saved_places").insert({
     user_id: user.id,
     kind,
     label,
     address: address ?? null,
     lat: lat ?? null,
     lon: lon ?? null,
-  };
-
-  // Home/Work are single slots per user — replace rather than append.
-  // (A partial unique index backs this at the DB level too; Postgres can't
-  // target ON CONFLICT at a partial index's implicit predicate from here,
-  // so it's enforced with an explicit delete-then-insert instead of upsert.)
-  if (kind !== "favorite") {
-    await supabase
-      .from("saved_places")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("kind", kind);
-  }
-
-  const { error } = await supabase.from("saved_places").insert(payload);
+  });
 
   if (error) return { error: error.message };
 

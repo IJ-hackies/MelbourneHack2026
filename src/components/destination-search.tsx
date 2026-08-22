@@ -7,8 +7,8 @@ import { logSearch, type RecentSearch } from "@/lib/actions/searches";
 type Suggestion = {
   label: string;
   address: string;
-  lat: number;
-  lon: number;
+  lat?: number;
+  lon?: number;
 };
 
 // Shared across every mount within the session — retyping something you
@@ -39,8 +39,8 @@ export function DestinationSearch({
     ? recentSearches.map((r) => ({
         label: r.label,
         address: r.address ?? "",
-        lat: r.lat ?? 0,
-        lon: r.lon ?? 0,
+        lat: r.lat ?? undefined,
+        lon: r.lon ?? undefined,
       }))
     : suggestions;
 
@@ -112,12 +112,9 @@ export function DestinationSearch({
     setOpen(false);
     setSuggestions([]);
     logSearch(s).catch(() => {});
-    const params = new URLSearchParams({
-      to: s.label,
-      address: s.address,
-      lat: String(s.lat),
-      lon: String(s.lon),
-    });
+    const params = new URLSearchParams({ to: s.label, address: s.address });
+    if (s.lat != null) params.set("lat", String(s.lat));
+    if (s.lon != null) params.set("lon", String(s.lon));
     router.push(`/?${params.toString()}`);
   }
 

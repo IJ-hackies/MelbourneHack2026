@@ -87,6 +87,26 @@ async function PlanScreen({
 
   return (
     <main className="mx-auto grid max-w-xl grid-cols-1 gap-8 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[360px_1fr] lg:items-start lg:gap-12 lg:py-12">
+      {!userId && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-primary bg-primary-soft p-4 sm:flex-row sm:items-center sm:justify-between lg:col-span-2">
+          <div className="flex items-center gap-2.5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0 text-primary">
+              <path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21Z" />
+              <circle cx="12" cy="9.5" r="2.4" />
+            </svg>
+            <p className="text-sm text-text">
+              Sign in to save places, track your walks, and personalise your routes.
+            </p>
+          </div>
+          <PendingLink
+            href="/login"
+            className="shrink-0 rounded-full bg-primary px-4 py-2 text-center text-sm font-semibold text-surface transition-opacity hover:opacity-90"
+          >
+            Sign in
+          </PendingLink>
+        </div>
+      )}
+
       <div className="flex flex-col gap-8 lg:sticky lg:top-24">
         <div>
           <h1 className="font-display text-[1.6rem] font-semibold tracking-tight text-text lg:text-[1.9rem]">
@@ -99,7 +119,7 @@ async function PlanScreen({
 
         <DestinationSearch initialValue={destination ?? ""} recentSearches={recentSearches} />
 
-        <SavedPlacesRow places={savedPlaces} current={current} />
+        <SavedPlacesRow places={savedPlaces} current={current} signedIn={Boolean(userId)} />
 
         {destination && (
           <div className="grid grid-cols-3 gap-2 lg:grid-cols-1 lg:gap-2.5">

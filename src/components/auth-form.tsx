@@ -51,6 +51,12 @@ export function AuthForm({
         </p>
       )}
 
+      {state?.success && (
+        <p className="rounded-xl bg-primary-soft px-3.5 py-2.5 text-sm text-primary-strong">
+          {state.success}
+        </p>
+      )}
+
       <button
         type="submit"
         disabled={pending}

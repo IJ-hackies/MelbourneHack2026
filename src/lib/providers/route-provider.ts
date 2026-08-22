@@ -7,9 +7,14 @@ export interface RouteProvider {
 
 // Same three options for every destination, ignoring preferences and
 // departure time, until the pedestrian routing graph and ML-side condition
-// scoring exist. Swap `routeProvider` below for a real implementation (e.g.
-// one that calls the backend routing API) — every caller goes through this
-// interface, so nothing else needs to change.
+// scoring exist. Every caller goes through the RouteProvider interface, so
+// swapping `routeProvider` below is where a real implementation plugs in —
+// but note `id` here is a route *type* ("comfort"/"direct"/"quiet"), not a
+// stable identity: it's reused across every destination/query. A real
+// backend's route IDs will be request- or session-scoped, so getRoute's
+// signature (both `id` and the original query `input`) is deliberately kept
+// together — a real implementation will need both to resolve a route, it
+// can't look one up from the bare id alone.
 const STUB_ROUTES: RouteOption[] = [
   {
     id: "comfort",
