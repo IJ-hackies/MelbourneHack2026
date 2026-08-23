@@ -7,22 +7,22 @@ const FEATURES = [
   {
     tone: "heat" as const,
     title: "Adapts to real heat, live",
-    body: "When it's genuinely hot out, LeafRoute automatically weighs shade more heavily, real tree canopy data, not a fixed rule that ignores the forecast.",
+    body: "When it's genuinely hot out, LeafRoute leans harder into shade using real tree canopy data, rather than a fixed rule that ignores the forecast.",
   },
   {
     tone: "crowd" as const,
     title: "Reads the crowd",
-    body: "Live pedestrian-sensor data can route you around currently busy streets, not just around distance.",
+    body: "Live pedestrian sensor data can steer you around streets that are busy right now, not just around distance.",
   },
   {
     tone: "traffic" as const,
     title: "Quieter, safer streets",
-    body: "Weight vehicle traffic lower when you'd rather not walk beside six lanes of it.",
+    body: "Tell it to weight traffic lower whenever you'd rather not walk beside six lanes of it.",
   },
   {
     tone: "primary" as const,
     title: "Every walk, counted honestly",
-    body: "Real distance in, a transparent avoided-emissions estimate out, never inflated, never guessed.",
+    body: "We measure your real distance and turn it into a transparent emissions estimate that's never inflated and never guessed.",
   },
 ];
 
@@ -30,17 +30,17 @@ const STEPS = [
   {
     number: "01",
     title: "Search where you're headed",
-    body: "Type a street, building, or place anywhere in Melbourne, real addresses, not guesswork.",
+    body: "Type a street, building, or place anywhere in Melbourne and get real addresses back, not guesswork.",
   },
   {
     number: "02",
     title: "Compare the trade-off",
-    body: "See a few honest options, the fastest, the shadiest, the quietest, and exactly what each one costs you in minutes.",
+    body: "See a handful of honest options, from fastest to shadiest to quietest, along with exactly what each one costs you in minutes.",
   },
   {
     number: "03",
     title: "Walk it, track it",
-    body: "Start walking with one tap. Your history and estimated avoided emissions build up automatically.",
+    body: "Start walking with one tap, and your history and estimated avoided emissions build up automatically as you go.",
   },
 ];
 
@@ -69,10 +69,10 @@ export function MarketingPage({
               is climate action.
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-[1.05rem] leading-relaxed text-text-secondary sm:text-lg">
-              LeafRoute makes walking Melbourne the easy choice, cutting the
-              emissions a car trip would&apos;ve cost, and routing you through shade
-              and cooler streets so rising temperatures don&apos;t make that choice
-              harder than it has to be.
+              LeafRoute makes walking around Melbourne the easy choice. It cuts
+              the emissions a car trip would&apos;ve cost, and routes you through
+              shade and cooler streets so rising temperatures don&apos;t make that
+              choice any harder than it has to be.
             </p>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <PendingLink
@@ -182,10 +182,11 @@ export function MarketingPage({
                 Built for a warming city.
               </h2>
               <p className="mt-3 text-text-secondary">
-                Melbourne is already seeing more extreme-heat days, and the
-                shortest path is often the wrong one on those days. LeafRoute
-                weighs real, live conditions, not just distance, so walking
-                stays a genuine alternative to driving even as it gets hotter.
+                Melbourne is already seeing more extreme heat days, and on
+                those days the shortest path is often the wrong one. LeafRoute
+                weighs real, live conditions instead of just distance, so
+                walking stays a genuine alternative to driving even as it
+                gets hotter.
               </p>
             </div>
 
@@ -246,9 +247,9 @@ export function MarketingPage({
                 Two sides of the same climate problem.
               </h2>
               <p className="mt-3 text-text-secondary">
-                Cutting emissions and coping with the heat we&apos;ve already locked
-                in aren&apos;t separate problems, they show up on the same walk.
-                LeafRoute is built around both.
+                Cutting emissions and coping with the heat we&apos;ve already
+                locked in aren&apos;t separate problems. They show up on the same
+                walk, so LeafRoute is built around both.
               </p>
             </div>
 
@@ -261,9 +262,10 @@ export function MarketingPage({
                   One less car trip
                 </h3>
                 <p className="mt-2 text-[0.9rem] leading-relaxed text-text-secondary">
-                  Every walk you log gets a transparent, honest estimate of the
-                  emissions it avoided compared to driving, never inflated,
-                  never guessed. It builds up in your history automatically.
+                  Every walk you log gets a transparent, honest estimate of
+                  the emissions it saved compared to driving. Nothing here is
+                  inflated or guessed, and it all builds up in your history
+                  automatically.
                 </p>
                 <div className="mt-5 border-t border-primary/25 pt-4">
                   {communityImpact && communityImpact.totalWalks > 0 ? (
@@ -281,8 +283,9 @@ export function MarketingPage({
                     </>
                   ) : (
                     <p className="text-[0.84rem] text-text-secondary">
-                      Be the first walk counted here — every logged walk adds its estimated
-                      avoided emissions to this total, live, for everyone to see.
+                      Be the first walk counted here. Every logged walk adds
+                      its estimated avoided emissions to this total, live,
+                      for everyone to see.
                     </p>
                   )}
                 </div>
@@ -296,9 +299,10 @@ export function MarketingPage({
                   Cope with the heat that&apos;s already here
                 </h3>
                 <p className="mt-2 text-[0.9rem] leading-relaxed text-text-secondary">
-                  On a genuinely hot day, LeafRoute automatically leans harder
-                  into shaded streets, real tree-canopy data driving the route,
-                  not a fixed rule that ignores what it&apos;s actually like outside.
+                  On a genuinely hot day, LeafRoute leans harder into shaded
+                  streets, using real tree canopy data to drive the route
+                  instead of a fixed rule that ignores what it&apos;s actually
+                  like outside.
                 </p>
                 <p className="mt-5 border-t border-heat/25 pt-4 text-[0.78rem] text-text-tertiary">
                   A live heat advisory appears on the plan screen whenever
@@ -327,8 +331,9 @@ export function MarketingPage({
                 Questions, feedback, ideas?
               </h2>
               <p className="mt-3 max-w-sm text-text-secondary">
-                We&apos;re building LeafRoute for Melbourne walkers, tell us what would
-                make it better, or what&apos;s not working.
+                We&apos;re building LeafRoute for Melbourne walkers. Tell us what
+                would make it better, or let us know if something&apos;s not
+                working.
               </p>
             </div>
             <ContactForm />

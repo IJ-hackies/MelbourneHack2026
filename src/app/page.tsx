@@ -99,7 +99,7 @@ async function PlanScreen({
             Where to?
           </h1>
           <p className="mt-1 text-sm text-text-secondary">
-            Sensible defaults, personalise anytime.
+            We start you off with sensible defaults, and you can personalise anytime.
           </p>
         </div>
 

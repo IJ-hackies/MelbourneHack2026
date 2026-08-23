@@ -66,14 +66,14 @@ export function PreferencesForm({
           valueLabel={
             heatSensitivity < 33 ? "LOW" : heatSensitivity < 67 ? "MEDIUM" : "HIGH"
           }
-          hint="High sensitivity recommends the shaded route by default, when one's available."
+          hint="Higher sensitivity means we'll recommend the shaded route by default, when one's available."
         />
         <Slider
           label="Speed vs. comfort"
           value={comfortBalance}
           onChange={setComfortBalance}
           valueLabel={comfortBalance < 50 ? "COMFORT" : "SPEED"}
-          hint="Saved for future route ranking — doesn&apos;t affect route choices yet."
+          hint="Saved for future route ranking. It doesn&apos;t affect route choices yet."
         />
         <Slider
           label="Walking pace"
@@ -82,7 +82,7 @@ export function PreferencesForm({
           max={4}
           onChange={setPace}
           valueLabel={paceLabels[pace].toUpperCase()}
-          hint="Saved for future ETA tuning — doesn&apos;t affect route choices yet."
+          hint="Saved for future ETA tuning. It doesn&apos;t affect route choices yet."
         />
       </div>
 
@@ -95,13 +95,13 @@ export function PreferencesForm({
           )}
           <Toggle
             name="Prefer quieter streets"
-            description="When a quieter option exists, we'll recommend it first instead of fastest -- doesn't change which routes are offered"
+            description="When a quieter option exists, we'll recommend it first instead of fastest. This doesn't change which routes are offered."
             checked={quieterStreets}
             onChange={setQuieterStreets}
           />
           <Toggle
             name="Prefer lower traffic"
-            description="Saved for when vehicle-traffic routing ships — doesn&apos;t affect route choices yet"
+            description="Saved for when vehicle-traffic routing ships. It doesn&apos;t affect route choices yet."
             checked={lowerTraffic}
             onChange={setLowerTraffic}
           />
@@ -115,7 +115,7 @@ export function PreferencesForm({
           )}
           <Toggle
             name="Calendar suggestions"
-            description="Off by default · reads only the next event's time and location, and asks you to confirm before routing"
+            description="Off by default. When it's on, we only read your next event's time and location, and always ask you to confirm before routing."
             checked={calendarSuggestions}
             onChange={setCalendarSuggestions}
           />

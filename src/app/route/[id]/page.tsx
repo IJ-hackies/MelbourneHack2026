@@ -139,9 +139,9 @@ export default async function RouteDetail({
             </svg>
             <p className="text-[0.84rem] text-text">
               <strong className="font-semibold">No street-level directions here yet.</strong>{" "}
-              {destination} is outside the area we have real walking-path data for (City of
-              Melbourne only, for now). The line below is a straight-line estimate to help you
-              gauge distance, not a route to actually follow.
+              {destination} is outside the area we currently have real walking-path data for.
+              The line below is just a straight-line estimate to help you gauge distance, not a
+              route you should actually follow.
             </p>
           </div>
         )}

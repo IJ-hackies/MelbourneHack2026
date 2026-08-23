@@ -523,7 +523,7 @@ export function RouteMap({
       </button>
       {isOffline && (
         <span className="absolute top-3 left-3 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[0.72rem] font-medium text-text shadow-sm">
-          Offline — route won&apos;t update until you&apos;re back online
+          Offline, so the route won&apos;t update until you&apos;re back online
         </span>
       )}
       {!isOffline && liveLocation.status === "denied" && (

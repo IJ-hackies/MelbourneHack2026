@@ -77,10 +77,10 @@ class RealRouteProvider implements RouteProvider {
           recommended: route.id === recommendedId,
           description:
             route.id === "shaded"
-              ? "Real walking route, weighted toward higher tree-canopy-density streets."
+              ? "A real walking route that leans toward streets with denser tree canopy."
               : route.id === "quieter"
-                ? "Real walking route, weighted away from currently busy streets."
-                : "Real walking route along the City of Melbourne pedestrian network.",
+                ? "A real walking route that steers away from streets that are busy right now."
+                : "A real walking route along Melbourne's pedestrian network.",
           tags: route.tags.map((t) => TAG_LABELS[t]).filter(Boolean),
           geometry: { start: origin, end: destination, path: route.path! },
           segments: [],
@@ -104,7 +104,7 @@ class RealRouteProvider implements RouteProvider {
           distanceKm: Math.round(straightLineKm * 1000) / 1000,
           recommended: true,
           description:
-            "This destination is outside our mapped walking area (City of Melbourne only, for now), so we can't plot real streets — this is a straight-line distance estimate, not turn-by-turn directions.",
+            "This destination is outside our mapped walking area, so we can't plot real streets yet. What you're seeing is a straight-line distance estimate, not turn-by-turn directions.",
           tags: [{ label: "Estimated", tone: "warm" }],
           geometry: { start: origin, end: destination },
           segments: [],

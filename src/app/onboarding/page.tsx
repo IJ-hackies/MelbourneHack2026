@@ -27,8 +27,8 @@ export default async function Onboarding() {
           {name ? `Welcome, ${name}` : "Welcome to LeafRoute"}
         </h1>
         <p className="mt-1 text-sm text-text-secondary">
-          A few quick preferences, sensible defaults are already set, so
-          skipping ahead is fine too.
+          A few quick preferences to set up. Sensible defaults are already
+          in place, so it&apos;s fine to skip ahead too.
         </p>
       </div>
 

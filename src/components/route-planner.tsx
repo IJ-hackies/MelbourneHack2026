@@ -229,9 +229,11 @@ export function RoutePlanner({
         <div className="mb-6 flex items-start gap-2.5 rounded-2xl border border-heat/30 bg-heat-soft px-4 py-3">
           <ConditionIcon tone="heat" className="mt-0.5 h-4 w-4 shrink-0" />
           <p className="text-[0.84rem] text-text">
-            {heatContext.extreme ? "Extreme heat" : "Heat advisory"} —{" "}
-            {Math.round(heatContext.temperatureC!)}°C right now, so shaded routing is prioritising
-            tree canopy more heavily than usual.
+            <strong className="font-semibold">
+              {heatContext.extreme ? "Extreme heat" : "Heat advisory"}:
+            </strong>{" "}
+            it&apos;s {Math.round(heatContext.temperatureC!)}°C right now, so shaded routing is
+            leaning on tree canopy more heavily than usual.
           </p>
         </div>
       )}
