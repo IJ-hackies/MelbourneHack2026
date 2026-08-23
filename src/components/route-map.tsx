@@ -7,16 +7,31 @@ import { useLiveLocation } from "@/lib/use-live-location";
 import { useLiveProgress } from "@/lib/live-progress-context";
 import type { Coordinates, RouteGeometry, RouteOption } from "@/lib/providers/types";
 
-// Both Mapbox and MapTiler hit unresolvable, un-diagnosable-from-here
-// failures in production (MapTiler: account stuck "key usage restricted"
-// for 24+ hours; Mapbox: requests silently blocked before reaching Mapbox
-// at all — reproduced across two networks with extensions disabled, so
-// most likely a browser's built-in tracking protection rather than
-// anything fixable in this codebase). OpenFreeMap is the one provider that
-// has actually rendered successfully, with no key/account/browser-blocklist
-// risk, so it's the only style used for now rather than silently depending
-// on either paid provider's account state.
-const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+// Three vector-tile providers (Mapbox, MapTiler, OpenFreeMap) each hit
+// failures that took real requests down to a blank canvas — an ad-blocker
+// intercepting protobuf/XHR-style tile fetches was confirmed for two of
+// them, and the third stayed unexplained even with the blocker off. Vector
+// rendering has a lot of moving parts (protobuf parsing, WebGL layer
+// compositing, sprite/glyph/style-spec resolution) for any one of those to
+// silently break. Plain raster PNG tiles from OpenStreetMap's own standard
+// tile server sidestep all of that — just <img>-style GET requests, the
+// same technology most "just works" web maps have used for 15+ years.
+const OSM_RASTER_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    osm: {
+      type: "raster",
+      tiles: [
+        "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      ],
+      tileSize: 256,
+      attribution: "© OpenStreetMap contributors",
+    },
+  },
+  layers: [{ id: "osm-tiles", type: "raster", source: "osm", minzoom: 0, maxzoom: 19 }],
+};
 const WALKING_SPEED_M_PER_MIN = 80;
 
 function haversineM(a: Coordinates, b: Coordinates): number {
@@ -83,7 +98,7 @@ export function RouteMap({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: MAP_STYLE_URL,
+      style: OSM_RASTER_STYLE,
       // Set explicitly so the camera starts over the actual route even if
       // fitBounds below never runs (a silent style/network failure
       // previously left the map on its style's built-in default view — the
