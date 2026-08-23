@@ -13,24 +13,28 @@ import type { Coordinates, RouteGeometry, RouteOption } from "@/lib/providers/ty
 // them, and the third stayed unexplained even with the blocker off. Vector
 // rendering has a lot of moving parts (protobuf parsing, WebGL layer
 // compositing, sprite/glyph/style-spec resolution) for any one of those to
-// silently break. Plain raster PNG tiles from OpenStreetMap's own standard
-// tile server sidestep all of that — just <img>-style GET requests, the
-// same technology most "just works" web maps have used for 15+ years.
-const OSM_RASTER_STYLE: maplibregl.StyleSpecification = {
+// silently break. Plain raster PNG tiles sidestep all of that — just
+// <img>-style GET requests, the same technology most "just works" web maps
+// have used for 15+ years. CARTO's free, keyless "Voyager" basemap (built
+// on OSM data) is used instead of the default OSM Mapnik style — flatter,
+// less visually busy, closer to the Google-Maps-style look originally asked
+// for than Mapnik's more literal/"realistic" rendering.
+const RASTER_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
-    osm: {
+    basemap: {
       type: "raster",
       tiles: [
-        "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        "https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
       ],
       tileSize: 256,
-      attribution: "© OpenStreetMap contributors",
+      attribution: "© OpenStreetMap contributors © CARTO",
     },
   },
-  layers: [{ id: "osm-tiles", type: "raster", source: "osm", minzoom: 0, maxzoom: 19 }],
+  layers: [{ id: "basemap-tiles", type: "raster", source: "basemap", minzoom: 0, maxzoom: 20 }],
 };
 const WALKING_SPEED_M_PER_MIN = 80;
 
@@ -98,7 +102,7 @@ export function RouteMap({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: OSM_RASTER_STYLE,
+      style: RASTER_STYLE,
       // Set explicitly so the camera starts over the actual route even if
       // fitBounds below never runs (a silent style/network failure
       // previously left the map on its style's built-in default view — the
@@ -154,7 +158,7 @@ export function RouteMap({
             type: "line",
             source: "route-line",
             layout: { "line-join": "round", "line-cap": "round" },
-            paint: { "line-color": "#0e6e64", "line-width": 4 },
+            paint: { "line-color": "#0e6e64", "line-width": 5, "line-opacity": 0.9 },
           });
 
           startMarkerRef.current = new maplibregl.Marker({ color: "#0e6e64" })
@@ -171,13 +175,19 @@ export function RouteMap({
       }
     };
 
-    // isStyleLoaded() covers the case where the style finished loading
-    // before this listener was attached (a real MapLibre race condition —
-    // "load" only fires once, and is missed entirely if registered late).
+    // Deferred one animation frame: raster tiles can finish loading fast
+    // enough that "load" fires before the container has completed its
+    // layout pass, so map.resize()/fitBounds would measure a stale size —
+    // this showed up as the map landing far more zoomed-out than the route
+    // actually spans (its short real line effectively invisible at that
+    // zoom). isStyleLoaded() separately covers the case where the style
+    // finished loading before this listener was even attached (a real
+    // MapLibre race condition — "load" only fires once).
+    const deferredFitToRoute = () => requestAnimationFrame(fitToRoute);
     if (map.isStyleLoaded()) {
-      fitToRoute();
+      deferredFitToRoute();
     } else {
-      map.on("load", fitToRoute);
+      map.on("load", deferredFitToRoute);
     }
 
     return () => {
