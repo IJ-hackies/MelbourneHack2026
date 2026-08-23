@@ -6,8 +6,6 @@ import { SavedPlacesRow } from "@/components/saved-places-row";
 import { MarketingPage } from "@/components/marketing/marketing-page";
 import { RoutePlanner } from "@/components/route-planner";
 import { APEX_HOSTS, getAppOrigin } from "@/lib/hosts";
-import { listSavedPlaces } from "@/lib/actions/places";
-import { listRecentSearches } from "@/lib/actions/searches";
 import { createClient } from "@/lib/supabase/server";
 
 type HomeSearchParams = { to?: string; address?: string; lat?: string; lon?: string };
@@ -65,11 +63,13 @@ async function PlanScreen({
       }
     : null;
 
-  // Conditions and routes both load client-side (ConditionsPanel,
-  // RoutePlanner) so they can start fetching in parallel the moment this
-  // page paints, each with its own skeleton, rather than one blocking the
-  // page render and the other only starting once that finished.
-  const [savedPlaces, recentSearches] = await Promise.all([listSavedPlaces(), listRecentSearches()]);
+  // Conditions, routes, saved places, and recent searches all load
+  // client-side (ConditionsPanel, RoutePlanner, SavedPlacesRow,
+  // DestinationSearch) so this page has no blocking data fetch left at all —
+  // it renders instantly on every search instead of the whole page (search
+  // box included) flashing to the generic route-level loading.tsx while a
+  // server-side await resolved, with each section showing its own skeleton
+  // independently once mounted.
 
   return (
     <main className="mx-auto grid max-w-xl grid-cols-1 gap-8 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[360px_1fr] lg:items-start lg:gap-12 lg:py-12">
@@ -103,9 +103,9 @@ async function PlanScreen({
           </p>
         </div>
 
-        <DestinationSearch initialValue={destinationLabel ?? ""} recentSearches={recentSearches} />
+        <DestinationSearch initialValue={destinationLabel ?? ""} signedIn={Boolean(userId)} />
 
-        <SavedPlacesRow places={savedPlaces} current={current} signedIn={Boolean(userId)} />
+        <SavedPlacesRow current={current} signedIn={Boolean(userId)} />
 
         {destination && (
           <ConditionsPanel destination={{ label: destination, lat: resolvedLat!, lon: resolvedLon! }} />

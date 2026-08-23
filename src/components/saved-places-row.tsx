@@ -1,9 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { deleteSavedPlace, savePlace, type SavedPlace } from "@/lib/actions/places";
+import { deleteSavedPlace, listSavedPlaces, savePlace, type SavedPlace } from "@/lib/actions/places";
 import { useToast } from "@/components/toast-provider";
 
 type Current = {
@@ -79,18 +79,38 @@ function SlotChip({
   );
 }
 
+// Fetched client-side (rather than passed down from an awaited server
+// call) so a fresh destination search never has to wait on this — it used
+// to block the whole plan page's render, which combined with the app's
+// generic route-level loading.tsx meant the entire page (search box
+// included) flashed to a bare spinner on every search instead of each
+// section showing its own loading state independently.
 export function SavedPlacesRow({
-  places,
   current,
   signedIn,
 }: {
-  places: SavedPlace[];
   current: Current;
   signedIn: boolean;
 }) {
   const router = useRouter();
   const showToast = useToast();
   const [isPending, startTransition] = useTransition();
+  const [places, setPlaces] = useState<SavedPlace[] | null>(null);
+
+  useEffect(() => {
+    if (!signedIn) return;
+    let cancelled = false;
+    listSavedPlaces().then((result) => {
+      if (!cancelled) setPlaces(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn]);
+
+  function refreshPlaces() {
+    listSavedPlaces().then(setPlaces);
+  }
 
   if (!signedIn) {
     return (
@@ -100,6 +120,15 @@ export function SavedPlacesRow({
       >
         Sign in to save home, work, and favourite places
       </Link>
+    );
+  }
+
+  if (places === null) {
+    return (
+      <div className="flex gap-2">
+        <div className="h-9 w-20 animate-pulse rounded-full bg-surface-alt" />
+        <div className="h-9 w-20 animate-pulse rounded-full bg-surface-alt" />
+      </div>
     );
   }
 
@@ -133,8 +162,8 @@ export function SavedPlacesRow({
             ? `Added ${current.label} to favorites`
             : `Saved ${current.label} as ${kindLabel[kind]}`
         );
+        refreshPlaces();
       }
-      router.refresh();
     });
   }
 
@@ -145,8 +174,8 @@ export function SavedPlacesRow({
         showToast(result.error, "error");
       } else {
         showToast(`Removed ${label} from saved places`);
+        refreshPlaces();
       }
-      router.refresh();
     });
   }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { logSearch, type RecentSearch } from "@/lib/actions/searches";
+import { listRecentSearches, logSearch, type RecentSearch } from "@/lib/actions/searches";
 
 type Suggestion = {
   label: string;
@@ -18,14 +18,15 @@ const searchCache = new Map<string, Suggestion[]>();
 
 export function DestinationSearch({
   initialValue,
-  recentSearches = [],
+  signedIn = false,
 }: {
   initialValue: string;
-  recentSearches?: RecentSearch[];
+  signedIn?: boolean;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [loading, setLoading] = useState(false);
@@ -33,6 +34,21 @@ export function DestinationSearch({
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Fetched client-side (a guest always gets none, server-side, so this is
+  // skipped entirely for guests) rather than passed down from an awaited
+  // server call — recent searches previously blocked the whole plan page's
+  // render on every navigation.
+  useEffect(() => {
+    if (!signedIn) return;
+    let cancelled = false;
+    listRecentSearches().then((result) => {
+      if (!cancelled) setRecentSearches(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn]);
 
   const showingRecents = query.trim().length < 3;
   const items: Suggestion[] = showingRecents
