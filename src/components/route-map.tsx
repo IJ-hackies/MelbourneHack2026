@@ -155,6 +155,11 @@ export function RouteMap({
       new maplibregl.Marker({ color: "#0e6e64" })
         .setLngLat([geometry.end.lon, geometry.end.lat])
         .addTo(map);
+      // The marker (DOM-positioned, outside the WebGL canvas) shows up
+      // regardless, but the GL-rendered line layer needs an explicit
+      // repaint on a pure-raster base style — addLayer's normal automatic
+      // repaint doesn't reliably reach a freshly added vector overlay here.
+      map.triggerRepaint();
     };
 
     const fitToRoute = () => {
@@ -165,6 +170,17 @@ export function RouteMap({
       );
       map.fitBounds(bounds, { padding: 48, maxZoom: 16, duration: 0 });
       followingRef.current = true;
+      map.triggerRepaint();
+      map.once("idle", () => {
+        console.log(
+          "RouteMap: after idle, route-line paint props:",
+          map.getPaintProperty("route-line", "line-color"),
+          "canvas size:",
+          map.getCanvas().width,
+          map.getCanvas().height
+        );
+        map.triggerRepaint();
+      });
     };
 
     const onReady = () => {
