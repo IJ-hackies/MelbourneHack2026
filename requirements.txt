@@ -7,17 +7,26 @@
 # (~290 MB) purely for optional multi-GPU support this serverless function
 # never uses.
 #
-# Pinned below 3.1: xgboost-cpu 3.1+ (and its numpy/scipy resolved by
-# default) only publish `manylinux_2_28` wheels, no `manylinux2014` variant.
-# Vercel's build-time dependency resolution rejects manylinux_2_28-only
-# wheels as "incompatible" and falls back to building from source, which
-# blew the bundle size limit even after removing nvidia. 3.0.5 is the newest
-# xgboost-cpu release with a manylinux2014 wheel, same major (3.x) version
-# line as the promoted models (trained with xgboost 3.4.1) — verify the
-# UBJSON models still load cleanly under 3.0.5 on first real deploy; roll
-# forward to a newer manylinux_2_28-only version if Vercel's runtime is
-# confirmed to support it (this pin exists for the *build step's* wheel
-# selection, not necessarily the runtime container itself).
-xgboost-cpu>=3.0.5,<3.1
+# Pinned exactly to 3.4.1, the version the promoted crowd model was trained
+# with (see ml/crowd/models/all-history-v1/metadata.json's xgboost_version).
+# xgboost-cpu 3.1+ only publishes `manylinux_2_28` wheels, no `manylinux2014`
+# variant, so this still gets force-built from source on Vercel ("Force-
+# bundling ... without compatible wheels") — but Vercel's per-function
+# package size limit is now 5 GB (previously ~250 MB), so the from-source
+# build's ~300 MB output no longer blows the limit the way it used to.
+#
+# This pin was previously held down to 3.0.5 (the newest manylinux2014
+# wheel) specifically to dodge that from-source build. That silently
+# introduced a real bug: xgboost 3.0.5's DMatrix construction disagreed with
+# 3.4.1 on how this model's native-categorical columns route through the
+# trees, so every live crowd-inference prediction came back ~1000x too low
+# regardless of sensor or location (e.g. Bourke Street Mall: 1.07/hr instead
+# of ~1000/hr) — silent because the endpoint still returned a plausible-
+# looking "degraded" quality status with a real number, just a wrong one.
+# Confirmed by loading the same features under both versions locally. Any
+# future version bump here MUST match the training xgboost_version exactly,
+# not just "same major version" — verify with a real prediction, not just
+# that the model loads without error.
+xgboost-cpu==3.4.1
 numpy>=1.26,<1.27
 scipy>=1.13,<1.14
