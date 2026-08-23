@@ -157,13 +157,18 @@ async function PlanScreen({
                   tone={c.tone}
                   className="mx-auto mb-1.5 h-[18px] w-[18px] lg:mx-0 lg:mb-0"
                 />
-                <div className="lg:flex lg:flex-1 lg:items-baseline lg:justify-between">
-                  <div className="font-display text-[1.05rem] font-semibold text-text">
-                    {c.value}
+                <div className="lg:flex-1">
+                  <div className="lg:flex lg:items-baseline lg:justify-between">
+                    <div className="font-display text-[1.05rem] font-semibold text-text">
+                      {c.value}
+                    </div>
+                    <div className="mt-0.5 text-[0.68rem] tracking-wide text-text-tertiary uppercase lg:mt-0">
+                      {c.label}
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-[0.68rem] tracking-wide text-text-tertiary uppercase lg:mt-0">
-                    {c.label}
-                  </div>
+                  {c.detail && (
+                    <div className="mt-0.5 text-[0.68rem] text-text-tertiary lg:text-right">{c.detail}</div>
+                  )}
                 </div>
               </div>
             ))}

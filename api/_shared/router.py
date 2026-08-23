@@ -62,17 +62,28 @@ SHADE_BIAS = 1.4
 
 
 def shortest_path(
-    adjacency: list[list[list[float]]], start: int, end: int, shade_bias: float = 0.0
+    adjacency: list[list[list[float]]],
+    start: int,
+    end: int,
+    shade_bias: float = 0.0,
+    node_penalty: dict[int, float] | None = None,
+    penalty_weight: float = 0.0,
 ) -> tuple[list[int], float] | None:
     """Dijkstra over the adjacency list. Returns (node id path, total metres
-    of real walking distance — NOT the shade-weighted cost used internally
-    when shade_bias > 0), or None if start/end aren't connected."""
+    of real walking distance — NOT the shade-weighted/penalised cost used
+    internally when shade_bias/penalty_weight > 0), or None if start/end
+    aren't connected.
+
+    node_penalty is an optional real, per-query cost (e.g. nearby live
+    crowd flow) added for arriving at a given node — see
+    api/route-planner.py's crowd-aware "quieter" candidate. Absent from a
+    node means zero penalty, not an unknown value."""
     if start == end:
         return [start], 0.0
 
     # cost is what the priority queue optimises; distance tracks the real
     # metres walked so the reported distance/minutes are never inflated by
-    # the shade bias.
+    # the shade bias or crowd penalty.
     costs = {start: 0.0}
     distances = {start: 0.0}
     previous: dict[int, int] = {}
@@ -91,6 +102,8 @@ def shortest_path(
             weight = edge[1]
             shade = edge[2] if len(edge) > 2 else 0.0
             edge_cost = weight * (1.0 + shade_bias * (1.0 - shade)) if shade_bias else weight
+            if node_penalty and penalty_weight:
+                edge_cost += penalty_weight * node_penalty.get(neighbor, 0.0)
             new_cost = cost + edge_cost
             if new_cost < costs.get(neighbor, math.inf):
                 costs[neighbor] = new_cost

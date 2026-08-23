@@ -109,4 +109,12 @@ def predict(sensor_id: str, target_hour: datetime) -> dict:
         "prediction": {"pedestrian_flow_per_hour": float(raw_pred)},
         "model": {"release": RELEASE, "variant": "all-history", "sensor_id": sensor_id},
         "quality": {"status": status, "feature_coverage": coverage, "warnings": warnings},
+        # This sensor's own real rolling-168h average/sample-count at the
+        # feature_asof cutoff — not a model input, just real recent history
+        # to describe the prediction against (e.g. "busier than usual"),
+        # rather than showing a bare count with nothing to compare it to.
+        "context": {
+            "typical_flow_per_hour": features.get("flow_rolling_past_168h_mean"),
+            "typical_flow_sample_hours": features.get("flow_rolling_past_168h_count"),
+        },
     }

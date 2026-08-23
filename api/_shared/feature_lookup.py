@@ -104,6 +104,18 @@ def _fetch_sensor_locations() -> list[dict]:
     return records
 
 
+def list_sensor_locations() -> list[dict]:
+    """Public wrapper around _fetch_sensor_locations for callers (e.g.
+    route-planner.py's crowd-aware routing bias) that need every sensor's
+    location, not just the single nearest one resolve_nearest_crowd_sensor
+    returns."""
+    try:
+        return _fetch_sensor_locations()
+    except Exception as exc:
+        print(f"list_sensor_locations: sensor locations fetch failed: {exc!r}")
+        return []
+
+
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     r = 6371.0
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
@@ -293,6 +305,11 @@ def build_crowd_features(
         "flow_rolling_past_24h_mean": rolling_24h_mean,
         "flow_rolling_past_168h_std": rolling_168h_std,
         "flow_rolling_past_168h_count": len(past_168h),
+        # Not a model input (not in encoder.model_feature_columns, ignored by
+        # _build_dmatrix) — kept here so callers can describe a prediction
+        # relative to this sensor's own real recent history ("busier/quieter
+        # than usual") instead of showing a raw count with no context.
+        "flow_rolling_past_168h_mean": rolling_168h_mean,
         "nasa_temperature_c": weather["temperature_c"] if weather else None,
         "nasa_dewpoint_c": None,
         "nasa_relative_humidity_pct": None,

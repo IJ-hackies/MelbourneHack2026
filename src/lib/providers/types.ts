@@ -50,6 +50,10 @@ export type RouteOption = {
 export type Condition = {
   label: string;
   value: string;
+  // Short clarifying caption shown under the label (e.g. the raw figure
+  // behind a qualitative value, or a unit/definition) — optional since not
+  // every condition needs one.
+  detail?: string;
   tone: "primary" | "heat" | "crowd" | "traffic";
 };
 
@@ -59,6 +63,10 @@ export type QualityStatus = "ok" | "degraded" | "unavailable";
 
 export type CrowdSignal = {
   pedestrianFlowPerHour: number;
+  // This sensor's own real rolling-168h average, for describing the
+  // prediction relative to its usual range ("busier than usual") — null
+  // when there isn't enough real history to compute one.
+  typicalFlowPerHour: number | null;
   qualityStatus: QualityStatus;
   warnings: string[];
 };

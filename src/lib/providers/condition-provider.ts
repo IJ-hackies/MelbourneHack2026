@@ -18,6 +18,16 @@ type WeatherResponse = {
 
 type ShadeResponse = { canopy_density: number | null; status: "ok" | "unavailable" };
 
+// The real fetched temperature deserves a real descriptor, not a hardcoded
+// "Feels hot" regardless of value (12°C previously said exactly that).
+function feelsLabel(tempC: number): string {
+  if (tempC < 10) return "Feels cold";
+  if (tempC < 17) return "Feels cool";
+  if (tempC < 23) return "Feels mild";
+  if (tempC < 28) return "Feels warm";
+  return "Feels hot";
+}
+
 class LiveConditionProvider implements ConditionProvider {
   async getConditions(input: ConditionQueryInput): Promise<Condition[]> {
     const [weatherCondition, crowdCondition, shadeCondition] = await Promise.all([
@@ -30,9 +40,12 @@ class LiveConditionProvider implements ConditionProvider {
 
   private async getShadeCondition(input: ConditionQueryInput): Promise<Condition> {
     // Real tree-canopy-centroid density near the destination (see
-    // api/shade.py, ml/routing/scripts/build_shade_grid.py) — a leafiness
-    // proxy, not a precise solar-shade calculation, so it's labelled
-    // "Canopy nearby" rather than "Shade %".
+    // api/shade.py, ml/routing/scripts/build_shade_grid.py). It's a real
+    // measurement of tree cover, just not a precise solar-angle shadow
+    // calculation — "Shade" is still the honest everyday word for it
+    // (nobody reading a walking app expects sub-metre solar geometry), so
+    // it's labelled plainly with the canopy-derived caveat moved to the
+    // detail line instead of the label itself.
     try {
       const url = new URL("/api/shade", await getBaseUrl());
       url.searchParams.set("lat", String(input.lat));
@@ -42,12 +55,17 @@ class LiveConditionProvider implements ConditionProvider {
       const data: ShadeResponse = await res.json();
 
       if (!res.ok || data.status !== "ok" || data.canopy_density === null) {
-        return { label: "Canopy nearby", value: "Unavailable", tone: "primary" };
+        return { label: "Shade", value: "Unavailable", tone: "primary" };
       }
 
-      return { label: "Canopy nearby", value: `${Math.round(data.canopy_density * 100)}%`, tone: "primary" };
+      return {
+        label: "Shade",
+        value: `${Math.round(data.canopy_density * 100)}%`,
+        detail: "Tree canopy nearby",
+        tone: "primary",
+      };
     } catch {
-      return { label: "Canopy nearby", value: "Unavailable", tone: "primary" };
+      return { label: "Shade", value: "Unavailable", tone: "primary" };
     }
   }
 
@@ -61,32 +79,41 @@ class LiveConditionProvider implements ConditionProvider {
       const data: WeatherResponse = await res.json();
 
       if (!res.ok || !data.conditions) {
-        return { label: "Feels hot", value: "Unavailable", tone: "heat" };
+        return { label: "Temperature", value: "Unavailable", tone: "heat" };
       }
 
+      const c = data.conditions.temperatureC;
       return {
-        label: "Feels hot",
-        value: `${Math.round(data.conditions.temperatureC)}°C`,
+        label: feelsLabel(c),
+        value: `${Math.round(c)}°C`,
         tone: "heat",
       };
     } catch {
-      return { label: "Feels hot", value: "Unavailable", tone: "heat" };
+      return { label: "Temperature", value: "Unavailable", tone: "heat" };
     }
   }
 
   private async getCrowdCondition(input: ConditionQueryInput): Promise<Condition> {
     // Raw pedestrian-flow-per-hour at the nearest live sensor, not a route
-    // or area density figure — labelled generically ("Nearby") rather than
-    // implying it describes the destination itself.
+    // or area density figure. A bare count ("84/hr") means little without
+    // context, so the headline value is a real comparison against that same
+    // sensor's own rolling 168h average — never a fabricated scale — and
+    // the raw figure moves to the detail line for anyone who wants it.
     const signal = await callCrowdInference({ lat: input.lat, lon: input.lon }, new Date());
     if (signal.qualityStatus === "unavailable") {
-      return { label: "Crowds", value: "Unavailable", tone: "crowd" };
+      return { label: "Crowds nearby", value: "Unavailable", tone: "crowd" };
     }
-    return {
-      label: "Crowds nearby",
-      value: `${Math.round(signal.pedestrianFlowPerHour)}/hr`,
-      tone: "crowd",
-    };
+
+    const rate = Math.round(signal.pedestrianFlowPerHour);
+    const detail = `${rate} people/hr nearby`;
+
+    if (signal.typicalFlowPerHour === null || signal.typicalFlowPerHour <= 0) {
+      return { label: "Crowds nearby", value: `${rate}/hr`, tone: "crowd" };
+    }
+
+    const ratio = signal.pedestrianFlowPerHour / signal.typicalFlowPerHour;
+    const value = ratio >= 1.3 ? "Busier than usual" : ratio <= 0.7 ? "Quieter than usual" : "Typical crowds";
+    return { label: "Crowds nearby", value, detail, tone: "crowd" };
   }
 }
 

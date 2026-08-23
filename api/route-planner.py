@@ -3,7 +3,7 @@
 POST body: { "origin": {"lat": number, "lon": number},
              "destination": {"lat": number, "lon": number} }
 Response:  { "routes": [
-               { "id": "fastest" | "shaded",
+               { "id": "fastest" | "shaded" | "quieter",
                  "path": [{"lat", "lon"}, ...] | null,
                  "distance_km": number | null,
                  "minutes": number | null,
@@ -24,6 +24,7 @@ when quality.status is "unavailable" for every candidate.
 from __future__ import annotations
 
 import json
+import math
 import sys
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler
@@ -41,6 +42,29 @@ _load_error: str | None = None
 # figure. Capped so a long route doesn't fire dozens of model calls.
 CROWD_SAMPLE_SPACING_M = 250.0
 CROWD_SAMPLE_MAX_POINTS = 12
+
+# A candidate must differ from an already-accepted one by at least this much
+# on distance to even be considered — otherwise two near-identical paths
+# (common on a short trip where only one reasonable route exists) would show
+# up as separate-looking cards for zero real difference, which is exactly
+# what looked like a bug to a user comparing two routes that both rounded to
+# "18.5 min".
+MIN_DISTANCE_DIFFERENCE_FRACTION = 0.02
+# A shaded/quieter candidate additionally needs its headline metric to move
+# by at least this much, or it's not offering a real trade-off worth a
+# separate card even if the geometry technically differs by a few metres.
+MIN_SHADE_DIFFERENCE = 0.04
+MIN_CROWD_DIFFERENCE_FRACTION = 0.08
+
+# Real-time crowd-aware routing: only sensors within this padded corridor
+# around the straight-line origin-destination bbox are considered, and only
+# graph nodes within CROWD_INFLUENCE_RADIUS_M of one of those sensors get a
+# nonzero penalty — bounds the cost to a query-local subset of the ~68k-node
+# graph rather than scoring the whole city on every request.
+CROWD_QUERY_PADDING_M = 500.0
+CROWD_INFLUENCE_RADIUS_M = 180.0
+CROWD_PENALTY_WEIGHT = 0.6
+MAX_CROWD_SENSORS_CONSIDERED = 12
 
 
 def _ensure_loaded() -> str | None:
@@ -96,15 +120,80 @@ def _crowd_avg_for_path(node_coords: list, node_ids: list[int], distance_m: floa
     return sum(readings) / len(readings), warnings
 
 
+def _build_crowd_penalty(
+    node_coords: list, origin: dict, destination: dict
+) -> dict[int, float] | None:
+    """Real, live per-node crowd penalty for a "quieter" routing bias:
+    finds live pedestrian sensors near the origin-destination corridor,
+    predicts each one's current flow, and penalises graph nodes within
+    CROWD_INFLUENCE_RADIUS_M of a sensor by that real predicted value.
+    Returns None (never a fabricated empty-but-nonzero penalty) when no
+    sensors are found nearby or none produce a usable prediction."""
+    min_lat = min(origin["lat"], destination["lat"])
+    max_lat = max(origin["lat"], destination["lat"])
+    min_lon = min(origin["lon"], destination["lon"])
+    max_lon = max(origin["lon"], destination["lon"])
+    mid_lat = (min_lat + max_lat) / 2
+    pad_deg_lat = CROWD_QUERY_PADDING_M / 111_320
+    pad_deg_lon = pad_deg_lat / max(0.2, math.cos(math.radians(mid_lat)))
+    min_lat, max_lat = min_lat - pad_deg_lat, max_lat + pad_deg_lat
+    min_lon, max_lon = min_lon - pad_deg_lon, max_lon + pad_deg_lon
+
+    sensors = feature_lookup.list_sensor_locations()
+    corridor_sensors = []
+    for s in sensors:
+        lat, lon, location_id = s.get("latitude"), s.get("longitude"), s.get("location_id")
+        if lat is None or lon is None or location_id is None:
+            continue
+        lat, lon = float(lat), float(lon)
+        if min_lat <= lat <= max_lat and min_lon <= lon <= max_lon:
+            corridor_sensors.append((str(location_id), lat, lon))
+    if not corridor_sensors:
+        return None
+
+    mid_lon = (min_lon + max_lon) / 2
+    corridor_sensors.sort(key=lambda s: router.haversine_m(mid_lon, mid_lat, s[2], s[1]))
+    corridor_sensors = corridor_sensors[:MAX_CROWD_SENSORS_CONSIDERED]
+
+    now = datetime.now(tz=UTC)
+    sensor_flows: list[tuple[float, float, float]] = []  # (lat, lon, flow)
+    for sensor_id, lat, lon in corridor_sensors:
+        result = crowd_model.predict(sensor_id, now)
+        if result["prediction"] is not None:
+            sensor_flows.append((lat, lon, result["prediction"]["pedestrian_flow_per_hour"]))
+    if not sensor_flows:
+        return None
+
+    penalty: dict[int, float] = {}
+    for node_id, (lon, lat) in enumerate(node_coords):
+        if not (min_lat <= lat <= max_lat and min_lon <= lon <= max_lon):
+            continue
+        nearest_flow = None
+        nearest_dist = CROWD_INFLUENCE_RADIUS_M
+        for s_lat, s_lon, flow in sensor_flows:
+            dist = router.haversine_m(lon, lat, s_lon, s_lat)
+            if dist <= nearest_dist:
+                nearest_dist = dist
+                nearest_flow = flow
+        if nearest_flow is not None:
+            penalty[node_id] = nearest_flow
+    return penalty or None
+
+
 def _build_candidate(
     candidate_id: str,
     node_coords: list,
     adjacency: list,
     start_id: int,
     end_id: int,
-    shade_bias: float,
+    shade_bias: float = 0.0,
+    node_penalty: dict[int, float] | None = None,
+    penalty_weight: float = 0.0,
 ) -> dict:
-    result = router.shortest_path(adjacency, start_id, end_id, shade_bias=shade_bias)
+    result = router.shortest_path(
+        adjacency, start_id, end_id,
+        shade_bias=shade_bias, node_penalty=node_penalty, penalty_weight=penalty_weight,
+    )
     if result is None:
         return {
             "id": candidate_id,
@@ -148,6 +237,29 @@ def _apply_tags(candidates: list[dict]) -> None:
     fastest = min((c for c in ok), key=lambda c: c["distance_km"], default=None)
     if fastest is not None:
         fastest["tags"].insert(0, "fastest")
+
+
+def _meaningfully_different(candidate: dict, accepted: list[dict], metric_key: str, relative_metric: bool) -> bool:
+    """A candidate only earns its own card if it's a real, noticeably
+    different trade-off from every candidate already accepted — not just a
+    technically-different path that rounds to the same displayed numbers
+    (e.g. two near-duplicate short-trip routes that both show "18.5 min")."""
+    if candidate["quality"]["status"] != "ok":
+        return False
+    min_metric_diff = MIN_CROWD_DIFFERENCE_FRACTION if relative_metric else MIN_SHADE_DIFFERENCE
+    for other in accepted:
+        dist_ref = max(other["distance_km"], 0.001)
+        distance_diff = abs(candidate["distance_km"] - other["distance_km"]) / dist_ref
+        metric_a, metric_b = candidate.get(metric_key), other.get(metric_key)
+        if metric_a is None or metric_b is None:
+            metric_diff = 0.0
+        elif relative_metric:
+            metric_diff = abs(metric_a - metric_b) / max(abs(metric_b), 0.01)
+        else:
+            metric_diff = abs(metric_a - metric_b)
+        if distance_diff < MIN_DISTANCE_DIFFERENCE_FRACTION and metric_diff < min_metric_diff:
+            return False
+    return True
 
 
 def plan_route(origin: dict, destination: dict) -> dict:
@@ -196,16 +308,27 @@ def plan_route(origin: dict, destination: dict) -> dict:
     if end_snap_m and end_snap_m > 50:
         snap_warnings.append(f"destination_snap_distance_m_{round(end_snap_m)}")
 
-    fastest = _build_candidate("fastest", node_coords, adjacency, start_id, end_id, shade_bias=0.0)
-    shaded = _build_candidate("shaded", node_coords, adjacency, start_id, end_id, shade_bias=router.SHADE_BIAS)
-
+    fastest = _build_candidate("fastest", node_coords, adjacency, start_id, end_id)
     candidates = [fastest]
-    # Only surface "shaded" as a distinct option when it's actually a
-    # different path — an identical geometry (no shadier alternative
-    # exists between these two points) would be a fake-looking duplicate
-    # card for zero real differentiation.
-    if shaded["quality"]["status"] == "ok" and shaded["path"] != fastest["path"]:
+
+    shaded = _build_candidate(
+        "shaded", node_coords, adjacency, start_id, end_id, shade_bias=router.SHADE_BIAS
+    )
+    # Only surface "shaded" as a distinct option when it's a real, noticeably
+    # different trade-off — a path that's technically different by a few
+    # metres but rounds to the same displayed time/percentage is a
+    # fake-looking duplicate card for zero real difference to the user.
+    if _meaningfully_different(shaded, candidates, "canopy_density_avg", relative_metric=False):
         candidates.append(shaded)
+
+    crowd_penalty = _build_crowd_penalty(node_coords, origin, destination)
+    if crowd_penalty:
+        quieter = _build_candidate(
+            "quieter", node_coords, adjacency, start_id, end_id,
+            node_penalty=crowd_penalty, penalty_weight=CROWD_PENALTY_WEIGHT,
+        )
+        if _meaningfully_different(quieter, candidates, "pedestrian_flow_avg_per_hour", relative_metric=True):
+            candidates.append(quieter)
 
     for c in candidates:
         c["quality"]["warnings"] = [*c["quality"]["warnings"], *snap_warnings]

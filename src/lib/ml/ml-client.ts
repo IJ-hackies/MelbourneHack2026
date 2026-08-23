@@ -4,6 +4,7 @@ import type { CrowdSignal, TrafficSignal } from "@/lib/providers/types";
 type CrowdInferenceResponse = {
   prediction: { pedestrian_flow_per_hour: number } | null;
   quality: { status: "ok" | "degraded" | "unavailable"; warnings: string[] };
+  context?: { typical_flow_per_hour: number | null; typical_flow_sample_hours: number | null };
 };
 
 type TrafficInferenceResponse = {
@@ -13,6 +14,7 @@ type TrafficInferenceResponse = {
 
 const UNAVAILABLE_CROWD: CrowdSignal = {
   pedestrianFlowPerHour: 0,
+  typicalFlowPerHour: null,
   qualityStatus: "unavailable",
   warnings: ["crowd_inference_unreachable"],
 };
@@ -43,10 +45,16 @@ export async function callCrowdInference(
     });
     const data: CrowdInferenceResponse = await res.json();
     if (!data.prediction) {
-      return { pedestrianFlowPerHour: 0, qualityStatus: data.quality.status, warnings: data.quality.warnings };
+      return {
+        pedestrianFlowPerHour: 0,
+        typicalFlowPerHour: null,
+        qualityStatus: data.quality.status,
+        warnings: data.quality.warnings,
+      };
     }
     return {
       pedestrianFlowPerHour: data.prediction.pedestrian_flow_per_hour,
+      typicalFlowPerHour: data.context?.typical_flow_per_hour ?? null,
       qualityStatus: data.quality.status,
       warnings: data.quality.warnings,
     };
