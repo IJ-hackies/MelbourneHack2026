@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AuthForm } from "@/components/auth-form";
 import { GoogleButton } from "@/components/google-button";
 import { login } from "@/lib/actions/auth";
+import { safeLocalPath } from "@/lib/safe-redirect";
 
 const ERROR_MESSAGES: Record<string, string> = {
   oauth: "Something went wrong signing in with Google. Please try again.",
@@ -65,6 +66,12 @@ export default async function Login({
         New to LeafRoute?{" "}
         <Link href="/signup" className="font-medium text-primary">
           Create an account
+        </Link>
+      </p>
+
+      <p className="mt-4 text-center text-sm">
+        <Link href={safeLocalPath(next)} className="font-medium text-text-secondary hover:text-text">
+          Continue as guest
         </Link>
       </p>
     </main>

@@ -44,6 +44,12 @@ export default function Signup() {
           Sign in
         </Link>
       </p>
+
+      <p className="mt-4 text-center text-sm">
+        <Link href="/" className="font-medium text-text-secondary hover:text-text">
+          Continue as guest
+        </Link>
+      </p>
     </main>
   );
 }

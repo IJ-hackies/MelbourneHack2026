@@ -5,19 +5,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rate-limit";
+import { safeLocalPath } from "@/lib/safe-redirect";
 
 async function clientIp(): Promise<string> {
   const h = await headers();
   return h.get("x-forwarded-for")?.split(",")[0].trim() ?? h.get("x-real-ip") ?? "unknown";
-}
-
-// Only ever redirect to a same-site path after auth — a bare "/evil.com" or
-// "https://evil.com" passed through `next` would otherwise let an attacker
-// send a real login/reset link that lands the user on their own site post-auth.
-function safeLocalPath(next: string | null | undefined): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/";
-  if (next.includes("://") || next.includes("\\")) return "/";
-  return next;
 }
 
 export async function loginWithGoogle() {
