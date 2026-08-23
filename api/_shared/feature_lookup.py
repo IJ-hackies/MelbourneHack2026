@@ -185,13 +185,31 @@ def _fetch_sensor_history(sensor_id: str, as_of: datetime) -> list[dict]:
     return records
 
 
-def _flow_at(records: list[dict], target: datetime) -> float | None:
-    target_date = target.date().isoformat()
+def _index_records(records: list[dict]) -> dict[tuple[str, int], float | None]:
+    """(sensing_date, hourday) -> pedestriancount, built once per sensor
+    fetch. build_crowd_features looks up ~195 (date, hour) points per call
+    (3 lags + a 24h window + a 168h window) — a linear scan per lookup over
+    up to 200 raw records was ~39,000 comparisons per sensor per call,
+    repeated for every route candidate that samples the same sensor. An
+    O(1) dict lookup here is the same real data, just not re-scanned from
+    scratch every time."""
+    index: dict[tuple[str, int], float | None] = {}
     for rec in records:
-        if rec.get("sensing_date") == target_date and int(rec.get("hourday", -1)) == target.hour:
-            count = rec.get("pedestriancount")
-            return float(count) if count is not None else None
-    return None
+        date = rec.get("sensing_date")
+        hour = rec.get("hourday")
+        if date is None or hour is None:
+            continue
+        count = rec.get("pedestriancount")
+        # Records are fetched most-recent-first; keep the first (latest)
+        # value seen for a given (date, hour) key.
+        key = (date, int(hour))
+        if key not in index:
+            index[key] = float(count) if count is not None else None
+    return index
+
+
+def _flow_at_indexed(index: dict[tuple[str, int], float | None], target: datetime) -> float | None:
+    return index.get((target.date().isoformat(), target.hour))
 
 
 # Keyed by the target hour truncated to the day + hour Open-Meteo actually
@@ -256,19 +274,21 @@ def build_crowd_features(
     except Exception:
         return {}, "unavailable", ["live_pedestrian_feed_unreachable"]
 
-    lag_1h = _flow_at(records, feature_asof - timedelta(hours=1))
-    lag_24h = _flow_at(records, feature_asof - timedelta(hours=24))
-    lag_168h = _flow_at(records, feature_asof - timedelta(hours=168))
+    index = _index_records(records)
+
+    lag_1h = _flow_at_indexed(index, feature_asof - timedelta(hours=1))
+    lag_24h = _flow_at_indexed(index, feature_asof - timedelta(hours=24))
+    lag_168h = _flow_at_indexed(index, feature_asof - timedelta(hours=168))
 
     past_24h = [
         v
         for h in range(24)
-        if (v := _flow_at(records, feature_asof - timedelta(hours=h))) is not None
+        if (v := _flow_at_indexed(index, feature_asof - timedelta(hours=h))) is not None
     ]
     past_168h = [
         v
         for h in range(168)
-        if (v := _flow_at(records, feature_asof - timedelta(hours=h))) is not None
+        if (v := _flow_at_indexed(index, feature_asof - timedelta(hours=h))) is not None
     ]
 
     if lag_1h is None:

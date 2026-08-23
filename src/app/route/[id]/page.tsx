@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ActiveWalk } from "@/components/active-walk";
-import { RouteMap } from "@/components/route-map";
+import { RouteMap } from "@/components/route-map-lazy";
 import { ShareRouteButton } from "@/components/share-route-button";
 import { routeProvider } from "@/lib/providers/route-provider";
 import { LiveProgressProvider } from "@/lib/live-progress-context";

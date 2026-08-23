@@ -106,10 +106,24 @@ def _sample_points(node_coords: list, node_ids: list[int], distance_m: float) ->
     return [(node_coords[node_ids[i]][1], node_coords[node_ids[i]][0]) for i in indices]
 
 
-def _crowd_avg_for_path(node_coords: list, node_ids: list[int], distance_m: float) -> tuple[float | None, list[str]]:
+def _predict_crowd_cached(cache: dict[str, dict], sensor_id: str, now: datetime) -> dict:
+    """crowd_model.predict, memoized per plan_route() call. fastest/shaded/
+    quieter candidates (each calling _crowd_avg_for_path) and the "quieter"
+    crowd-penalty corridor lookup commonly resolve to overlapping sensors
+    for the same request — without this, each one independently re-fetched
+    that sensor's history and re-ran the model, repeating real network I/O
+    and the feature-scan work for a result that can't have changed within
+    the same request."""
+    if sensor_id not in cache:
+        cache[sensor_id] = crowd_model.predict(sensor_id, now)
+    return cache[sensor_id]
+
+
+def _crowd_avg_for_path(
+    node_coords: list, node_ids: list[int], distance_m: float, now: datetime, crowd_cache: dict[str, dict]
+) -> tuple[float | None, list[str]]:
     warnings: list[str] = []
     samples = _sample_points(node_coords, node_ids, distance_m)
-    now = datetime.now(tz=UTC)
 
     # Nearby samples commonly resolve to the same nearest sensor — dedupe
     # before predicting so a 12-point path doesn't fire 12x the model calls
@@ -125,7 +139,7 @@ def _crowd_avg_for_path(node_coords: list, node_ids: list[int], distance_m: floa
 
     readings: list[float] = []
     for sensor_id in sensor_ids:
-        result = crowd_model.predict(sensor_id, now)
+        result = _predict_crowd_cached(crowd_cache, sensor_id, now)
         if result["prediction"] is not None:
             readings.append(result["prediction"]["pedestrian_flow_per_hour"])
 
@@ -135,7 +149,7 @@ def _crowd_avg_for_path(node_coords: list, node_ids: list[int], distance_m: floa
 
 
 def _build_crowd_penalty(
-    node_coords: list, origin: dict, destination: dict
+    node_coords: list, origin: dict, destination: dict, now: datetime, crowd_cache: dict[str, dict]
 ) -> dict[int, float] | None:
     """Real, live per-node crowd penalty for a "quieter" routing bias:
     finds live pedestrian sensors near the origin-destination corridor,
@@ -169,10 +183,9 @@ def _build_crowd_penalty(
     corridor_sensors.sort(key=lambda s: router.haversine_m(mid_lon, mid_lat, s[2], s[1]))
     corridor_sensors = corridor_sensors[:MAX_CROWD_SENSORS_CONSIDERED]
 
-    now = datetime.now(tz=UTC)
     sensor_flows: list[tuple[float, float, float]] = []  # (lat, lon, flow)
     for sensor_id, lat, lon in corridor_sensors:
-        result = crowd_model.predict(sensor_id, now)
+        result = _predict_crowd_cached(crowd_cache, sensor_id, now)
         if result["prediction"] is not None:
             sensor_flows.append((lat, lon, result["prediction"]["pedestrian_flow_per_hour"]))
     if not sensor_flows:
@@ -200,6 +213,8 @@ def _build_candidate(
     adjacency: list,
     start_id: int,
     end_id: int,
+    now: datetime,
+    crowd_cache: dict[str, dict],
     shade_bias: float = 0.0,
     node_penalty: dict[int, float] | None = None,
     penalty_weight: float = 0.0,
@@ -223,7 +238,7 @@ def _build_candidate(
     node_ids, total_m = result
     path = [{"lon": node_coords[n][0], "lat": node_coords[n][1]} for n in node_ids]
     shade_avg = router.path_avg_shade(adjacency, node_ids)
-    crowd_avg, crowd_warnings = _crowd_avg_for_path(node_coords, node_ids, total_m)
+    crowd_avg, crowd_warnings = _crowd_avg_for_path(node_coords, node_ids, total_m, now, crowd_cache)
 
     return {
         "id": candidate_id,
@@ -364,12 +379,19 @@ def plan_route(origin: dict, destination: dict, preferences: dict | None = None)
 
     heat_context = _heat_context()
     shade_pref_multiplier, crowd_pref_multiplier = _preference_multipliers(preferences)
+    # One shared timestamp and one shared per-sensor prediction cache for the
+    # whole request — fastest/shaded/quieter and the crowd-penalty corridor
+    # lookup all query the same live sensors around the same origin/
+    # destination, so without this each one redundantly re-fetched history
+    # and re-ran the model for sensors the others had already resolved.
+    now = datetime.now(tz=UTC)
+    crowd_cache: dict[str, dict] = {}
 
-    fastest = _build_candidate("fastest", node_coords, adjacency, start_id, end_id)
+    fastest = _build_candidate("fastest", node_coords, adjacency, start_id, end_id, now, crowd_cache)
     candidates = [fastest]
 
     shaded = _build_candidate(
-        "shaded", node_coords, adjacency, start_id, end_id,
+        "shaded", node_coords, adjacency, start_id, end_id, now, crowd_cache,
         shade_bias=router.SHADE_BIAS * heat_context["shade_bias_multiplier"] * shade_pref_multiplier,
     )
     # Only surface "shaded" as a distinct option when it's a real, noticeably
@@ -379,10 +401,10 @@ def plan_route(origin: dict, destination: dict, preferences: dict | None = None)
     if _meaningfully_different(shaded, candidates, "canopy_density_avg", relative_metric=False):
         candidates.append(shaded)
 
-    crowd_penalty = _build_crowd_penalty(node_coords, origin, destination)
+    crowd_penalty = _build_crowd_penalty(node_coords, origin, destination, now, crowd_cache)
     if crowd_penalty:
         quieter = _build_candidate(
-            "quieter", node_coords, adjacency, start_id, end_id,
+            "quieter", node_coords, adjacency, start_id, end_id, now, crowd_cache,
             node_penalty=crowd_penalty, penalty_weight=CROWD_PENALTY_WEIGHT * crowd_pref_multiplier,
         )
         if _meaningfully_different(quieter, candidates, "pedestrian_flow_avg_per_hour", relative_metric=True):
