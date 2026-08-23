@@ -30,6 +30,24 @@ function haversineKm(a: Coordinates, b: Coordinates): number {
   return 2 * r * Math.asin(Math.sqrt(h));
 }
 
+// Picks which already-generated candidate to recommend, based purely on
+// saved preferences — never which candidates exist in the first place (see
+// route-client.ts's callRoutePlanner, which no longer sends preferences to
+// the routing function at all). A preference set to its maximum or minimum
+// must always still return the same set of real route options; it only
+// changes which one is suggested first. Explicit "prefer quieter streets"
+// wins over heat sensitivity when both would apply, since it's a direct
+// toggle rather than a threshold on a continuous slider.
+function chooseRecommendedId(candidateIds: string[], preferences?: RouteQueryInput["preferences"]): string {
+  if (preferences?.preferQuieterStreets && candidateIds.includes("quieter")) {
+    return "quieter";
+  }
+  if ((preferences?.heatSensitivity ?? 0) >= 60 && candidateIds.includes("shaded")) {
+    return "shaded";
+  }
+  return candidateIds.includes("fastest") ? "fastest" : candidateIds[0];
+}
+
 // Maps the route-planner's real, data-derived tag ids to display labels.
 // Only ever attached server-side when the backend actually found two
 // candidates that differ on that metric — never applied client-side as
@@ -45,17 +63,18 @@ class RealRouteProvider implements RouteProvider {
     const origin = input.origin ?? DEFAULT_ORIGIN;
     const destination: Coordinates = { lat: input.destination.lat, lon: input.destination.lon };
 
-    const planned = await callRoutePlanner(origin, destination, input.preferences);
+    const planned = await callRoutePlanner(origin, destination);
     const ok = planned.routes.filter((r) => r.qualityStatus === "ok" && r.path && r.distanceKm !== null);
+    const recommendedId = chooseRecommendedId(ok.map((r) => r.id), input.preferences);
 
     if (ok.length > 0) {
       return {
         heatContext: planned.heatContext,
-        routes: ok.map((route, i) => ({
+        routes: ok.map((route) => ({
           id: route.id,
           minutes: route.minutes ?? Math.round((route.distanceKm! * 1000) / FALLBACK_WALKING_SPEED_M_PER_MIN),
           distanceKm: route.distanceKm!,
-          recommended: i === 0,
+          recommended: route.id === recommendedId,
           description:
             route.id === "shaded"
               ? "Real walking route, weighted toward higher tree-canopy-density streets."

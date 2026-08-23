@@ -1,5 +1,5 @@
 import { getBaseUrl } from "@/lib/base-url";
-import type { Coordinates, QualityStatus, UserPreferences } from "@/lib/providers/types";
+import type { Coordinates, QualityStatus } from "@/lib/providers/types";
 
 type RouteCandidateResponse = {
   id: string;
@@ -69,23 +69,18 @@ const UNAVAILABLE: PlannedRoutes = {
 // next/headers via this file.
 export async function callRoutePlanner(
   origin: Coordinates,
-  destination: Coordinates,
-  preferences?: Partial<UserPreferences>
+  destination: Coordinates
 ): Promise<PlannedRoutes> {
   try {
     const res = await fetch(new URL("/api/route-planner", await getBaseUrl()), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        origin,
-        destination,
-        preferences: preferences
-          ? {
-              heat_sensitivity: preferences.heatSensitivity,
-              prefer_quieter_streets: preferences.preferQuieterStreets,
-            }
-          : undefined,
-      }),
+      // No preferences here on purpose — which candidates exist must only
+      // depend on the real graph and live conditions, never on a saved
+      // preference, so a search always returns the same route options
+      // regardless of what's set. See route-provider.ts for how preferences
+      // instead pick which of those options gets recommended.
+      body: JSON.stringify({ origin, destination }),
       cache: "no-store",
     });
     const data: RoutePlannerResponse = await res.json();

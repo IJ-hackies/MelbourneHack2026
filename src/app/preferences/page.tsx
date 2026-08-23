@@ -26,7 +26,8 @@ export default async function Preferences() {
           Your preferences
         </h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Change anytime, routes still work without this.
+          Change anytime. These decide which route we recommend for you out of the options a
+          search finds — they never change how many routes you get or what they are.
         </p>
       </div>
 

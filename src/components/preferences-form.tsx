@@ -66,7 +66,7 @@ export function PreferencesForm({
           valueLabel={
             heatSensitivity < 33 ? "LOW" : heatSensitivity < 67 ? "MEDIUM" : "HIGH"
           }
-          hint="Higher sensitivity leans the &ldquo;shaded&rdquo; route option harder into tree canopy."
+          hint="High sensitivity recommends the shaded route by default, when one's available."
         />
         <Slider
           label="Speed vs. comfort"
@@ -90,12 +90,12 @@ export function PreferencesForm({
         <div>
           {layout === "settings" && (
             <h2 className="font-display text-base font-semibold tracking-tight text-text">
-              Route weighting
+              Recommendation priority
             </h2>
           )}
           <Toggle
             name="Prefer quieter streets"
-            description="Weights the &ldquo;quieter&rdquo; route option more heavily toward avoiding currently busy streets"
+            description="Recommends the quieter route by default, when one's available, instead of always leading with fastest"
             checked={quieterStreets}
             onChange={setQuieterStreets}
           />

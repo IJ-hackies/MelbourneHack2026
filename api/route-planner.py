@@ -313,25 +313,15 @@ def _heat_context() -> dict:
     return {"temperature_c": temp_c, "advisory": False, "extreme": False, "shade_bias_multiplier": 1.0}
 
 
-def _preference_multipliers(preferences: dict | None) -> tuple[float, float]:
-    """Real, if modest, personalisation: a saved heat_sensitivity (0-100,
-    default 50) scales how hard "shaded" biases toward canopy on top of the
-    live heat_context multiplier, and prefer_quieter_streets scales how hard
-    "quieter" biases away from crowded nodes. Anything else in `preferences`
-    (pace, prefer_lower_traffic, calendar_suggestions) has no routing effect
-    yet — no candidate is fabricated to feign using them."""
-    if not preferences:
-        return 1.0, 1.0
-    heat_sensitivity = preferences.get("heat_sensitivity")
-    shade_multiplier = 1.0
-    if isinstance(heat_sensitivity, (int, float)):
-        # 0 -> 0.6x the default shade bias, 50 -> 1.0x, 100 -> 1.6x.
-        shade_multiplier = 0.6 + (max(0.0, min(100.0, heat_sensitivity)) / 100.0)
-    crowd_multiplier = 1.5 if preferences.get("prefer_quieter_streets") else 1.0
-    return shade_multiplier, crowd_multiplier
-
-
-def plan_route(origin: dict, destination: dict, preferences: dict | None = None) -> dict:
+def plan_route(origin: dict, destination: dict) -> dict:
+    """Always generates the same set of candidates for a given origin/
+    destination/time — which of fastest/shaded/quieter exist, and how
+    different they are, depends only on the real graph, live heat, and live
+    crowd data, never on saved preferences. Preferences instead decide which
+    of these already-generated candidates gets recommended to a signed-in
+    user (see route-provider.ts's chooseRecommendedId) — a preference set to
+    a maximum or minimum must never change how many real route options a
+    search returns, only which one is suggested first."""
     load_error = _ensure_loaded()
     if load_error:
         unavailable = {
@@ -378,7 +368,6 @@ def plan_route(origin: dict, destination: dict, preferences: dict | None = None)
         snap_warnings.append(f"destination_snap_distance_m_{round(end_snap_m)}")
 
     heat_context = _heat_context()
-    shade_pref_multiplier, crowd_pref_multiplier = _preference_multipliers(preferences)
     # One shared timestamp and one shared per-sensor prediction cache for the
     # whole request — fastest/shaded/quieter and the crowd-penalty corridor
     # lookup all query the same live sensors around the same origin/
@@ -392,7 +381,7 @@ def plan_route(origin: dict, destination: dict, preferences: dict | None = None)
 
     shaded = _build_candidate(
         "shaded", node_coords, adjacency, start_id, end_id, now, crowd_cache,
-        shade_bias=router.SHADE_BIAS * heat_context["shade_bias_multiplier"] * shade_pref_multiplier,
+        shade_bias=router.SHADE_BIAS * heat_context["shade_bias_multiplier"],
     )
     # Only surface "shaded" as a distinct option when it's a real, noticeably
     # different trade-off — a path that's technically different by a few
@@ -405,7 +394,7 @@ def plan_route(origin: dict, destination: dict, preferences: dict | None = None)
     if crowd_penalty:
         quieter = _build_candidate(
             "quieter", node_coords, adjacency, start_id, end_id, now, crowd_cache,
-            node_penalty=crowd_penalty, penalty_weight=CROWD_PENALTY_WEIGHT * crowd_pref_multiplier,
+            node_penalty=crowd_penalty, penalty_weight=CROWD_PENALTY_WEIGHT,
         )
         if _meaningfully_different(quieter, candidates, "pedestrian_flow_avg_per_hour", relative_metric=True):
             candidates.append(quieter)
@@ -464,12 +453,8 @@ class handler(BaseHTTPRequestHandler):
             _bad_request(self, "origin and destination each require numeric lat/lon")
             return
 
-        preferences = body.get("preferences")
-        if not isinstance(preferences, dict):
-            preferences = None
-
         try:
-            result = plan_route(origin, destination, preferences)
+            result = plan_route(origin, destination)
         except Exception as exc:  # never leak a raw traceback to the client
             self.send_response(500)
             self.send_header("Content-Type", "application/json")
