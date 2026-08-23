@@ -68,6 +68,28 @@ def _http_get_json(url: str, timeout: float = 8.0) -> dict:
         return json.loads(resp.read())
 
 
+# Opendatasoft's Explore v2.1 API caps `limit` at 100 per request (a request
+# for more is a 400, not a truncation) — this paginates with `offset` to get
+# every row rather than silently capping at 100 and degrading coverage for
+# whichever sensors/hours happen to sort past that point.
+def _fetch_all_records(base_url: str, where: str | None, order_by: str, max_rows: int) -> list[dict]:
+    records: list[dict] = []
+    offset = 0
+    page_size = 100
+    while len(records) < max_rows:
+        params = {"limit": page_size, "offset": offset, "order_by": order_by}
+        if where:
+            params["where"] = where
+        url = f"{base_url}?{urllib.parse.urlencode(params)}"
+        data = _http_get_json(url)
+        page = [r["record"]["fields"] if "record" in r else r for r in data.get("results", [])]
+        records.extend(page)
+        if len(page) < page_size:
+            break
+        offset += page_size
+    return records[:max_rows]
+
+
 def _fetch_sensor_locations() -> list[dict]:
     """All known sensors with their current lat/lon, live from the City's
     sensor-locations dataset (not the offline ml/ mirror)."""
@@ -76,10 +98,8 @@ def _fetch_sensor_locations() -> list[dict]:
     if _sensor_locations_cache and now - _sensor_locations_cache[0] < _SENSOR_LOCATIONS_CACHE_TTL:
         return _sensor_locations_cache[1]
 
-    params = {"limit": 200}
-    url = f"{SENSOR_LOCATIONS_RECORDS_URL}?{urllib.parse.urlencode(params)}"
-    data = _http_get_json(url)
-    records = [r["record"]["fields"] if "record" in r else r for r in data.get("results", [])]
+    # ~134 sensors total, well within a couple of paginated 100-row requests.
+    records = _fetch_all_records(SENSOR_LOCATIONS_RECORDS_URL, None, "location_id", max_rows=500)
     _sensor_locations_cache = (now, records)
     return records
 
@@ -141,14 +161,14 @@ def _fetch_sensor_history(sensor_id: str, as_of: datetime) -> list[dict]:
     if cached and now - cached[0] < _HISTORY_CACHE_TTL:
         return cached[1]
 
-    params = {
-        "where": f"location_id={sensor_id}",
-        "order_by": "sensing_date desc,hourday desc",
-        "limit": 200,
-    }
-    url = f"{PEDESTRIAN_RECORDS_URL}?{urllib.parse.urlencode(params)}"
-    data = _http_get_json(url)
-    records = [r["record"]["fields"] if "record" in r else r for r in data.get("results", [])]
+    # 168+ hours of history needed for the flow_lag_168h feature; two
+    # paginated requests comfortably cover that.
+    records = _fetch_all_records(
+        PEDESTRIAN_RECORDS_URL,
+        f"location_id={sensor_id}",
+        "sensing_date desc,hourday desc",
+        max_rows=200,
+    )
     _history_cache[sensor_id] = (now, records)
     return records
 
