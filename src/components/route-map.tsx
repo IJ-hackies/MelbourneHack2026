@@ -127,6 +127,7 @@ export function RouteMap({
     });
 
     const drawRoute = () => {
+      console.log("RouteMap: drawing route, point count:", lineCoordinates.length, "first:", lineCoordinates[0], "last:", lineCoordinates[lineCoordinates.length - 1]);
       map.addSource("route-line", {
         type: "geojson",
         data: {
@@ -143,9 +144,15 @@ export function RouteMap({
         type: "line",
         source: "route-line",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": "#0e6e64", "line-width": 5, "line-opacity": 0.9 },
+        paint: { "line-color": "#e8703a", "line-width": 8, "line-opacity": 1 },
       });
-      new maplibregl.Marker({ color: "#e8703a" })
+      console.log(
+        "RouteMap: layer registered?",
+        Boolean(map.getLayer("route-line")),
+        "all layer ids:",
+        map.getStyle()?.layers?.map((l) => l.id)
+      );
+      new maplibregl.Marker({ color: "#0e6e64" })
         .setLngLat([geometry.end.lon, geometry.end.lat])
         .addTo(map);
     };
