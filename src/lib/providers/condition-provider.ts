@@ -16,18 +16,39 @@ type WeatherResponse = {
   error?: string;
 };
 
-// Shade has no implementation yet — it's a geometry/solar calculation, not
-// an ML signal, and no shade service exists. Keep this a clearly-labelled
-// placeholder rather than pretending it's live.
-const PLACEHOLDER_CONDITIONS: Condition[] = [{ label: "Shade", value: "62%", tone: "primary" }];
+type ShadeResponse = { canopy_density: number | null; status: "ok" | "unavailable" };
 
 class LiveConditionProvider implements ConditionProvider {
   async getConditions(input: ConditionQueryInput): Promise<Condition[]> {
-    const [weatherCondition, crowdCondition] = await Promise.all([
+    const [weatherCondition, crowdCondition, shadeCondition] = await Promise.all([
       this.getWeatherCondition(input),
       this.getCrowdCondition(input),
+      this.getShadeCondition(input),
     ]);
-    return [weatherCondition, crowdCondition, ...PLACEHOLDER_CONDITIONS];
+    return [weatherCondition, crowdCondition, shadeCondition];
+  }
+
+  private async getShadeCondition(input: ConditionQueryInput): Promise<Condition> {
+    // Real tree-canopy-centroid density near the destination (see
+    // api/shade.py, ml/routing/scripts/build_shade_grid.py) — a leafiness
+    // proxy, not a precise solar-shade calculation, so it's labelled
+    // "Canopy nearby" rather than "Shade %".
+    try {
+      const url = new URL("/api/shade", await getBaseUrl());
+      url.searchParams.set("lat", String(input.lat));
+      url.searchParams.set("lon", String(input.lon));
+
+      const res = await fetch(url, { cache: "no-store" });
+      const data: ShadeResponse = await res.json();
+
+      if (!res.ok || data.status !== "ok" || data.canopy_density === null) {
+        return { label: "Canopy nearby", value: "Unavailable", tone: "primary" };
+      }
+
+      return { label: "Canopy nearby", value: `${Math.round(data.canopy_density * 100)}%`, tone: "primary" };
+    } catch {
+      return { label: "Canopy nearby", value: "Unavailable", tone: "primary" };
+    }
   }
 
   private async getWeatherCondition(input: ConditionQueryInput): Promise<Condition> {

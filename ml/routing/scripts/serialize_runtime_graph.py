@@ -19,6 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_INPUT = ROOT / "ml" / "routing" / "processed" / "graph_raw.json"
+DEFAULT_SHADE_GRID = ROOT / "ml" / "routing" / "processed" / "shade_grid.json"
 DEFAULT_OUTPUT_DIR = ROOT / "ml" / "routing" / "models" / "melbourne-inner-v1"
 RELEASE = "melbourne-inner-v1"
 SOURCE_DATASET_ID = "com_pedestrian_network"
@@ -49,14 +50,25 @@ def largest_component_node_ids(adjacency: list[list[tuple[int, float]]]) -> set[
     return best
 
 
+def cell_density(grid: dict, lon: float, lat: float) -> float:
+    col = int((lon - grid["min_lon"]) / grid["cell_deg_lon"])
+    row = int((lat - grid["min_lat"]) / grid["cell_deg_lat"])
+    if not (0 <= row < grid["rows"] and 0 <= col < grid["cols"]):
+        return 0.0
+    return grid["density"][row][col]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
+    parser.add_argument("--shade-grid", type=Path, default=DEFAULT_SHADE_GRID)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     args = parser.parse_args()
 
     with args.input.open() as f:
         graph = json.load(f)
+    with args.shade_grid.open() as f:
+        shade_grid = json.load(f)
 
     node_coords: list[tuple[float, float]] = graph["node_coords"]
     adjacency: list[list[tuple[int, float]]] = graph["adjacency"]
@@ -65,12 +77,20 @@ def main() -> None:
     remap = {old_id: new_id for new_id, old_id in enumerate(sorted(keep_ids))}
 
     new_node_coords = [node_coords[old_id] for old_id in sorted(keep_ids)]
+
+    # Each edge's canopy-density score is the average of its two endpoint
+    # cells (cheap, and endpoints already share the coordinate lookups the
+    # edge needs anyway) rather than a separate midpoint sample.
+    node_density = [cell_density(shade_grid, lon, lat) for lon, lat in new_node_coords]
+
     new_adjacency: list[list[list[float]]] = [[] for _ in new_node_coords]
     for old_id in sorted(keep_ids):
         new_id = remap[old_id]
         for neighbor, weight in adjacency[old_id]:
             if neighbor in remap:
-                new_adjacency[new_id].append([remap[neighbor], weight])
+                new_neighbor = remap[neighbor]
+                edge_shade = round((node_density[new_id] + node_density[new_neighbor]) / 2, 4)
+                new_adjacency[new_id].append([new_neighbor, weight, edge_shade])
 
     lons = [c[0] for c in new_node_coords]
     lats = [c[1] for c in new_node_coords]
@@ -84,12 +104,26 @@ def main() -> None:
     graph_bytes = graph_path.read_bytes()
     graph_sha256 = hashlib.sha256(graph_bytes).hexdigest()
 
+    shade_grid_path = args.output_dir / "shade_grid.json"
+    with shade_grid_path.open("w") as f:
+        json.dump(shade_grid, f)
+    shade_grid_bytes = shade_grid_path.read_bytes()
+    shade_grid_sha256 = hashlib.sha256(shade_grid_bytes).hexdigest()
+
     metadata = {
-        "schema_version": 1,
+        "schema_version": 2,
         "release": RELEASE,
         "graph_file": "graph.json",
         "graph_bytes": len(graph_bytes),
         "graph_sha256": graph_sha256,
+        # adjacency entries are [neighbor_id, weight_m, canopy_density_0_1] —
+        # a real, if approximate, canopy-density proxy (see
+        # scripts/build_shade_grid.py), not a precise solar-shade figure.
+        "edge_shade_field": "canopy_density",
+        "shade_grid_file": "shade_grid.json",
+        "shade_grid_bytes": len(shade_grid_bytes),
+        "shade_grid_sha256": shade_grid_sha256,
+        "shade_source_dataset_id": "com_tree_canopy_2021",
         "node_count": len(new_node_coords),
         "edge_count": sum(len(edges) for edges in new_adjacency) // 2,
         "bbox": bbox,

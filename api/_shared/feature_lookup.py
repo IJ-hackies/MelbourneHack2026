@@ -182,7 +182,24 @@ def _flow_at(records: list[dict], target: datetime) -> float | None:
     return None
 
 
+# Keyed by the target hour truncated to the day + hour Open-Meteo actually
+# resolves against — a route-planner request scores multiple sample points
+# for the same target_hour, and without this every sample re-hit Open-Meteo
+# for an identical value (measured: this alone was most of a ~45s request).
+_weather_cache: dict[str, dict[str, float] | None] = {}
+
+
 def _fetch_weather(target_hour: datetime) -> dict[str, float] | None:
+    cache_key = target_hour.strftime("%Y-%m-%dT%H")
+    if cache_key in _weather_cache:
+        return _weather_cache[cache_key]
+
+    result = _fetch_weather_uncached(target_hour)
+    _weather_cache[cache_key] = result
+    return result
+
+
+def _fetch_weather_uncached(target_hour: datetime) -> dict[str, float] | None:
     params = {
         "latitude": WEATHER_LAT,
         "longitude": WEATHER_LON,

@@ -28,7 +28,15 @@ function haversineKm(a: Coordinates, b: Coordinates): number {
   return 2 * r * Math.asin(Math.sqrt(h));
 }
 
-const ROUTE_ID = "walking-route";
+// Maps the route-planner's real, data-derived tag ids to display labels.
+// Only ever attached server-side when the backend actually found two
+// candidates that differ on that metric — never applied client-side as
+// decoration.
+const TAG_LABELS: Record<string, { label: string; tone: "default" | "warm" }> = {
+  fastest: { label: "Fastest", tone: "default" },
+  most_shaded: { label: "Most shaded", tone: "warm" },
+  least_crowded: { label: "Least crowded", tone: "default" },
+};
 
 class RealRouteProvider implements RouteProvider {
   async listRoutes(input: RouteQueryInput): Promise<RouteOption[]> {
@@ -36,21 +44,25 @@ class RealRouteProvider implements RouteProvider {
     const destination: Coordinates = { lat: input.destination.lat, lon: input.destination.lon };
 
     const planned = await callRoutePlanner(origin, destination);
+    const ok = planned.filter((r) => r.qualityStatus === "ok" && r.path && r.distanceKm !== null);
 
-    if (planned.qualityStatus === "ok" && planned.path && planned.distanceKm !== null) {
-      return [
-        {
-          id: ROUTE_ID,
-          minutes: planned.minutes ?? Math.round((planned.distanceKm * 1000) / 80),
-          distanceKm: planned.distanceKm,
-          recommended: true,
-          description: "Real walking route along the City of Melbourne pedestrian network.",
-          tags: [],
-          geometry: { start: origin, end: destination, path: planned.path },
-          segments: [],
-          quality: "ok",
-        },
-      ];
+    if (ok.length > 0) {
+      return ok.map((route, i) => ({
+        id: route.id,
+        minutes: route.minutes ?? Math.round((route.distanceKm! * 1000) / 80),
+        distanceKm: route.distanceKm!,
+        recommended: i === 0,
+        description:
+          route.id === "shaded"
+            ? "Real walking route, weighted toward higher tree-canopy-density streets."
+            : "Real walking route along the City of Melbourne pedestrian network.",
+        tags: route.tags.map((t) => TAG_LABELS[t]).filter(Boolean),
+        geometry: { start: origin, end: destination, path: route.path! },
+        segments: [],
+        quality: "ok",
+        canopyDensityAvg: route.canopyDensityAvg,
+        pedestrianFlowAvgPerHour: route.pedestrianFlowAvgPerHour,
+      }));
     }
 
     // Routing unavailable (outside graph coverage, or the function failed) —
@@ -59,7 +71,7 @@ class RealRouteProvider implements RouteProvider {
     const straightLineKm = haversineKm(origin, destination);
     return [
       {
-        id: ROUTE_ID,
+        id: "fastest",
         minutes: Math.round((straightLineKm * 1000) / FALLBACK_WALKING_SPEED_M_PER_MIN),
         distanceKm: Math.round(straightLineKm * 1000) / 1000,
         recommended: true,
@@ -69,6 +81,8 @@ class RealRouteProvider implements RouteProvider {
         geometry: { start: origin, end: destination },
         segments: [],
         quality: "unavailable",
+        canopyDensityAvg: null,
+        pedestrianFlowAvgPerHour: null,
       },
     ];
   }

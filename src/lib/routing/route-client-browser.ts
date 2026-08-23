@@ -1,11 +1,14 @@
 import type { Coordinates, QualityStatus } from "@/lib/providers/types";
 
-type RoutePlannerResponse = {
+type RouteCandidate = {
+  id: string;
   path: { lat: number; lon: number }[] | null;
   distance_km: number | null;
   minutes: number | null;
   quality: { status: QualityStatus; warnings: string[] };
 };
+
+type RoutePlannerResponse = { routes: RouteCandidate[] };
 
 export type PlannedRoute = {
   path: Coordinates[] | null;
@@ -40,12 +43,17 @@ export async function callRoutePlannerFromBrowser(
       cache: "no-store",
     });
     const data: RoutePlannerResponse = await res.json();
+    // Live re-routing while walking always tracks the fastest candidate —
+    // the plan-time "most shaded"/"least crowded" choice is a one-time
+    // pick, not something to keep re-optimising for on every GPS tick.
+    const route = data.routes.find((r) => r.id === "fastest") ?? data.routes[0];
+    if (!route) return UNAVAILABLE;
     return {
-      path: data.path,
-      distanceKm: data.distance_km,
-      minutes: data.minutes,
-      qualityStatus: data.quality.status,
-      warnings: data.quality.warnings,
+      path: route.path,
+      distanceKm: route.distance_km,
+      minutes: route.minutes,
+      qualityStatus: route.quality.status,
+      warnings: route.quality.warnings,
     };
   } catch {
     return UNAVAILABLE;

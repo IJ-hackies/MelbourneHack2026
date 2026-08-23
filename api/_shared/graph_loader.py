@@ -17,6 +17,7 @@ METADATA_PATH = "ml/routing/models/melbourne-inner-v1/metadata.json"
 
 _graph_cache: dict[str, Any] | None = None
 _metadata_cache: dict[str, Any] | None = None
+_shade_grid_cache: dict[str, Any] | None = None
 
 
 def _sha256_file(path: Path) -> str:
@@ -36,7 +37,8 @@ def load_metadata() -> dict[str, Any]:
 
 
 def load_graph() -> dict[str, Any]:
-    """Returns {"node_coords": [[lon, lat], ...], "adjacency": [[[neighbor_id, weight_m], ...], ...]}.
+    """Returns {"node_coords": [[lon, lat], ...],
+                "adjacency": [[[neighbor_id, weight_m, canopy_density], ...], ...]}.
 
     Cached at module scope so a warm Fluid Compute instance reuses it across
     invocations — checksum verification only happens once per cold start.
@@ -65,3 +67,30 @@ def load_graph() -> dict[str, Any]:
     with graph_path.open() as f:
         _graph_cache = json.load(f)
     return _graph_cache
+
+
+def load_shade_grid() -> dict[str, Any] | None:
+    """Returns the canopy-density grid (see ml/routing/scripts/build_shade_grid.py),
+    or None if the promoted graph predates it (metadata has no shade fields) —
+    callers must treat that as an honest "no shade data" case, not an error."""
+    global _shade_grid_cache
+    if _shade_grid_cache is not None:
+        return _shade_grid_cache
+
+    metadata = load_metadata()
+    if "shade_grid_file" not in metadata:
+        return None
+
+    grid_path = PROJECT_ROOT / "ml" / "routing" / "models" / "melbourne-inner-v1" / metadata["shade_grid_file"]
+
+    actual_bytes = grid_path.stat().st_size
+    if actual_bytes != metadata["shade_grid_bytes"]:
+        raise RuntimeError(f"{grid_path}: expected {metadata['shade_grid_bytes']} bytes, found {actual_bytes}")
+
+    actual_sha256 = _sha256_file(grid_path)
+    if actual_sha256 != metadata["shade_grid_sha256"]:
+        raise RuntimeError(f"{grid_path}: SHA-256 mismatch — refusing to load an unverified shade grid.")
+
+    with grid_path.open() as f:
+        _shade_grid_cache = json.load(f)
+    return _shade_grid_cache

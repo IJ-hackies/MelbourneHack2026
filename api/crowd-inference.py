@@ -27,113 +27,13 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent))
 
-from _shared import feature_lookup, model_loader
+from _shared import crowd_model, feature_lookup
 
-METADATA_PATH = "ml/crowd/models/all-history-v1/metadata.json"
-RELEASE = "all-history-v1"
-
-_metadata = None
-_booster = None
-_load_error: str | None = None
-
-
-def _ensure_loaded():
-    global _metadata, _booster, _load_error
-    if _booster is not None or _load_error is not None:
-        return
-    try:
-        _metadata = model_loader.load_metadata(METADATA_PATH)
-        artifact = _metadata["promoted_artifact"]
-        _booster = model_loader.load_model(
-            artifact["path"], artifact["bytes"], artifact["sha256"]
-        )
-    except Exception as exc:  # refuse to serve an unverified/missing model
-        _load_error = str(exc)
-
-
-def _build_dmatrix(features: dict, metadata: dict):
-    # Built directly from numpy, not pandas — a pandas.Categorical dtype
-    # isn't required for XGBoost's native categorical support, and skipping
-    # it keeps this function's dependency footprint (and Vercel bundle size)
-    # much smaller. Categorical columns are encoded as the integer position
-    # of their value in metadata's `categories` list, which is exactly the
-    # code pandas.Categorical would have assigned at training time.
-    import numpy as np
-    import xgboost as xgb
-
-    encoder = metadata["encoder"]
-    columns = encoder["model_feature_columns"]
-    categorical_columns = set(encoder["categorical_columns"])
-    category_lists = encoder["categories"]
-    known_sensors = category_lists["sensor_id"]
-
-    sensor_token = f"int:{features['sensor_id']}"
-    unseen = sensor_token not in known_sensors
-
-    row: list[float] = []
-    feature_types: list[str] = []
-    for col in columns:
-        feature_types.append("c" if col in categorical_columns else "q")
-        if col == "sensor_id__unseen":
-            row.append(1.0 if unseen else 0.0)
-        elif col == "sensor_id":
-            row.append(float("nan") if unseen else float(known_sensors.index(sensor_token)))
-        elif col == "is_dst":
-            # Training encoded booleans as "bool:True"/"bool:False" tokens,
-            # matching sensor_id's "int:N" token scheme.
-            token = f"bool:{features.get('is_dst')}"
-            categories = category_lists.get(col, [])
-            row.append(float(categories.index(token)) if token in categories else float("nan"))
-        else:
-            value = features.get(col)
-            row.append(float(value) if value is not None else float("nan"))
-
-    array = np.array([row], dtype=np.float64)
-    return (
-        xgb.DMatrix(array, feature_names=columns, feature_types=feature_types, enable_categorical=True),
-        unseen,
-    )
+RELEASE = crowd_model.RELEASE
 
 
 def predict(sensor_id: str, target_hour_str: str) -> dict:
-    _ensure_loaded()
-    if _load_error:
-        return {
-            "prediction": None,
-            "model": {"release": RELEASE, "variant": "all-history", "sensor_id": sensor_id},
-            "quality": {"status": "unavailable", "feature_coverage": 0.0, "warnings": [_load_error]},
-        }
-
-    target_hour = datetime.fromisoformat(target_hour_str)
-    features, status, warnings = feature_lookup.build_crowd_features(sensor_id, target_hour)
-
-    if status == "unavailable":
-        return {
-            "prediction": None,
-            "model": {"release": RELEASE, "variant": "all-history", "sensor_id": sensor_id},
-            "quality": {"status": "unavailable", "feature_coverage": 0.0, "warnings": warnings},
-        }
-
-    dmatrix, unseen = _build_dmatrix(features, _metadata)
-    if unseen:
-        warnings = [*warnings, "unseen_sensor"]
-
-    raw_pred = _booster.predict(dmatrix)[0]
-    if raw_pred < 0 or not (raw_pred == raw_pred):  # negative or NaN
-        return {
-            "prediction": None,
-            "model": {"release": RELEASE, "variant": "all-history", "sensor_id": sensor_id},
-            "quality": {"status": "unavailable", "feature_coverage": 0.0, "warnings": [*warnings, "invalid_model_output"]},
-        }
-
-    covered = sum(1 for k in features if features[k] is not None)
-    coverage = covered / len(features) if features else 0.0
-
-    return {
-        "prediction": {"pedestrian_flow_per_hour": float(raw_pred)},
-        "model": {"release": RELEASE, "variant": "all-history", "sensor_id": sensor_id},
-        "quality": {"status": status, "feature_coverage": coverage, "warnings": warnings},
-    }
+    return crowd_model.predict(sensor_id, datetime.fromisoformat(target_hour_str))
 
 
 def _resolve_sensor_id(body: dict) -> tuple[str | None, dict]:

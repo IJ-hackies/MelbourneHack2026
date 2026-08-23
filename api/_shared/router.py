@@ -53,33 +53,50 @@ def snap_to_nearest_node(
     return best_id, best_dist
 
 
+# Each adjacency edge is [neighbor_id, weight_m, canopy_density_0_1]. A
+# shade-biased search stays real routing over real distances — it never
+# invents a shorter path — it just prefers well-shaded edges when two are
+# otherwise close in length, via a multiplicative penalty on low-canopy
+# edges. At SHADE_BIAS=0 this degenerates to plain shortest_path.
+SHADE_BIAS = 1.4
+
+
 def shortest_path(
-    adjacency: list[list[list[float]]], start: int, end: int
+    adjacency: list[list[list[float]]], start: int, end: int, shade_bias: float = 0.0
 ) -> tuple[list[int], float] | None:
-    """Dijkstra over the adjacency list. Returns (node id path, total metres),
-    or None if start/end aren't connected."""
+    """Dijkstra over the adjacency list. Returns (node id path, total metres
+    of real walking distance — NOT the shade-weighted cost used internally
+    when shade_bias > 0), or None if start/end aren't connected."""
     if start == end:
         return [start], 0.0
 
+    # cost is what the priority queue optimises; distance tracks the real
+    # metres walked so the reported distance/minutes are never inflated by
+    # the shade bias.
+    costs = {start: 0.0}
     distances = {start: 0.0}
     previous: dict[int, int] = {}
     visited: set[int] = set()
     queue: list[tuple[float, int]] = [(0.0, start)]
 
     while queue:
-        dist, node = heapq.heappop(queue)
+        cost, node = heapq.heappop(queue)
         if node in visited:
             continue
         visited.add(node)
         if node == end:
             break
-        for neighbor, weight in adjacency[node]:
-            neighbor = int(neighbor)
-            new_dist = dist + weight
-            if new_dist < distances.get(neighbor, math.inf):
-                distances[neighbor] = new_dist
+        for edge in adjacency[node]:
+            neighbor = int(edge[0])
+            weight = edge[1]
+            shade = edge[2] if len(edge) > 2 else 0.0
+            edge_cost = weight * (1.0 + shade_bias * (1.0 - shade)) if shade_bias else weight
+            new_cost = cost + edge_cost
+            if new_cost < costs.get(neighbor, math.inf):
+                costs[neighbor] = new_cost
+                distances[neighbor] = distances[node] + weight
                 previous[neighbor] = node
-                heapq.heappush(queue, (new_dist, neighbor))
+                heapq.heappush(queue, (new_cost, neighbor))
 
     if end not in distances:
         return None
@@ -89,3 +106,20 @@ def shortest_path(
         path.append(previous[path[-1]])
     path.reverse()
     return path, distances[end]
+
+
+def path_avg_shade(adjacency: list[list[list[float]]], node_ids: list[int]) -> float | None:
+    """Length-weighted average canopy density along a resolved node path.
+    None if the graph predates edge shade data (2-element adjacency tuples)."""
+    total_weight = 0.0
+    total_shade_weight = 0.0
+    for a, b in zip(node_ids, node_ids[1:]):
+        edge = next((e for e in adjacency[a] if int(e[0]) == b), None)
+        if edge is None or len(edge) <= 2:
+            return None
+        weight = edge[1]
+        total_weight += weight
+        total_shade_weight += weight * edge[2]
+    if total_weight == 0:
+        return None
+    return total_shade_weight / total_weight

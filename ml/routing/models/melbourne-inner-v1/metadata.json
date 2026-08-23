@@ -1,9 +1,14 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "release": "melbourne-inner-v1",
   "graph_file": "graph.json",
-  "graph_bytes": 6819272,
-  "graph_sha256": "1be988390d24200c972bf801e1107653f2a721f66975806baedc0fdce185a752",
+  "graph_bytes": 7971066,
+  "graph_sha256": "8962232d98538850aef6f3256ad52301d17e85ec07be16baa12f6183fb1e98c9",
+  "edge_shade_field": "canopy_density",
+  "shade_grid_file": "shade_grid.json",
+  "shade_grid_bytes": 311152,
+  "shade_grid_sha256": "7bb119d3e180799d51f8a13dbe531f8c71b7215dc756a84104c6887b238f2f2a",
+  "shade_source_dataset_id": "com_tree_canopy_2021",
   "node_count": 67974,
   "edge_count": 77650,
   "bbox": [
@@ -17,5 +22,5 @@
   "source_license_url": "https://creativecommons.org/licenses/by/4.0/",
   "source_attribution": "City of Melbourne \u2014 Pedestrian Network",
   "coverage_note": "City of Melbourne municipality only, per ml/data/catalog.json's com_pedestrian_network notes ('Primary hackathon graph; static and limited to the municipality'). Queries outside this bbox will fail to snap to a graph node \u2014 a wider OSM-based merge remains a documented fast-follow, not implemented here.",
-  "built_at_utc": "2026-08-22T17:20:15.646030+00:00"
+  "built_at_utc": "2026-08-23T08:23:21.222748+00:00"
 }

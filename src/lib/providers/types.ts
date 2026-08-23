@@ -37,6 +37,14 @@ export type RouteOption = {
   // "unavailable" when it fell back to a straight line (query outside graph
   // coverage, or the routing function failed) — never silently identical.
   quality: QualityStatus;
+  // Real, route-planner-derived metrics backing the "most shaded"/"least
+  // crowded" tags — null when the graph/model couldn't produce one for this
+  // route rather than being omitted, so callers can tell "no data" apart
+  // from "not asked for". canopyDensityAvg is a tree-canopy-centroid density
+  // proxy (0..1), not a precise solar-shade percentage — see
+  // ml/routing/scripts/build_shade_grid.py.
+  canopyDensityAvg: number | null;
+  pedestrianFlowAvgPerHour: number | null;
 };
 
 export type Condition = {

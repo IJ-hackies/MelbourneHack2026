@@ -69,6 +69,16 @@ export default async function RouteDetail({
         </div>
 
         <p className="text-sm text-text-secondary">{route.description}</p>
+        {(route.canopyDensityAvg !== null || route.pedestrianFlowAvgPerHour !== null) && (
+          <div className="flex flex-wrap gap-2 text-[0.76rem] text-text-tertiary">
+            {route.canopyDensityAvg !== null && (
+              <span>Canopy density along route: {Math.round(route.canopyDensityAvg * 100)}%</span>
+            )}
+            {route.pedestrianFlowAvgPerHour !== null && (
+              <span>Avg. nearby foot traffic: {Math.round(route.pedestrianFlowAvgPerHour)}/hr</span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-6 lg:sticky lg:top-24">

@@ -108,6 +108,7 @@ Thumbs.db
 !/ml/routing/models/melbourne-inner-v1/
 !/ml/routing/models/melbourne-inner-v1/metadata.json
 !/ml/routing/models/melbourne-inner-v1/graph.json
+!/ml/routing/models/melbourne-inner-v1/shade_grid.json
 
 # Local-only map style comparison tool (not part of the app)
 /.map-style-picker/
