@@ -24,6 +24,7 @@ is a real, documented data-availability gap, not an implementation shortcut.
 from __future__ import annotations
 
 import math
+import re
 import urllib.parse
 import urllib.request
 import json
@@ -31,6 +32,14 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 MELBOURNE_TZ = ZoneInfo("Australia/Melbourne")
+
+# Real location_ids from the sensor-locations feed are small integers as
+# strings (see resolve_nearest_crowd_sensor's str(location_id)); this is a
+# deliberately generous superset (also allows letters/hyphens/underscores)
+# rather than an int-only regex, so a real id shape never gets rejected —
+# it only needs to exclude ODSQL metacharacters (spaces, quotes, `=`, etc.)
+# from ever reaching the `where=location_id={sensor_id}` query below.
+_VALID_SENSOR_ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
 
 PEDESTRIAN_DATASET = "pedestrian-counting-system-monthly-counts-per-hour"
 PEDESTRIAN_RECORDS_URL = (
@@ -168,6 +177,15 @@ def resolve_nearest_crowd_sensor(
 def _fetch_sensor_history(sensor_id: str, as_of: datetime) -> list[dict]:
     """Recent hourly pedestrian counts for one sensor, most-recent first,
     covering at least the past 168 hours before `as_of`."""
+    # sensor_id can be caller-supplied directly (api/crowd-inference.py's
+    # {"sensor_id": ...} body shape), not just resolved from a live
+    # lat/lon lookup, and it's interpolated straight into an ODSQL `where`
+    # clause below — reject anything that isn't a real Opendatasoft
+    # location_id shape before it ever reaches the query string, rather
+    # than trusting the caller.
+    if not _VALID_SENSOR_ID.fullmatch(sensor_id):
+        return []
+
     cached = _history_cache.get(sensor_id)
     now = datetime.now(tz=MELBOURNE_TZ)
     if cached and now - cached[0] < _HISTORY_CACHE_TTL:
