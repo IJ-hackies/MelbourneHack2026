@@ -241,7 +241,21 @@ export function RoutePlanner({
           <ConditionIcon tone="primary" className="mt-0.5 h-4 w-4 shrink-0" />
           <p className="text-[0.84rem] text-text">
             Couldn&apos;t get your location, these routes start from central Melbourne
-            instead. Allow location access and reload for routes from where you actually are.
+            instead.{" "}
+            <button
+              type="button"
+              onClick={() => {
+                // Clearing the ref (not just bumping retryCount) makes the
+                // load effect re-request geolocation instead of reusing the
+                // cached fallback — a fresh permission prompt, not just a
+                // page refresh the user would otherwise have to do by hand.
+                originRef.current = null;
+                setRetryCount((n) => n + 1);
+              }}
+              className="font-medium underline hover:no-underline"
+            >
+              Try again
+            </button>
           </p>
         </div>
       )}

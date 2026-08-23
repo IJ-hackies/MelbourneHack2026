@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { routeProvider } from "@/lib/providers/route-provider";
 import { getQuietestHourToday } from "@/lib/providers/quietest-hour";
 import { createClient } from "@/lib/supabase/server";
+import { isRateLimited, requestIp } from "@/lib/rate-limit";
 import type { UserPreferences } from "@/lib/providers/types";
 
 // Client-callable wrapper around routeProvider.listRoutes — the plan page's
@@ -11,6 +12,17 @@ import type { UserPreferences } from "@/lib/providers/types";
 // route look like it started from a fixed point in the CBD rather than
 // wherever the user actually was.
 export async function GET(request: Request) {
+  // The heaviest of these routes: fans out to the routing graph (its own
+  // Python-side limiter still applies) plus several quietest-hour crowd
+  // samples per call, so this caps the fan-out itself, not just the
+  // downstream calls individually.
+  if (isRateLimited(`plan-routes:${requestIp(request)}`, { windowMs: 60_000, maxPerWindow: 15 })) {
+    return NextResponse.json(
+      { routes: [], heatContext: null, quietestHour: null, error: "Too many requests." },
+      { status: 429 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const destLat = Number(searchParams.get("destLat"));
   const destLon = Number(searchParams.get("destLon"));

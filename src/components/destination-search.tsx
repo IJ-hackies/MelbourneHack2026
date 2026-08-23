@@ -301,6 +301,7 @@ export function DestinationSearch({
           aria-expanded={open}
           aria-controls="destination-suggestions"
           aria-autocomplete="list"
+          aria-activedescendant={activeIndex >= 0 ? `destination-option-${activeIndex}` : undefined}
           className="w-full bg-transparent text-[0.95rem] text-text placeholder:text-text-tertiary focus:outline-none"
         />
         {loading && (
@@ -342,9 +343,15 @@ export function DestinationSearch({
             </ListHeading>
           )}
           {items.map((s, i) => (
-            <li key={`${s.label}-${s.lat}-${s.lon}`}>
+            <li
+              key={`${s.label}-${s.lat}-${s.lon}`}
+              id={`destination-option-${i}`}
+              role="option"
+              aria-selected={i === activeIndex}
+            >
               <button
                 type="button"
+                tabIndex={-1}
                 onClick={() => select(s)}
                 onMouseEnter={() => setActiveIndex(i)}
                 className={`flex w-full items-start gap-2.5 px-4 py-3 text-left transition-colors ${

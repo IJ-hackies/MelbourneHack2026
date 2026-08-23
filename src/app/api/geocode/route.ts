@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isRateLimited, requestIp } from "@/lib/rate-limit";
 
 // Melbourne CBD-centred bounding box, generous enough to cover greater Melbourne.
 const BBOX = "144.5,-38.05,145.35,-37.55";
@@ -71,6 +72,13 @@ type PhotonFeature = {
 };
 
 export async function GET(request: Request) {
+  // A caller typing normally fires well under this per keystroke-debounced
+  // request; this only catches scripted abuse hammering Photon's free,
+  // unauthenticated endpoint.
+  if (isRateLimited(`geocode:${requestIp(request)}`, { windowMs: 60_000, maxPerWindow: 30 })) {
+    return NextResponse.json({ results: [], error: "Too many requests." }, { status: 429 });
+  }
+
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim();
 
@@ -120,7 +128,25 @@ export async function GET(request: Request) {
     );
   }
 
-  const data: { features: PhotonFeature[] } = await res.json();
+  let data: { features?: PhotonFeature[] };
+  try {
+    data = await res.json();
+  } catch {
+    return NextResponse.json(
+      { results: [], error: "Search is temporarily unavailable." },
+      { status: 502 }
+    );
+  }
+  // A 200 response body isn't guaranteed to have the expected shape (e.g.
+  // Photon returning an error/rate-limit payload with no `features`) --
+  // fall back to the same graceful "unavailable" response used above
+  // instead of throwing on `.filter` and surfacing a raw 500.
+  if (!Array.isArray(data.features)) {
+    return NextResponse.json(
+      { results: [], error: "Search is temporarily unavailable." },
+      { status: 502 }
+    );
+  }
 
   const results = data.features
     .filter((f) => f.geometry?.coordinates)

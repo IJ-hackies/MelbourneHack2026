@@ -57,6 +57,14 @@ export function ActiveWalk({
     ? Math.min(100, Math.max(0, Math.round((1 - progress.distanceRemainingKm / Math.max(distanceKm, 0.001)) * 100)))
     : 0;
 
+  function saveWalk() {
+    startSaving(async () => {
+      setSaveError(null);
+      const result = await logWalk({ routeId, destination, minutes, distanceKm });
+      if (result.error) setSaveError(result.error);
+    });
+  }
+
   useEffect(() => {
     if (!done || savedRef.current) return;
     savedRef.current = true;
@@ -75,10 +83,7 @@ export function ActiveWalk({
       return;
     }
 
-    startSaving(async () => {
-      const result = await logWalk({ routeId, destination, minutes, distanceKm });
-      if (result.error) setSaveError(result.error);
-    });
+    saveWalk();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done]);
 
@@ -115,7 +120,17 @@ export function ActiveWalk({
               and this walk will be added to your history automatically.
             </>
           ) : saveError ? (
-            "Couldn't save this walk to your history. It still counts, just not recorded."
+            <>
+              Couldn&apos;t save this walk to your history. It still counts, just not recorded.{" "}
+              <button
+                type="button"
+                onClick={saveWalk}
+                disabled={isSaving}
+                className="underline hover:no-underline disabled:opacity-60"
+              >
+                Try again
+              </button>
+            </>
           ) : isSaving ? (
             "Saving to your history…"
           ) : (

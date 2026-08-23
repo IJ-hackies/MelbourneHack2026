@@ -158,11 +158,14 @@ class handler(BaseHTTPRequestHandler):
         except ValueError:
             _bad_request(self, "target_hour must be a valid ISO-8601 timestamp")
             return
-        except Exception as exc:  # never leak a raw traceback to the client
+        except Exception as exc:
+            # Logged server-side only -- str(exc) can carry internal
+            # details even though it isn't a full traceback.
+            print(f"traffic-inference: unhandled exception: {exc!r}")
             self.send_response(500)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"error": "prediction failed", "detail": str(exc)}).encode())
+            self.wfile.write(json.dumps({"error": "prediction failed"}).encode())
             return
 
         self.send_response(200)

@@ -95,7 +95,7 @@ export function PreferencesForm({
           )}
           <Toggle
             name="Prefer quieter streets"
-            description="Recommends the quieter route by default, when one's available, instead of always leading with fastest"
+            description="When a quieter option exists, we'll recommend it first instead of fastest -- doesn't change which routes are offered"
             checked={quieterStreets}
             onChange={setQuieterStreets}
           />

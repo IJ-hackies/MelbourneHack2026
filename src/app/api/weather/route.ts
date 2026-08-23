@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
+import { isRateLimited, requestIp } from "@/lib/rate-limit";
 
 export async function GET(request: Request) {
+  if (isRateLimited(`weather:${requestIp(request)}`, { windowMs: 60_000, maxPerWindow: 30 })) {
+    return NextResponse.json({ conditions: null, error: "Too many requests." }, { status: 429 });
+  }
+
   const { searchParams } = new URL(request.url);
   const lat = Number(searchParams.get("lat"));
   const lon = Number(searchParams.get("lon"));

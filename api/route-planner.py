@@ -455,11 +455,16 @@ class handler(BaseHTTPRequestHandler):
 
         try:
             result = plan_route(origin, destination)
-        except Exception as exc:  # never leak a raw traceback to the client
+        except Exception as exc:
+            # Logged server-side (Vercel function logs) for real debugging,
+            # never returned to the client -- str(exc) can carry internal
+            # file paths/library details even though it isn't a full
+            # traceback, which contradicts the point of catching this at all.
+            print(f"route-planner: unhandled exception in plan_route: {exc!r}")
             self.send_response(500)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"error": "route planning failed", "detail": str(exc)}).encode())
+            self.wfile.write(json.dumps({"error": "route planning failed"}).encode())
             return
 
         self.send_response(200)

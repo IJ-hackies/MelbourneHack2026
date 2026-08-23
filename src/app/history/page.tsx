@@ -69,13 +69,14 @@ export default async function History() {
     countByDay.set(key, (countByDay.get(key) ?? 0) + 1);
   }
 
-  const days: { key: string; level: number }[] = [];
+  const days: { key: string; level: number; dateLabel: string }[] = [];
   for (let i = 27; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
     const key = d.toISOString().slice(0, 10);
     const count = countByDay.get(key) ?? 0;
-    days.push({ key, level: Math.min(count, 3) });
+    const dateLabel = d.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" });
+    days.push({ key, level: Math.min(count, 3), dateLabel });
   }
 
   const recentWalks = walks.slice(0, 8);
@@ -109,16 +110,36 @@ export default async function History() {
           <h2 className="font-display text-base font-semibold tracking-tight text-text">
             Activity
           </h2>
-          <div className="mt-3 grid grid-cols-[repeat(14,minmax(0,1fr))] gap-1">
-            {days.map((day) => (
-              <div
-                key={day.key}
-                className={`aspect-square rounded-[3px] ${levelClass[day.level]}`}
-                title={
-                  day.level === 0 ? "No walk" : `${day.level} walk${day.level > 1 ? "s" : ""}`
-                }
-              />
+          <div
+            role="img"
+            aria-label={`Walk activity over the last 28 days: ${days.filter((d) => d.level > 0).length} days with at least one walk.`}
+            className="mt-3 grid grid-cols-[repeat(14,minmax(0,1fr))] gap-1"
+          >
+            {days.map((day) => {
+              const label =
+                day.level === 0
+                  ? `${day.dateLabel}: no walk`
+                  : `${day.dateLabel}: ${day.level} walk${day.level > 1 ? "s" : ""}`;
+              return (
+                <div
+                  key={day.key}
+                  className={`aspect-square rounded-[3px] ${levelClass[day.level]}`}
+                  title={label}
+                  aria-hidden="true"
+                />
+              );
+            })}
+          </div>
+          {/* A hover-only title isn't reachable on touch or reliably
+              announced by screen readers — the grid's own aria-label above
+              covers that; this legend makes the shade scale itself legible
+              without relying on color perception alone. */}
+          <div className="mt-3 flex items-center justify-end gap-1.5 text-[0.68rem] text-text-tertiary">
+            <span>Less</span>
+            {levelClass.map((cls, i) => (
+              <span key={i} className={`h-2.5 w-2.5 rounded-[2px] ${cls}`} aria-hidden="true" />
             ))}
+            <span>More</span>
           </div>
         </div>
       </div>

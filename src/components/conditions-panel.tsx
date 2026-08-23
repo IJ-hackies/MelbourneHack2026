@@ -32,6 +32,8 @@ export function ConditionsPanel({
   destination: { label: string; lat: number; lon: number };
 }) {
   const [conditions, setConditions] = useState<Condition[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,10 +44,12 @@ export function ConditionsPanel({
       const cached = getCached<Condition[]>(cacheKey);
       if (cached) {
         setConditions(cached);
+        setLoadError(false);
         return;
       }
 
       setConditions(null);
+      setLoadError(false);
       const params = new URLSearchParams({
         label: destination.label,
         lat: String(destination.lat),
@@ -56,9 +60,16 @@ export function ConditionsPanel({
         const data = await res.json();
         const result: Condition[] = data.conditions ?? [];
         if (!cancelled) setConditions(result);
-        setCached(cacheKey, result, CONDITIONS_CACHE_TTL_MS);
+        if (result.length === 0) {
+          if (!cancelled) setLoadError(true);
+        } else {
+          setCached(cacheKey, result, CONDITIONS_CACHE_TTL_MS);
+        }
       } catch {
-        if (!cancelled) setConditions([]);
+        if (!cancelled) {
+          setConditions([]);
+          setLoadError(true);
+        }
       }
     }
 
@@ -66,7 +77,26 @@ export function ConditionsPanel({
     return () => {
       cancelled = true;
     };
-  }, [destination.label, destination.lat, destination.lon]);
+  }, [destination.label, destination.lat, destination.lon, retryCount]);
+
+  // Distinguishes "still loading" from "fetch failed" -- previously a
+  // failure just rendered an empty grid with no way to tell it apart from
+  // "still loading" or "genuinely no data", unlike the route planner's
+  // explicit retry card right next to it on the same screen.
+  if (loadError && conditions?.length === 0) {
+    return (
+      <div className="rounded-2xl border border-border bg-surface p-4 text-center">
+        <p className="text-[0.84rem] text-text-secondary">Couldn&apos;t load conditions right now.</p>
+        <button
+          type="button"
+          onClick={() => setRetryCount((n) => n + 1)}
+          className="mt-2 text-[0.84rem] font-medium text-primary underline hover:no-underline"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-3 gap-2 lg:grid-cols-1 lg:gap-2.5">
