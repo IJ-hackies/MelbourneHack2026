@@ -4,6 +4,7 @@ import { Inter, Space_Grotesk, Roboto_Mono } from "next/font/google";
 import { NavTabs } from "@/components/nav-tabs";
 import { UserMenu } from "@/components/user-menu";
 import { ToastProvider } from "@/components/toast-provider";
+import { ClaimPendingWalk } from "@/components/claim-pending-walk";
 import { APEX_HOSTS } from "@/lib/hosts";
 import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
@@ -28,21 +29,29 @@ const robotoMono = Roboto_Mono({
   display: "swap",
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "LeafRoute",
     template: "%s · LeafRoute",
   },
-  description: "Personalised walking routes for Melbourne.",
+  description:
+    "Every walk instead of a drive is climate action. LeafRoute routes you through shade and quiet streets around Melbourne, and tracks the emissions each walk avoids.",
   openGraph: {
     title: "LeafRoute",
-    description: "Personalised walking routes for Melbourne.",
+    description:
+      "Every walk instead of a drive is climate action. LeafRoute routes you through shade and quiet streets around Melbourne, and tracks the emissions each walk avoids.",
     type: "website",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "LeafRoute",
-    description: "Personalised walking routes for Melbourne.",
+    description:
+      "Every walk instead of a drive is climate action. LeafRoute routes you through shade and quiet streets around Melbourne.",
   },
 };
 
@@ -72,6 +81,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body>
         <ToastProvider>
+          {user && <ClaimPendingWalk />}
           {!isMarketing && user && (
             <div className="sticky top-0 z-20 border-b border-border bg-bg/90 backdrop-blur-md">
               <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 sm:px-8 lg:px-12">

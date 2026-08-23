@@ -4,11 +4,21 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+// Clamps a form field to a valid integer in [min, max], falling back to
+// `fallback` for anything unparseable (NaN, missing) rather than writing a
+// value that could silently corrupt the row or feed a nonsensical bias into
+// route scoring.
+function clampedInt(formData: FormData, key: string, fallback: number, min: number, max: number): number {
+  const parsed = Number(formData.get(key));
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(parsed)));
+}
+
 function readPreferences(formData: FormData) {
   return {
-    heat_sensitivity: Number(formData.get("heat_sensitivity") ?? 50),
-    comfort_balance: Number(formData.get("comfort_balance") ?? 50),
-    pace: Number(formData.get("pace") ?? 2),
+    heat_sensitivity: clampedInt(formData, "heat_sensitivity", 50, 0, 100),
+    comfort_balance: clampedInt(formData, "comfort_balance", 50, 0, 100),
+    pace: clampedInt(formData, "pace", 2, 0, 4),
     prefer_quieter_streets: formData.get("prefer_quieter_streets") === "true",
     prefer_lower_traffic: formData.get("prefer_lower_traffic") === "true",
     calendar_suggestions: formData.get("calendar_suggestions") === "true",

@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ActiveWalk } from "@/components/active-walk";
 import { ConditionIcon } from "@/components/condition-icon";
 import { RouteMap } from "@/components/route-map";
+import { ShareRouteButton } from "@/components/share-route-button";
 import { routeProvider } from "@/lib/providers/route-provider";
 import { LiveProgressProvider } from "@/lib/live-progress-context";
 import { createClient } from "@/lib/supabase/server";
@@ -47,15 +48,18 @@ export default async function RouteDetail({
     <LiveProgressProvider>
     <main className="mx-auto grid max-w-xl grid-cols-1 gap-6 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[1fr_340px] lg:items-start lg:gap-12 lg:py-12">
       <div className="flex flex-col gap-6 lg:col-span-2">
-        <Link
-          href={`/?to=${encodeURIComponent(destination)}&lat=${resolvedLat}&lon=${resolvedLon}`}
-          className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-          All routes to {destination}
-        </Link>
+        <div className="flex items-center justify-between gap-4">
+          <Link
+            href={`/?to=${encodeURIComponent(destination)}&lat=${resolvedLat}&lon=${resolvedLon}`}
+            className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+            All routes to {destination}
+          </Link>
+          <ShareRouteButton destination={destination} minutes={route.minutes} />
+        </div>
 
         <div>
           <div className="flex items-center gap-2">
@@ -76,7 +80,7 @@ export default async function RouteDetail({
 
       <div className="flex flex-col gap-6">
         <div className="h-48 overflow-hidden rounded-2xl border border-border bg-surface-alt lg:h-80">
-          <RouteMap geometry={route.geometry} segments={route.segments} />
+          <RouteMap geometry={route.geometry} segments={route.segments} routeId={route.id} />
         </div>
 
         <p className="text-sm text-text-secondary">{route.description}</p>

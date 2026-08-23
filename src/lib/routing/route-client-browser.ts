@@ -33,7 +33,8 @@ const UNAVAILABLE: PlannedRoute = {
 // route-client.ts's server-only sibling function.
 export async function callRoutePlannerFromBrowser(
   origin: Coordinates,
-  destination: Coordinates
+  destination: Coordinates,
+  preferredCandidateId?: string
 ): Promise<PlannedRoute> {
   try {
     const res = await fetch("/api/route-planner", {
@@ -43,10 +44,16 @@ export async function callRoutePlannerFromBrowser(
       cache: "no-store",
     });
     const data: RoutePlannerResponse = await res.json();
-    // Live re-routing while walking always tracks the fastest candidate —
-    // the plan-time "most shaded"/"least crowded" choice is a one-time
-    // pick, not something to keep re-optimising for on every GPS tick.
-    const route = data.routes.find((r) => r.id === "fastest") ?? data.routes[0];
+    // Re-routing while walking keeps tracking the plan-time candidate type
+    // (fastest/shaded/quieter) so a user who picked "shaded" on a hot day
+    // isn't silently switched onto the unshaded fastest path the first time
+    // they drift off the original line. Falls back to "fastest"/first when
+    // the new origin no longer produces a meaningfully-different candidate
+    // of that type (route-planner.py only returns one when it's real).
+    const route =
+      (preferredCandidateId && data.routes.find((r) => r.id === preferredCandidateId)) ??
+      data.routes.find((r) => r.id === "fastest") ??
+      data.routes[0];
     if (!route) return UNAVAILABLE;
     return {
       path: route.path,

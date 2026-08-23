@@ -27,7 +27,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent))
 
-from _shared import crowd_model, feature_lookup
+from _shared import crowd_model, feature_lookup, rate_limit
 
 RELEASE = crowd_model.RELEASE
 
@@ -71,29 +71,66 @@ def _resolve_sensor_id(body: dict) -> tuple[str | None, dict]:
     return sensor_id, {"warnings": warnings, "nearest_sensor_distance_km": distance_km}
 
 
+def _bad_request(handler: "handler", message: str) -> None:
+    handler.send_response(400)
+    handler.send_header("Content-Type", "application/json")
+    handler.end_headers()
+    handler.wfile.write(json.dumps({"error": message}).encode())
+
+
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        length = int(self.headers.get("Content-Length", 0))
-        body = json.loads(self.rfile.read(length) or b"{}")
+        if not rate_limit.check(self.headers):
+            self.send_response(429)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Retry-After", "60")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "too many requests"}).encode())
+            return
+
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(length) if length else b"{}"
+            body = json.loads(raw_body or b"{}")
+        except (ValueError, json.JSONDecodeError):
+            _bad_request(self, "request body must be valid JSON")
+            return
+        if not isinstance(body, dict):
+            _bad_request(self, "request body must be a JSON object")
+            return
 
         target_hour = body.get("target_hour")
         if not target_hour:
-            self.send_response(400)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": "target_hour is required"}).encode())
+            _bad_request(self, "target_hour is required")
             return
 
-        sensor_id, resolution = _resolve_sensor_id(body)
-        if sensor_id is None:
-            result = resolution["error_response"]
-        else:
-            result = predict(sensor_id, target_hour)
-            if result["prediction"] is not None and resolution["warnings"]:
-                result["quality"]["warnings"] = [
-                    *result["quality"]["warnings"],
-                    *resolution["warnings"],
-                ]
+        lat, lon = body.get("lat"), body.get("lon")
+        if (lat is not None and not isinstance(lat, (int, float))) or (
+            lon is not None and not isinstance(lon, (int, float))
+        ):
+            _bad_request(self, "lat and lon must be numbers")
+            return
+
+        try:
+            sensor_id, resolution = _resolve_sensor_id(body)
+            if sensor_id is None:
+                result = resolution["error_response"]
+            else:
+                result = predict(sensor_id, target_hour)
+                if result["prediction"] is not None and resolution["warnings"]:
+                    result["quality"]["warnings"] = [
+                        *result["quality"]["warnings"],
+                        *resolution["warnings"],
+                    ]
+        except ValueError:
+            _bad_request(self, "target_hour must be a valid ISO-8601 timestamp")
+            return
+        except Exception as exc:  # never leak a raw traceback to the client
+            self.send_response(500)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "prediction failed", "detail": str(exc)}).encode())
+            return
 
         self.send_response(200)
         self.send_header("Content-Type", "application/json")

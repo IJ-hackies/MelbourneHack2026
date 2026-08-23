@@ -8,6 +8,7 @@ import { formatDeparture } from "@/lib/routes";
 import type { Coordinates, RouteOption } from "@/lib/providers/types";
 
 type HeatContext = { temperatureC: number | null; advisory: boolean; extreme: boolean } | null;
+type QuietestHour = { label: string; pedestrianFlowPerHour: number } | null;
 
 // Same default the server-side provider falls back to (State Library of
 // Victoria, central Melbourne CBD) — used only if a real location can't be
@@ -33,6 +34,36 @@ function resolveOrigin(): Promise<{ origin: Coordinates; isReal: boolean }> {
   });
 }
 
+// Makes the actual trade-off a route candidate offers legible at a glance —
+// e.g. "+3 min · 42% more shade" — instead of leaving the user to compare
+// raw minutes/canopy numbers across cards themselves.
+function tradeOffLabel(route: RouteOption, fastest: RouteOption): string {
+  const parts: string[] = [];
+  const minuteDelta = route.minutes - fastest.minutes;
+  parts.push(minuteDelta > 0 ? `+${minuteDelta} min` : minuteDelta < 0 ? `${minuteDelta} min` : "Same time");
+
+  if (
+    route.id === "shaded" &&
+    route.canopyDensityAvg !== null &&
+    fastest.canopyDensityAvg !== null
+  ) {
+    const shadeDeltaPts = Math.round((route.canopyDensityAvg - fastest.canopyDensityAvg) * 100);
+    if (shadeDeltaPts !== 0) parts.push(`${shadeDeltaPts > 0 ? "+" : ""}${shadeDeltaPts}pt canopy`);
+  }
+  if (
+    route.id === "quieter" &&
+    route.pedestrianFlowAvgPerHour !== null &&
+    fastest.pedestrianFlowAvgPerHour !== null &&
+    fastest.pedestrianFlowAvgPerHour > 0
+  ) {
+    const crowdDeltaPct = Math.round(
+      ((route.pedestrianFlowAvgPerHour - fastest.pedestrianFlowAvgPerHour) / fastest.pedestrianFlowAvgPerHour) * 100
+    );
+    if (crowdDeltaPct !== 0) parts.push(`${crowdDeltaPct}% foot traffic`);
+  }
+  return `vs. fastest: ${parts.join(" · ")}`;
+}
+
 function RouteCardSkeleton() {
   return (
     <div className="animate-pulse rounded-2xl border border-border bg-surface p-4">
@@ -53,9 +84,13 @@ export function RoutePlanner({
   const router = useRouter();
   const [routes, setRoutes] = useState<RouteOption[] | null>(null);
   const [heatContext, setHeatContext] = useState<HeatContext>(null);
+  const [quietestHour, setQuietestHour] = useState<QuietestHour>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [navigating, setNavigating] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const originRef = useRef<{ origin: Coordinates; isReal: boolean } | null>(null);
+  const [usingFallbackOrigin, setUsingFallbackOrigin] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,12 +98,14 @@ export function RoutePlanner({
     async function load() {
       setRoutes(null);
       setSelectedId(null);
+      setLoadError(false);
 
       // Geolocation permission is requested once per mount of the plan
       // screen and cached in a ref — switching destinations re-fetches
       // routes but must not re-prompt for location every time.
       if (!originRef.current) {
         originRef.current = await resolveOrigin();
+        setUsingFallbackOrigin(!originRef.current.isReal);
       }
       if (cancelled) return;
 
@@ -84,11 +121,17 @@ export function RoutePlanner({
         const res = await fetch(`/api/plan-routes?${params.toString()}`, { cache: "no-store" });
         const data = await res.json();
         if (cancelled) return;
-        setRoutes(data.routes ?? []);
+        const nextRoutes: RouteOption[] = data.routes ?? [];
+        setRoutes(nextRoutes);
         setHeatContext(data.heatContext ?? null);
-        setSelectedId(data.routes?.find((r: RouteOption) => r.recommended)?.id ?? data.routes?.[0]?.id ?? null);
+        setQuietestHour(data.quietestHour ?? null);
+        setSelectedId(nextRoutes.find((r) => r.recommended)?.id ?? nextRoutes[0]?.id ?? null);
+        if (nextRoutes.length === 0) setLoadError(true);
       } catch {
-        if (!cancelled) setRoutes([]);
+        if (!cancelled) {
+          setRoutes([]);
+          setLoadError(true);
+        }
       }
     }
 
@@ -96,7 +139,7 @@ export function RoutePlanner({
     return () => {
       cancelled = true;
     };
-  }, [destination.lat, destination.lon, destination.label]);
+  }, [destination.lat, destination.lon, destination.label, retryCount]);
 
   function startWalking() {
     const selected = routes?.find((r) => r.id === selectedId);
@@ -131,6 +174,25 @@ export function RoutePlanner({
     );
   }
 
+  if (loadError && routes.length === 0) {
+    return (
+      <div className="rounded-2xl border border-border bg-surface p-5 text-center">
+        <p className="text-sm text-text-secondary">
+          Couldn&apos;t find a route to {destination.label} right now.
+        </p>
+        <button
+          type="button"
+          onClick={() => setRetryCount((n) => n + 1)}
+          className="mt-3 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-surface"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  const fastest = routes.find((r) => r.id === "fastest") ?? routes[0] ?? null;
+
   return (
     <>
       {heatContext?.advisory && (
@@ -140,6 +202,27 @@ export function RoutePlanner({
             {heatContext.extreme ? "Extreme heat" : "Heat advisory"} —{" "}
             {Math.round(heatContext.temperatureC!)}°C right now, so shaded routing is prioritising
             tree canopy more heavily than usual.
+          </p>
+        </div>
+      )}
+
+      {usingFallbackOrigin && (
+        <div className="mb-6 flex items-start gap-2.5 rounded-2xl border border-border bg-surface px-4 py-3">
+          <ConditionIcon tone="primary" className="mt-0.5 h-4 w-4 shrink-0" />
+          <p className="text-[0.84rem] text-text">
+            Couldn&apos;t get your location, these routes start from central Melbourne
+            instead. Allow location access and reload for routes from where you actually are.
+          </p>
+        </div>
+      )}
+
+      {quietestHour && (
+        <div className="mb-6 flex items-start gap-2.5 rounded-2xl border border-border bg-surface px-4 py-3">
+          <ConditionIcon tone="crowd" className="mt-0.5 h-4 w-4 shrink-0" />
+          <p className="text-[0.84rem] text-text">
+            Foot traffic near {destination.label} looks quietest around{" "}
+            <span className="font-semibold">{quietestHour.label}</span> today, based on live
+            crowd-sensor predictions.
           </p>
         </div>
       )}
@@ -177,12 +260,17 @@ export function RoutePlanner({
                 )}
               </div>
               <p className="mt-1.5 text-[0.84rem] text-text-secondary">{route.description}</p>
+              {fastest && route.id !== "fastest" && (
+                <p className="mt-1 text-[0.78rem] text-text-tertiary">
+                  {tradeOffLabel(route, fastest)}
+                </p>
+              )}
               <div className="mt-2.5 flex flex-wrap gap-1.5">
                 {route.tags.map((tag) => (
                   <span
                     key={tag.label}
-                    className={`rounded-lg px-2 py-1 text-[0.72rem] ${
-                      tag.tone === "warm" ? "bg-heat-soft text-heat" : "bg-surface-alt text-text-secondary"
+                    className={`rounded-lg px-2 py-1 text-[0.76rem] font-medium ${
+                      tag.tone === "warm" ? "bg-heat-soft text-heat" : "bg-surface-alt text-text"
                     }`}
                   >
                     {tag.label}

@@ -111,7 +111,7 @@ async function PlanScreen({
           </p>
         </div>
 
-        <DestinationSearch initialValue={destination ?? ""} recentSearches={recentSearches} />
+        <DestinationSearch initialValue={destinationLabel ?? ""} recentSearches={recentSearches} />
 
         <SavedPlacesRow places={savedPlaces} current={current} signedIn={Boolean(userId)} />
 

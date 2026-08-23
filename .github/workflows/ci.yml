@@ -12,6 +12,11 @@ jobs:
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_placeholder
     steps:
       - uses: actions/checkout@v4
+        with:
+          # context:drift compares each chunk's `verified` commit against
+          # real Git history — a shallow clone would report every chunk as
+          # unverifiable rather than actually checking freshness.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -25,6 +30,13 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Context drift check
+        # Informational: flags stale/invalid context chunks without failing
+        # the build — chunk upkeep is a reupdate/reaudit workflow concern,
+        # not a merge gate.
+        run: npm run context:drift
+        continue-on-error: true
 
   e2e:
     runs-on: ubuntu-latest

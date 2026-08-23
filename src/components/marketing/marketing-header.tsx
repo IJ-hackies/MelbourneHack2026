@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { PendingLink } from "@/components/pending-link";
 
 const NAV_LINKS = [
@@ -19,9 +19,16 @@ export function MarketingHeader({ appOrigin = "" }: { appOrigin?: string }) {
     };
   }, [open]);
 
-  function scrollTo(id: string) {
+  // Real #id anchors (not buttons) so the links work with new-tab/middle-click
+  // and are deep-linkable/shareable — smooth-scrolling is layered on top only
+  // for an in-page click, never a substitute for the real href.
+  function handleNavClick(e: MouseEvent<HTMLAnchorElement>, id: string) {
     setOpen(false);
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const target = document.getElementById(id);
+    if (!target) return;
+    e.preventDefault();
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    history.pushState(null, "", `#${id}`);
   }
 
   return (
@@ -37,14 +44,14 @@ export function MarketingHeader({ appOrigin = "" }: { appOrigin?: string }) {
 
         <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
           {NAV_LINKS.map((link) => (
-            <button
+            <a
               key={link.id}
-              type="button"
-              onClick={() => scrollTo(link.id)}
+              href={`#${link.id}`}
+              onClick={(e) => handleNavClick(e, link.id)}
               className="text-sm font-medium text-text-secondary transition-colors hover:text-text"
             >
               {link.label}
-            </button>
+            </a>
           ))}
         </nav>
 
@@ -96,15 +103,15 @@ export function MarketingHeader({ appOrigin = "" }: { appOrigin?: string }) {
         }`}
       >
         {NAV_LINKS.map((link) => (
-          <button
+          <a
             key={link.id}
-            type="button"
+            href={`#${link.id}`}
             tabIndex={open ? 0 : -1}
-            onClick={() => scrollTo(link.id)}
+            onClick={(e) => handleNavClick(e, link.id)}
             className="rounded-xl px-3 py-3 text-left text-[0.95rem] font-medium text-text-secondary transition-colors hover:bg-surface-alt hover:text-text"
           >
             {link.label}
-          </button>
+          </a>
         ))}
       </nav>
     </header>

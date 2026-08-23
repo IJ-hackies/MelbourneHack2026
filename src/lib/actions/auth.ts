@@ -4,6 +4,21 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { isRateLimited } from "@/lib/rate-limit";
+
+async function clientIp(): Promise<string> {
+  const h = await headers();
+  return h.get("x-forwarded-for")?.split(",")[0].trim() ?? h.get("x-real-ip") ?? "unknown";
+}
+
+// Only ever redirect to a same-site path after auth — a bare "/evil.com" or
+// "https://evil.com" passed through `next` would otherwise let an attacker
+// send a real login/reset link that lands the user on their own site post-auth.
+function safeLocalPath(next: string | null | undefined): string {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/";
+  if (next.includes("://") || next.includes("\\")) return "/";
+  return next;
+}
 
 export async function loginWithGoogle() {
   const supabase = await createClient();
@@ -32,6 +47,10 @@ export async function login(
   const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "/");
 
+  if (isRateLimited(`login:${await clientIp()}`)) {
+    return { error: "Too many attempts, wait a few minutes and try again." };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -40,7 +59,7 @@ export async function login(
   }
 
   revalidatePath("/", "layout");
-  redirect(next || "/");
+  redirect(safeLocalPath(next));
 }
 
 export async function signup(
@@ -50,6 +69,10 @@ export async function signup(
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const displayName = String(formData.get("displayName") ?? "");
+
+  if (isRateLimited(`signup:${await clientIp()}`)) {
+    return { error: "Too many attempts, wait a few minutes and try again." };
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -80,6 +103,13 @@ export async function requestPasswordReset(
   const email = String(formData.get("email") ?? "");
   const headerList = await headers();
   const origin = headerList.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+
+  if (isRateLimited(`reset:${await clientIp()}`)) {
+    return {
+      error: null,
+      success: "If that email has an account, a reset link is on its way, check your inbox.",
+    };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {

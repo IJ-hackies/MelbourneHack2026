@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { routeProvider } from "@/lib/providers/route-provider";
+import { getQuietestHourToday } from "@/lib/providers/quietest-hour";
+import { createClient } from "@/lib/supabase/server";
+import type { UserPreferences } from "@/lib/providers/types";
 
 // Client-callable wrapper around routeProvider.listRoutes — the plan page's
 // route list is fetched from the browser (not server-rendered) specifically
@@ -27,11 +30,42 @@ export async function GET(request: Request) {
       ? { lat: Number(originLat), lon: Number(originLon) }
       : undefined;
 
-  const result = await routeProvider.listRoutes({
-    destination: { label: destLabel, lat: destLat, lon: destLon },
-    origin,
-    departureTime: new Date(),
-  });
+  const preferences = await loadSignedInPreferences();
 
-  return NextResponse.json(result);
+  const [result, quietestHour] = await Promise.all([
+    routeProvider.listRoutes({
+      destination: { label: destLabel, lat: destLat, lon: destLon },
+      origin,
+      departureTime: new Date(),
+      preferences,
+    }),
+    getQuietestHourToday({ lat: destLat, lon: destLon }),
+  ]);
+
+  return NextResponse.json({ ...result, quietestHour });
+}
+
+// Only a signed-in user's saved preferences actually bias routing — a guest
+// gets the same sensible defaults the routing function already applies.
+async function loadSignedInPreferences(): Promise<Partial<UserPreferences> | undefined> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return undefined;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("heat_sensitivity, comfort_balance, pace, prefer_quieter_streets, prefer_lower_traffic")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!profile) return undefined;
+
+  return {
+    heatSensitivity: profile.heat_sensitivity ?? undefined,
+    comfortBalance: profile.comfort_balance ?? undefined,
+    pace: profile.pace ?? undefined,
+    preferQuieterStreets: profile.prefer_quieter_streets ?? undefined,
+    preferLowerTraffic: profile.prefer_lower_traffic ?? undefined,
+  };
 }

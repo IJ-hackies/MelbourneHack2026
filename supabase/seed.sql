@@ -1,0 +1,3 @@
+-- Local dev seed data, loaded by `supabase db reset` (see [db.seed] in config.toml).
+-- Intentionally empty: profiles/saved_places/walks are all user-owned rows created
+-- through normal signup/app flows, not fixture data to seed ahead of time.

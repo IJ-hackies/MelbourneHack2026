@@ -20,11 +20,19 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent))
 
-from _shared import shade_lookup
+from _shared import rate_limit, shade_lookup
 
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if not rate_limit.check(self.headers):
+            self.send_response(429)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Retry-After", "60")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "too many requests"}).encode())
+            return
+
         query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         try:
             lat = float(query["lat"][0])

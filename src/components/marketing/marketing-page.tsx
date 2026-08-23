@@ -112,6 +112,18 @@ export function MarketingPage({
 
                 <div className="relative mx-4 mb-4 flex h-32 items-center justify-center overflow-hidden rounded-2xl bg-surface-alt">
                   <svg viewBox="0 0 320 128" className="h-full w-full">
+                    {/* Fastest — the straighter, unshaded option, shown faded
+                        behind the chosen shaded route to make the actual
+                        trade-off visible at a glance, not just described. */}
+                    <path
+                      d="M15 100 C 90 92, 170 55, 305 22"
+                      fill="none"
+                      stroke="var(--text-tertiary)"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeDasharray="1 8"
+                      opacity="0.5"
+                    />
                     <path
                       d="M15 100 C 70 100, 65 30, 130 30 S 205 90, 245 72 S 300 30, 305 22"
                       fill="none"
@@ -129,6 +141,14 @@ export function MarketingPage({
                   <div className="flex items-center justify-between text-xs text-text-tertiary">
                     <span>3 ways to Royal Botanic Gardens</span>
                     <span>Leaving now</span>
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-3 text-[0.7rem] text-text-tertiary">
+                    <span className="flex items-center gap-1">
+                      <span className="h-0.5 w-3 rounded-full bg-primary" /> Shaded, 17 min
+                    </span>
+                    <span className="flex items-center gap-1 opacity-70">
+                      <span className="h-0.5 w-3 rounded-full bg-text-tertiary" /> Fastest, 13 min
+                    </span>
                   </div>
 
                   <div className="mt-3 rounded-2xl border border-primary bg-primary-soft p-4">
@@ -245,20 +265,27 @@ export function MarketingPage({
                   emissions it avoided compared to driving, never inflated,
                   never guessed. It builds up in your history automatically.
                 </p>
-                {communityImpact && communityImpact.totalWalks > 0 && (
-                  <div className="mt-5 border-t border-primary/25 pt-4">
-                    <div className="font-display text-2xl font-semibold tracking-tight text-text">
-                      {communityImpact.totalEmissionsKg.toFixed(1)}
-                      <span className="ml-1 text-sm font-medium text-text-secondary">
-                        kg CO₂e avoided so far
-                      </span>
-                    </div>
-                    <p className="mt-1 text-[0.78rem] text-text-tertiary">
-                      Real total across {communityImpact.totalWalks} logged{" "}
-                      {communityImpact.totalWalks === 1 ? "walk" : "walks"}, updated live.
+                <div className="mt-5 border-t border-primary/25 pt-4">
+                  {communityImpact && communityImpact.totalWalks > 0 ? (
+                    <>
+                      <div className="font-display text-2xl font-semibold tracking-tight text-text">
+                        {communityImpact.totalEmissionsKg.toFixed(1)}
+                        <span className="ml-1 text-sm font-medium text-text-secondary">
+                          kg CO₂e avoided so far
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[0.78rem] text-text-tertiary">
+                        Real total across {communityImpact.totalWalks} logged{" "}
+                        {communityImpact.totalWalks === 1 ? "walk" : "walks"}, updated live.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-[0.84rem] text-text-secondary">
+                      Be the first walk counted here — every logged walk adds its estimated
+                      avoided emissions to this total, live, for everyone to see.
                     </p>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               <div className="rounded-3xl border border-heat/30 bg-heat-soft p-8">

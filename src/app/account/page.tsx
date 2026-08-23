@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { DeleteAccountForm } from "@/components/delete-account-form";
+import { ExportDataButton } from "@/components/export-data-button";
+import { SignOutOthersButton } from "@/components/sign-out-others-button";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function Account() {
@@ -18,6 +20,26 @@ export default async function Account() {
         <p className="mt-1 text-sm text-text-secondary">
           Signed in as <span className="text-text">{user.email}</span>
         </p>
+      </div>
+
+      <div>
+        <h2 className="font-display text-base font-semibold tracking-tight text-text">
+          Sessions
+        </h2>
+        <p className="mt-1 mb-3 text-[0.82rem] text-text-tertiary">
+          Signed in somewhere you don&apos;t recognise? Sign out of every other session.
+        </p>
+        <SignOutOthersButton />
+      </div>
+
+      <div>
+        <h2 className="font-display text-base font-semibold tracking-tight text-text">
+          Your data
+        </h2>
+        <p className="mt-1 mb-3 text-[0.82rem] text-text-tertiary">
+          Download a copy of your profile, preferences, saved places, and walk history.
+        </p>
+        <ExportDataButton />
       </div>
 
       <div>

@@ -66,12 +66,14 @@ export function PreferencesForm({
           valueLabel={
             heatSensitivity < 33 ? "LOW" : heatSensitivity < 67 ? "MEDIUM" : "HIGH"
           }
+          hint="Higher sensitivity leans the &ldquo;shaded&rdquo; route option harder into tree canopy."
         />
         <Slider
           label="Speed vs. comfort"
           value={comfortBalance}
           onChange={setComfortBalance}
           valueLabel={comfortBalance < 50 ? "COMFORT" : "SPEED"}
+          hint="Saved for future route ranking — doesn&apos;t affect route choices yet."
         />
         <Slider
           label="Walking pace"
@@ -80,6 +82,7 @@ export function PreferencesForm({
           max={4}
           onChange={setPace}
           valueLabel={paceLabels[pace].toUpperCase()}
+          hint="Saved for future ETA tuning — doesn&apos;t affect route choices yet."
         />
       </div>
 
@@ -92,13 +95,13 @@ export function PreferencesForm({
           )}
           <Toggle
             name="Prefer quieter streets"
-            description="Weight crowd density over travel time"
+            description="Weights the &ldquo;quieter&rdquo; route option more heavily toward avoiding currently busy streets"
             checked={quieterStreets}
             onChange={setQuieterStreets}
           />
           <Toggle
             name="Prefer lower traffic"
-            description="Avoid busy roads even if it adds distance"
+            description="Saved for when vehicle-traffic routing ships — doesn&apos;t affect route choices yet"
             checked={lowerTraffic}
             onChange={setLowerTraffic}
           />

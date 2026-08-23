@@ -34,13 +34,14 @@ from __future__ import annotations
 import json
 import math
 import sys
+import time
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent))
 
-from _shared import crowd_model, feature_lookup, graph_loader, router
+from _shared import crowd_model, feature_lookup, graph_loader, rate_limit, router
 
 _load_error: str | None = None
 
@@ -296,7 +297,25 @@ def _heat_context() -> dict:
     return {"temperature_c": temp_c, "advisory": False, "extreme": False, "shade_bias_multiplier": 1.0}
 
 
-def plan_route(origin: dict, destination: dict) -> dict:
+def _preference_multipliers(preferences: dict | None) -> tuple[float, float]:
+    """Real, if modest, personalisation: a saved heat_sensitivity (0-100,
+    default 50) scales how hard "shaded" biases toward canopy on top of the
+    live heat_context multiplier, and prefer_quieter_streets scales how hard
+    "quieter" biases away from crowded nodes. Anything else in `preferences`
+    (pace, prefer_lower_traffic, calendar_suggestions) has no routing effect
+    yet — no candidate is fabricated to feign using them."""
+    if not preferences:
+        return 1.0, 1.0
+    heat_sensitivity = preferences.get("heat_sensitivity")
+    shade_multiplier = 1.0
+    if isinstance(heat_sensitivity, (int, float)):
+        # 0 -> 0.6x the default shade bias, 50 -> 1.0x, 100 -> 1.6x.
+        shade_multiplier = 0.6 + (max(0.0, min(100.0, heat_sensitivity)) / 100.0)
+    crowd_multiplier = 1.5 if preferences.get("prefer_quieter_streets") else 1.0
+    return shade_multiplier, crowd_multiplier
+
+
+def plan_route(origin: dict, destination: dict, preferences: dict | None = None) -> dict:
     load_error = _ensure_loaded()
     if load_error:
         unavailable = {
@@ -343,13 +362,14 @@ def plan_route(origin: dict, destination: dict) -> dict:
         snap_warnings.append(f"destination_snap_distance_m_{round(end_snap_m)}")
 
     heat_context = _heat_context()
+    shade_pref_multiplier, crowd_pref_multiplier = _preference_multipliers(preferences)
 
     fastest = _build_candidate("fastest", node_coords, adjacency, start_id, end_id)
     candidates = [fastest]
 
     shaded = _build_candidate(
         "shaded", node_coords, adjacency, start_id, end_id,
-        shade_bias=router.SHADE_BIAS * heat_context["shade_bias_multiplier"],
+        shade_bias=router.SHADE_BIAS * heat_context["shade_bias_multiplier"] * shade_pref_multiplier,
     )
     # Only surface "shaded" as a distinct option when it's a real, noticeably
     # different trade-off — a path that's technically different by a few
@@ -362,7 +382,7 @@ def plan_route(origin: dict, destination: dict) -> dict:
     if crowd_penalty:
         quieter = _build_candidate(
             "quieter", node_coords, adjacency, start_id, end_id,
-            node_penalty=crowd_penalty, penalty_weight=CROWD_PENALTY_WEIGHT,
+            node_penalty=crowd_penalty, penalty_weight=CROWD_PENALTY_WEIGHT * crowd_pref_multiplier,
         )
         if _meaningfully_different(quieter, candidates, "pedestrian_flow_avg_per_hour", relative_metric=True):
             candidates.append(quieter)
@@ -374,24 +394,74 @@ def plan_route(origin: dict, destination: dict) -> dict:
     return {"routes": candidates, "heat_context": heat_context}
 
 
+def _bad_request(handler: "handler", message: str) -> None:
+    handler.send_response(400)
+    handler.send_header("Content-Type", "application/json")
+    handler.end_headers()
+    handler.wfile.write(json.dumps({"error": message}).encode())
+
+
+def _coords(value: object) -> dict | None:
+    if not isinstance(value, dict):
+        return None
+    lat, lon = value.get("lat"), value.get("lon")
+    if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
+        return None
+    if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+        return None
+    return {"lat": float(lat), "lon": float(lon)}
+
+
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        length = int(self.headers.get("Content-Length", 0))
-        body = json.loads(self.rfile.read(length) or b"{}")
+        start = time.monotonic()
 
-        origin = body.get("origin")
-        destination = body.get("destination")
-        if not origin or not destination:
-            self.send_response(400)
+        if not rate_limit.check(self.headers):
+            self.send_response(429)
             self.send_header("Content-Type", "application/json")
+            self.send_header("Retry-After", "60")
             self.end_headers()
-            self.wfile.write(
-                json.dumps({"error": "origin and destination are required"}).encode()
-            )
+            self.wfile.write(json.dumps({"error": "too many requests"}).encode())
             return
 
-        result = plan_route(origin, destination)
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(length) if length else b"{}"
+            body = json.loads(raw_body or b"{}")
+        except (ValueError, json.JSONDecodeError):
+            _bad_request(self, "request body must be valid JSON")
+            return
+        if not isinstance(body, dict):
+            _bad_request(self, "request body must be a JSON object")
+            return
+
+        origin = _coords(body.get("origin"))
+        destination = _coords(body.get("destination"))
+        if origin is None or destination is None:
+            _bad_request(self, "origin and destination each require numeric lat/lon")
+            return
+
+        preferences = body.get("preferences")
+        if not isinstance(preferences, dict):
+            preferences = None
+
+        try:
+            result = plan_route(origin, destination, preferences)
+        except Exception as exc:  # never leak a raw traceback to the client
+            self.send_response(500)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "route planning failed", "detail": str(exc)}).encode())
+            return
+
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps(result).encode())
+        route_count = len(result.get("routes", []))
+        print(json.dumps({
+            "endpoint": "route-planner",
+            "status": 200,
+            "route_count": route_count,
+            "duration_ms": round((time.monotonic() - start) * 1000, 1),
+        }))

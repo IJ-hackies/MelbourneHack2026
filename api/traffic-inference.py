@@ -23,7 +23,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent))
 
-from _shared import feature_lookup, model_loader
+from _shared import feature_lookup, model_loader, rate_limit
 
 RELEASE = "source-stratified-v1"
 
@@ -118,26 +118,53 @@ def predict(source_group: str, observation_unit_id: str, target_hour_str: str) -
     }
 
 
+def _bad_request(handler: "handler", message: str) -> None:
+    handler.send_response(400)
+    handler.send_header("Content-Type", "application/json")
+    handler.end_headers()
+    handler.wfile.write(json.dumps({"error": message}).encode())
+
+
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        length = int(self.headers.get("Content-Length", 0))
-        body = json.loads(self.rfile.read(length) or b"{}")
+        if not rate_limit.check(self.headers):
+            self.send_response(429)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Retry-After", "60")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "too many requests"}).encode())
+            return
+
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(length) if length else b"{}"
+            body = json.loads(raw_body or b"{}")
+        except (ValueError, json.JSONDecodeError):
+            _bad_request(self, "request body must be valid JSON")
+            return
+        if not isinstance(body, dict):
+            _bad_request(self, "request body must be a JSON object")
+            return
 
         source_group = body.get("source_group")
         observation_unit_id = body.get("observation_unit_id")
         target_hour = body.get("target_hour")
         if not source_group or not observation_unit_id or not target_hour:
-            self.send_response(400)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(
-                json.dumps(
-                    {"error": "source_group, observation_unit_id and target_hour are required"}
-                ).encode()
-            )
+            _bad_request(self, "source_group, observation_unit_id and target_hour are required")
             return
 
-        result = predict(str(source_group), str(observation_unit_id), target_hour)
+        try:
+            result = predict(str(source_group), str(observation_unit_id), target_hour)
+        except ValueError:
+            _bad_request(self, "target_hour must be a valid ISO-8601 timestamp")
+            return
+        except Exception as exc:  # never leak a raw traceback to the client
+            self.send_response(500)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "prediction failed", "detail": str(exc)}).encode())
+            return
+
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()

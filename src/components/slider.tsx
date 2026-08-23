@@ -9,6 +9,7 @@ export function Slider({
   min = 0,
   max = 100,
   onChange,
+  hint,
 }: {
   label: string;
   valueLabel: string;
@@ -16,6 +17,7 @@ export function Slider({
   min?: number;
   max?: number;
   onChange: (v: number) => void;
+  hint?: string;
 }) {
   const id = useId();
   const pct = ((value - min) / (max - min)) * 100;
@@ -40,6 +42,7 @@ export function Slider({
           background: `linear-gradient(to right, var(--primary) ${pct}%, var(--surface-sunk) ${pct}%)`,
         }}
       />
+      {hint && <p className="mt-1.5 text-[0.76rem] text-text-tertiary">{hint}</p>}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useLiveLocation } from "@/lib/use-live-location";
 import { useLiveProgress } from "@/lib/live-progress-context";
 import { callRoutePlannerFromBrowser } from "@/lib/routing/route-client-browser";
+import { computeTurns, type Turn } from "@/lib/routing/turn-by-turn";
 import type { Coordinates, RouteGeometry, RouteOption } from "@/lib/providers/types";
 
 // OpenFreeMap's vector styles (keyless, no account) — picked after
@@ -54,14 +55,18 @@ function haversineM(a: Coordinates, b: Coordinates): number {
   return 2 * r * Math.asin(Math.sqrt(h));
 }
 
-// Remaining distance from a live position to the destination: nearest-vertex
-// snap onto the real path if one exists, otherwise a straight line to the
-// end point. An approximation (nearest vertex, not nearest point-on-segment)
-// but the real path already has dense vertices, so it's a reasonable one.
-function remainingMetres(position: Coordinates, geometry: RouteGeometry): number {
+// Remaining distance from a live position to the destination, plus the
+// nearest-vertex index it snapped to: nearest-vertex onto the real path if
+// one exists, otherwise a straight line to the end point. An approximation
+// (nearest vertex, not nearest point-on-segment) but the real path already
+// has dense vertices, so it's a reasonable one.
+function progressAlongPath(
+  position: Coordinates,
+  geometry: RouteGeometry
+): { remainingM: number; nearestIndex: number | null } {
   const path = geometry.path;
   if (!path || path.length === 0) {
-    return haversineM(position, geometry.end);
+    return { remainingM: haversineM(position, geometry.end), nearestIndex: null };
   }
   let nearestIndex = 0;
   let nearestDist = Infinity;
@@ -76,15 +81,26 @@ function remainingMetres(position: Coordinates, geometry: RouteGeometry): number
   for (let i = nearestIndex; i < path.length - 1; i++) {
     remaining += haversineM(path[i], path[i + 1]);
   }
-  return remaining;
+  return { remainingM: remaining, nearestIndex };
+}
+
+// Distance in metres from a path vertex to a later vertex, walked along the
+// path itself (not a straight line) — used to say how far until the next
+// real turn.
+function distanceAlongPath(path: Coordinates[], fromIndex: number, toIndex: number): number {
+  let total = 0;
+  for (let i = fromIndex; i < toIndex; i++) total += haversineM(path[i], path[i + 1]);
+  return total;
 }
 
 export function RouteMap({
   geometry,
   segments,
+  routeId,
 }: {
   geometry: RouteGeometry;
   segments?: RouteOption["segments"];
+  routeId?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -93,6 +109,9 @@ export function RouteMap({
   const recenterControlRef = useRef<HTMLButtonElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [show3D, setShow3D] = useState(false);
+  const [isOffline, setIsOffline] = useState(
+    typeof navigator !== "undefined" ? !navigator.onLine : false
+  );
   // The path actually used for remaining-distance/ETA math and the drawn
   // line — starts as the server-computed static route, then gets replaced
   // by a real re-routed path from the user's live position as they walk,
@@ -101,6 +120,10 @@ export function RouteMap({
   const currentPathRef = useRef<Coordinates[] | null>(null);
   const lastRoutedFromRef = useRef<Coordinates | null>(null);
   const reroutingRef = useRef(false);
+  // Recomputed whenever the tracked path changes (initial geometry, or a
+  // fresh path from a live reroute) — turn instructions must follow whichever
+  // path line is actually on screen, not go stale after a reroute.
+  const turnsRef = useRef<Turn[]>(computeTurns(geometry.path ?? []));
 
   const liveLocation = useLiveLocation(true);
   const { setProgress } = useLiveProgress();
@@ -116,6 +139,7 @@ export function RouteMap({
     const waypoints = geometry.path?.length ? geometry.path : [geometry.start, geometry.end];
     const lineCoordinates = waypoints.map((c) => [c.lon, c.lat] as [number, number]);
     currentPathRef.current = geometry.path?.length ? geometry.path : null;
+    turnsRef.current = computeTurns(currentPathRef.current ?? []);
     lastRoutedFromRef.current = null;
 
     const map = new maplibregl.Map({
@@ -244,12 +268,25 @@ export function RouteMap({
     }
 
     const effectivePath = currentPathRef.current ?? geometry.path ?? null;
-    const remainingM = effectivePath
-      ? remainingMetres(here, { ...geometry, path: effectivePath })
-      : haversineM(here, geometry.end);
+    const { remainingM, nearestIndex } = effectivePath
+      ? progressAlongPath(here, { ...geometry, path: effectivePath })
+      : { remainingM: haversineM(here, geometry.end), nearestIndex: null };
+
+    let nextTurn: { direction: "left" | "right"; distanceMetres: number } | null = null;
+    if (effectivePath && nearestIndex !== null) {
+      const upcoming = turnsRef.current.find((t) => t.pathIndex > nearestIndex);
+      if (upcoming) {
+        nextTurn = {
+          direction: upcoming.direction,
+          distanceMetres: Math.round(distanceAlongPath(effectivePath, nearestIndex, upcoming.pathIndex)),
+        };
+      }
+    }
+
     setProgress({
       distanceRemainingKm: Math.round((remainingM / 1000) * 100) / 100,
       etaMinutes: Math.round(remainingM / WALKING_SPEED_M_PER_MIN),
+      nextTurn,
     });
 
     const lastRoutedFrom = lastRoutedFromRef.current;
@@ -259,10 +296,11 @@ export function RouteMap({
 
     reroutingRef.current = true;
     lastRoutedFromRef.current = here;
-    callRoutePlannerFromBrowser(here, geometry.end)
+    callRoutePlannerFromBrowser(here, geometry.end, routeId)
       .then((planned) => {
         if (planned.qualityStatus !== "ok" || !planned.path?.length) return;
         currentPathRef.current = planned.path;
+        turnsRef.current = computeTurns(planned.path);
         const source = map.getSource("route-line") as maplibregl.GeoJSONSource | undefined;
         source?.setData({
           type: "Feature",
@@ -276,7 +314,22 @@ export function RouteMap({
       .finally(() => {
         reroutingRef.current = false;
       });
-  }, [liveLocation, geometry, setProgress]);
+  }, [liveLocation, geometry, setProgress, routeId]);
+
+  // Re-routing while walking depends on network access — surface it plainly
+  // instead of letting fetch failures fail silently (callRoutePlannerFromBrowser
+  // already degrades gracefully, but the user has no way to know why the
+  // route line stopped updating without this).
+  useEffect(() => {
+    const goOnline = () => setIsOffline(false);
+    const goOffline = () => setIsOffline(true);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
 
   // Custom fullscreen toggle (CSS-based, not the native Fullscreen API) —
   // the Fullscreen API is unreliable on iOS Safari, so this instead expands
@@ -344,12 +397,17 @@ export function RouteMap({
       >
         Recenter
       </button>
-      {liveLocation.status === "denied" && (
+      {isOffline && (
+        <span className="absolute top-3 left-3 rounded-lg bg-surface/90 px-2.5 py-1 text-[0.72rem] text-text-tertiary">
+          Offline — route won&apos;t update until you&apos;re back online
+        </span>
+      )}
+      {!isOffline && liveLocation.status === "denied" && (
         <span className="absolute top-3 left-3 rounded-lg bg-surface/90 px-2.5 py-1 text-[0.72rem] text-text-tertiary">
           Location permission denied
         </span>
       )}
-      {liveLocation.status === "unavailable" && (
+      {!isOffline && liveLocation.status === "unavailable" && (
         <span className="absolute top-3 left-3 rounded-lg bg-surface/90 px-2.5 py-1 text-[0.72rem] text-text-tertiary">
           Location unavailable
         </span>

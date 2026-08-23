@@ -1,5 +1,5 @@
 import { getBaseUrl } from "@/lib/base-url";
-import type { Coordinates, QualityStatus } from "@/lib/providers/types";
+import type { Coordinates, QualityStatus, UserPreferences } from "@/lib/providers/types";
 
 type RouteCandidateResponse = {
   id: string;
@@ -69,13 +69,23 @@ const UNAVAILABLE: PlannedRoutes = {
 // next/headers via this file.
 export async function callRoutePlanner(
   origin: Coordinates,
-  destination: Coordinates
+  destination: Coordinates,
+  preferences?: Partial<UserPreferences>
 ): Promise<PlannedRoutes> {
   try {
     const res = await fetch(new URL("/api/route-planner", await getBaseUrl()), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ origin, destination }),
+      body: JSON.stringify({
+        origin,
+        destination,
+        preferences: preferences
+          ? {
+              heat_sensitivity: preferences.heatSensitivity,
+              prefer_quieter_streets: preferences.preferQuieterStreets,
+            }
+          : undefined,
+      }),
       cache: "no-store",
     });
     const data: RoutePlannerResponse = await res.json();

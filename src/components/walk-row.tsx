@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { deleteWalk } from "@/lib/actions/walks";
 import { useToast } from "@/components/toast-provider";
 
@@ -29,6 +30,12 @@ export function WalkRow({
         </div>
       </div>
       <div className="flex items-center gap-3">
+        <Link
+          href={`/?to=${encodeURIComponent(destination)}`}
+          className="text-[0.78rem] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+        >
+          Walk again
+        </Link>
         <div className="font-display text-sm font-semibold text-text">{minutes} min</div>
         <button
           type="button"

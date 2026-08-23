@@ -2,7 +2,12 @@
 
 import { createContext, useContext, useMemo, useState } from "react";
 
-type LiveProgress = { distanceRemainingKm: number; etaMinutes: number } | null;
+type NextTurn = { direction: "left" | "right"; distanceMetres: number } | null;
+type LiveProgress = {
+  distanceRemainingKm: number;
+  etaMinutes: number;
+  nextTurn?: NextTurn;
+} | null;
 
 const LiveProgressContext = createContext<{
   progress: LiveProgress;

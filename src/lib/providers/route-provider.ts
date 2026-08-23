@@ -45,7 +45,7 @@ class RealRouteProvider implements RouteProvider {
     const origin = input.origin ?? DEFAULT_ORIGIN;
     const destination: Coordinates = { lat: input.destination.lat, lon: input.destination.lon };
 
-    const planned = await callRoutePlanner(origin, destination);
+    const planned = await callRoutePlanner(origin, destination, input.preferences);
     const ok = planned.routes.filter((r) => r.qualityStatus === "ok" && r.path && r.distanceKm !== null);
 
     if (ok.length > 0) {

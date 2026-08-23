@@ -4,6 +4,7 @@ import { useEffect, useRef, useTransition, useState } from "react";
 import Link from "next/link";
 import { logWalk } from "@/lib/actions/walks";
 import { useLiveProgress } from "@/lib/live-progress-context";
+import { PENDING_WALK_STORAGE_KEY, type PendingWalk } from "@/lib/pending-walk";
 
 // Close enough to the destination to count as arrived — real GPS accuracy
 // on a phone is commonly 5-15m in open air, so this has to be a radius,
@@ -40,8 +41,23 @@ export function ActiveWalk({
   const emissionsKg = (distanceKm * 0.19).toFixed(2);
 
   useEffect(() => {
-    if (!done || savedRef.current || !signedIn) return;
+    if (!done || savedRef.current) return;
     savedRef.current = true;
+
+    if (!signedIn) {
+      // Stashed so claim-pending-walk.tsx can save it the moment this
+      // browser has a real session — otherwise a guest who signs up right
+      // after finishing a walk loses it, with no way to log it retroactively.
+      const pending: PendingWalk = { routeId, destination, minutes, distanceKm };
+      try {
+        localStorage.setItem(PENDING_WALK_STORAGE_KEY, JSON.stringify(pending));
+      } catch {
+        // Storage unavailable (private browsing, quota) — the walk still
+        // completes, it just can't be claimed after signing in.
+      }
+      return;
+    }
+
     startSaving(async () => {
       const result = await logWalk({ routeId, destination, minutes, distanceKm });
       if (result.error) setSaveError(result.error);
@@ -72,7 +88,7 @@ export function ActiveWalk({
               <Link href="/login" className="underline hover:no-underline">
                 Sign in
               </Link>{" "}
-              to save this to your history.
+              and this walk will be added to your history automatically.
             </>
           ) : saveError ? (
             "Couldn't save this walk to your history. It still counts, just not recorded."
@@ -107,6 +123,23 @@ export function ActiveWalk({
           ? `${progress.distanceRemainingKm} km remaining, based on your live location`
           : `${distanceKm} km · waiting for your live location to start updating`}
       </p>
+      {progress?.nextTurn && (
+        <p className="mt-1.5 flex items-center gap-1.5 text-sm font-medium text-text">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`h-4 w-4 shrink-0 ${progress.nextTurn.direction === "left" ? "-scale-x-100" : ""}`}
+          >
+            <path d="M8 6 3 11l5 5" />
+            <path d="M3 11h11a5 5 0 0 1 5 5v3" />
+          </svg>
+          Turn {progress.nextTurn.direction} in {progress.nextTurn.distanceMetres} m
+        </p>
+      )}
       <button
         type="button"
         onClick={() => setManuallyFinished(true)}
