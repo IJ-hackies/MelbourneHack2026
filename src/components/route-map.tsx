@@ -8,35 +8,21 @@ import { useLiveProgress } from "@/lib/live-progress-context";
 import { callRoutePlannerFromBrowser } from "@/lib/routing/route-client-browser";
 import type { Coordinates, RouteGeometry, RouteOption } from "@/lib/providers/types";
 
-// Three vector-tile providers (Mapbox, MapTiler, OpenFreeMap) each hit
-// failures that took real requests down to a blank canvas — an ad-blocker
-// intercepting protobuf/XHR-style tile fetches was confirmed for two of
-// them, and the third stayed unexplained even with the blocker off. Vector
-// rendering has a lot of moving parts (protobuf parsing, WebGL layer
-// compositing, sprite/glyph/style-spec resolution) for any one of those to
-// silently break. Plain raster PNG tiles sidestep all of that — just
-// <img>-style GET requests, the same technology most "just works" web maps
-// have used for 15+ years. CARTO's free, keyless "Positron" basemap (built
-// on OSM data) is used instead of the more tan/cream "Voyager" style — its
-// whiter, lighter palette is the closest free keyless match to Google
-// Maps' look.
-const RASTER_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: {
-    basemap: {
-      type: "raster",
-      tiles: [
-        "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-        "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-        "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-        "https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-      ],
-      tileSize: 256,
-      attribution: "© OpenStreetMap contributors © CARTO",
-    },
-  },
-  layers: [{ id: "basemap-tiles", type: "raster", source: "basemap", minzoom: 0, maxzoom: 20 }],
-};
+// OpenFreeMap's vector styles (keyless, no account) — picked after
+// comparing every free keyless option side by side. "Bright" is the
+// default: real road/POI labels and icons, the closest free match to an
+// actual Google-Maps-style app rather than a plain basemap. "Liberty"
+// (used only when the 3D buildings toggle is on) includes building
+// extrusions Bright doesn't, at the cost of a slightly flatter color
+// palette — hence keeping Bright as the default look.
+//
+// The earlier "vector tiles never render" bug (worked around at one point
+// by switching to raster tiles) turned out to be a MapLibre Web Worker
+// resolution bug under Next.js/Turbopack bundling, not anything specific
+// to a vector provider — see the setWorkerUrl fix below. With that fixed,
+// vector styles (including these) work correctly again.
+const BRIGHT_STYLE_URL = "https://tiles.openfreemap.org/styles/bright";
+const LIBERTY_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const WALKING_SPEED_M_PER_MIN = 80;
 // Below this, a fresh GPS fix isn't worth re-routing for — avoids hitting
 // the routing API on every few-metre GPS jitter while stationary.
@@ -106,6 +92,7 @@ export function RouteMap({
   const followingRef = useRef(true);
   const recenterControlRef = useRef<HTMLButtonElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [show3D, setShow3D] = useState(false);
   // The path actually used for remaining-distance/ETA math and the drawn
   // line — starts as the server-computed static route, then gets replaced
   // by a real re-routed path from the user's live position as they walk,
@@ -133,11 +120,14 @@ export function RouteMap({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: RASTER_STYLE,
+      style: show3D ? LIBERTY_STYLE_URL : BRIGHT_STYLE_URL,
       // Set explicitly so the camera starts over the actual route even if
       // fitBounds below never runs.
       center: [geometry.start.lon, geometry.start.lat],
       zoom: 14,
+      // A top-down view can't show building extrusions at all — pitch the
+      // camera when 3D buildings are on so they're actually visible.
+      pitch: show3D ? 45 : 0,
     });
     mapRef.current = map;
     followingRef.current = false; // enabled once the initial route view has been shown
@@ -218,7 +208,9 @@ export function RouteMap({
     };
     // geometry/segments intentionally re-mount the map on change rather than
     // diffing sources in place — route details are read once per navigation.
-  }, [geometry, segments]);
+    // show3D is included so toggling it swaps style+pitch via a clean
+    // remount rather than trying to hot-swap style/source state in place.
+  }, [geometry, segments, show3D]);
 
   // Live position updates: a separate, lighter effect that only moves the
   // live marker, keeps both the live position and destination in view, and
@@ -315,22 +307,35 @@ export function RouteMap({
       }
     >
       <div ref={containerRef} className="h-full w-full" />
-      <button
-        type="button"
-        onClick={() => setIsFullscreen((v) => !v)}
-        aria-label={isFullscreen ? "Exit fullscreen map" : "Expand map to fullscreen"}
-        className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-surface shadow-md"
-      >
-        {isFullscreen ? (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-            <path d="M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M8 21v-3a2 2 0 0 0-2-2H3M16 21v-3a2 2 0 0 1 2-2h3" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" />
-          </svg>
-        )}
-      </button>
+      <div className="absolute top-3 right-3 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setShow3D((v) => !v)}
+          aria-pressed={show3D}
+          aria-label="Toggle 3D buildings"
+          className={`flex h-8 items-center justify-center rounded-full px-3 text-xs font-semibold shadow-md ${
+            show3D ? "bg-primary text-surface" : "bg-surface text-text"
+          }`}
+        >
+          3D
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsFullscreen((v) => !v)}
+          aria-label={isFullscreen ? "Exit fullscreen map" : "Expand map to fullscreen"}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-surface shadow-md"
+        >
+          {isFullscreen ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M8 21v-3a2 2 0 0 0-2-2H3M16 21v-3a2 2 0 0 1 2-2h3" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" />
+            </svg>
+          )}
+        </button>
+      </div>
       <button
         ref={recenterControlRef}
         type="button"

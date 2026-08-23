@@ -1,9 +1,14 @@
 "use client";
 
-import { useTransition, useState } from "react";
+import { useEffect, useRef, useTransition, useState } from "react";
 import Link from "next/link";
 import { logWalk } from "@/lib/actions/walks";
 import { useLiveProgress } from "@/lib/live-progress-context";
+
+// Close enough to the destination to count as arrived — real GPS accuracy
+// on a phone is commonly 5-15m in open air, so this has to be a radius,
+// not an exact match.
+const ARRIVAL_RADIUS_KM = 0.015;
 
 export function ActiveWalk({
   routeId,
@@ -18,21 +23,31 @@ export function ActiveWalk({
   distanceKm: number;
   signedIn: boolean;
 }) {
-  const [done, setDone] = useState(false);
+  const [manuallyFinished, setManuallyFinished] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaving] = useTransition();
   const { progress } = useLiveProgress();
+  const savedRef = useRef(false);
+
+  // Auto-completes once live location puts the user within arrival radius —
+  // derived directly from progress rather than mirrored into its own state,
+  // so there's nothing to keep in sync. The manual "Finish walk" button
+  // stays as a fallback for when GPS is denied/unavailable and this can
+  // never become true on its own.
+  const arrived = progress ? progress.distanceRemainingKm <= ARRIVAL_RADIUS_KM : false;
+  const done = manuallyFinished || arrived;
 
   const emissionsKg = (distanceKm * 0.19).toFixed(2);
 
-  function finishWalk() {
-    setDone(true);
-    if (!signedIn) return;
+  useEffect(() => {
+    if (!done || savedRef.current || !signedIn) return;
+    savedRef.current = true;
     startSaving(async () => {
       const result = await logWalk({ routeId, destination, minutes, distanceKm });
       if (result.error) setSaveError(result.error);
     });
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done]);
 
   if (done) {
     return (
@@ -94,7 +109,7 @@ export function ActiveWalk({
       </p>
       <button
         type="button"
-        onClick={finishWalk}
+        onClick={() => setManuallyFinished(true)}
         className="mt-4 w-full rounded-xl border border-primary py-3 text-sm font-semibold text-primary-strong"
       >
         Finish walk

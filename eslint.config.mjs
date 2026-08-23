@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     // minified third-party code, not ours to lint.
     "public/maplibre-gl-worker.mjs",
     "public/maplibre-gl-shared.mjs",
+    // Local-only map style comparison tool, not part of the app.
+    ".map-style-picker/**",
   ]),
 ]);
 
