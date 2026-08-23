@@ -1,14 +1,12 @@
-import Link from "next/link";
 import { headers } from "next/headers";
 import { PendingLink } from "@/components/pending-link";
 import { ConditionIcon } from "@/components/condition-icon";
 import { DestinationSearch } from "@/components/destination-search";
 import { SavedPlacesRow } from "@/components/saved-places-row";
 import { MarketingPage } from "@/components/marketing/marketing-page";
-import { formatDeparture } from "@/lib/routes";
+import { RoutePlanner } from "@/components/route-planner";
 import { APEX_HOSTS, getAppOrigin } from "@/lib/hosts";
 import { conditionProvider } from "@/lib/providers/condition-provider";
-import { routeProvider } from "@/lib/providers/route-provider";
 import { listSavedPlaces } from "@/lib/actions/places";
 import { listRecentSearches } from "@/lib/actions/searches";
 import { createClient } from "@/lib/supabase/server";
@@ -68,29 +66,7 @@ async function PlanScreen({
       }
     : null;
 
-  let preferences: Parameters<typeof routeProvider.listRoutes>[0]["preferences"];
-  if (userId) {
-    const supabase = await createClient();
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select(
-        "heat_sensitivity, comfort_balance, pace, prefer_quieter_streets, prefer_lower_traffic"
-      )
-      .eq("id", userId)
-      .single();
-
-    if (profile) {
-      preferences = {
-        heatSensitivity: profile.heat_sensitivity,
-        comfortBalance: profile.comfort_balance,
-        pace: profile.pace,
-        preferQuieterStreets: profile.prefer_quieter_streets,
-        preferLowerTraffic: profile.prefer_lower_traffic,
-      };
-    }
-  }
-
-  const [conditions, routeResult, savedPlaces, recentSearches] =
+  const [conditions, savedPlaces, recentSearches] =
     destination && hasCoordinates
       ? await Promise.all([
           conditionProvider.getConditions({
@@ -98,24 +74,10 @@ async function PlanScreen({
             lat: resolvedLat!,
             lon: resolvedLon!,
           }),
-          routeProvider.listRoutes({
-            destination: { label: destination, lat: resolvedLat!, lon: resolvedLon! },
-            departureTime: new Date(),
-            preferences,
-          }),
           listSavedPlaces(),
           listRecentSearches(),
         ])
-      : await Promise.all([
-          Promise.resolve([]),
-          Promise.resolve({ routes: [], heatContext: null }),
-          listSavedPlaces(),
-          listRecentSearches(),
-        ]);
-  const { routes, heatContext } = routeResult;
-  const top = routes.find((r) => r.recommended) ?? routes[0];
-  const routeHref = (id: string) =>
-    `/route/${id}?to=${encodeURIComponent(destination ?? "")}&lat=${resolvedLat}&lon=${resolvedLon}`;
+      : await Promise.all([Promise.resolve([]), listSavedPlaces(), listRecentSearches()]);
 
   return (
     <main className="mx-auto grid max-w-xl grid-cols-1 gap-8 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[360px_1fr] lg:items-start lg:gap-12 lg:py-12">
@@ -191,79 +153,7 @@ async function PlanScreen({
             </p>
           </div>
         ) : (
-          <>
-            {heatContext?.advisory && (
-              <div className="flex items-start gap-2.5 rounded-2xl border border-heat/30 bg-heat-soft px-4 py-3">
-                <ConditionIcon tone="heat" className="mt-0.5 h-4 w-4 shrink-0" />
-                <p className="text-[0.84rem] text-text">
-                  {heatContext.extreme ? "Extreme heat" : "Heat advisory"} —{" "}
-                  {Math.round(heatContext.temperatureC!)}°C right now, so shaded routing is
-                  prioritising tree canopy more heavily than usual.
-                </p>
-              </div>
-            )}
-
-            <div>
-              <h2 className="font-display text-lg font-semibold tracking-tight text-text lg:text-xl">
-                {routes.length === 1 ? `Your route to ${destination}` : `${routes.length} ways to ${destination}`}
-              </h2>
-              <p className="mt-1 text-sm text-text-secondary">{formatDeparture(new Date())}</p>
-
-              <div className="mt-4 flex flex-col gap-2.5 lg:grid lg:grid-cols-2 lg:items-start">
-                {routes.map((route) => (
-                  <Link
-                    key={route.id}
-                    href={routeHref(route.id)}
-                    className={`block rounded-2xl border p-4 transition-colors ${
-                      route.recommended
-                        ? "border-primary bg-primary-soft"
-                        : "border-border bg-surface hover:border-text-tertiary"
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="font-display text-[1.35rem] font-semibold tracking-tight text-text">
-                        {route.minutes}
-                        <span className="ml-0.5 font-sans text-[0.7rem] font-medium text-text-tertiary">
-                          min
-                        </span>
-                      </div>
-                      {route.recommended && routes.length > 1 && (
-                        <span className="shrink-0 rounded-full bg-primary px-2.5 py-1 text-[0.68rem] font-semibold tracking-wide whitespace-nowrap text-surface uppercase">
-                          Recommended
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1.5 text-[0.84rem] text-text-secondary">
-                      {route.description}
-                    </p>
-                    <div className="mt-2.5 flex flex-wrap gap-1.5">
-                      {route.tags.map((tag) => (
-                        <span
-                          key={tag.label}
-                          className={`rounded-lg px-2 py-1 text-[0.72rem] ${
-                            tag.tone === "warm"
-                              ? "bg-heat-soft text-heat"
-                              : "bg-surface-alt text-text-secondary"
-                          }`}
-                        >
-                          {tag.label}
-                        </span>
-                      ))}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {top && (
-              <PendingLink
-                href={routeHref(top.id)}
-                className="rounded-2xl bg-primary py-3.5 text-center font-semibold text-surface shadow-[0_10px_22px_-12px_hsl(160_30%_15%/0.45)] lg:max-w-sm"
-              >
-                Start walking, {top.minutes} min pick
-              </PendingLink>
-            )}
-          </>
+          <RoutePlanner destination={{ label: destination, lat: resolvedLat!, lon: resolvedLon! }} />
         )}
       </div>
     </main>

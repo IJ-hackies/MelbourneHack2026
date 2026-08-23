@@ -12,18 +12,29 @@ export default async function RouteDetail({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ to?: string; lat?: string; lon?: string }>;
+  searchParams: Promise<{ to?: string; lat?: string; lon?: string; originLat?: string; originLon?: string }>;
 }) {
   const { id } = await params;
-  const { to, lat, lon } = await searchParams;
+  const { to, lat, lon, originLat, originLon } = await searchParams;
   const destination = to?.trim();
   const resolvedLat = lat ? Number(lat) : NaN;
   const resolvedLon = lon ? Number(lon) : NaN;
   if (!destination || !Number.isFinite(resolvedLat) || !Number.isFinite(resolvedLon)) {
     redirect("/");
   }
+  // Real live-location origin, carried over from the plan page's own
+  // geolocation fix (RoutePlanner) — falls back to the provider's static
+  // default only when this page was reached without going through the
+  // planner (e.g. a bookmarked/shared link), never re-guessed here.
+  const resolvedOriginLat = originLat ? Number(originLat) : NaN;
+  const resolvedOriginLon = originLon ? Number(originLon) : NaN;
+  const origin =
+    Number.isFinite(resolvedOriginLat) && Number.isFinite(resolvedOriginLon)
+      ? { lat: resolvedOriginLat, lon: resolvedOriginLon }
+      : undefined;
   const route = await routeProvider.getRoute(id, {
     destination: { label: destination, lat: resolvedLat, lon: resolvedLon },
+    origin,
   });
   if (!route) notFound();
 
