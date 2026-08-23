@@ -14,10 +14,16 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const src = join(ROOT, "node_modules", "maplibre-gl", "dist", "maplibre-gl-worker.mjs");
+const distDir = join(ROOT, "node_modules", "maplibre-gl", "dist");
 const destDir = join(ROOT, "public");
-const dest = join(destDir, "maplibre-gl-worker.mjs");
-
 mkdirSync(destDir, { recursive: true });
-copyFileSync(src, dest);
-console.log(`Copied ${src} -> ${dest}`);
+
+// The worker script itself imports a sibling "./maplibre-gl-shared.mjs" —
+// both must be served from the same directory for that relative import to
+// resolve, so both get copied here, not just the worker entry point.
+for (const file of ["maplibre-gl-worker.mjs", "maplibre-gl-shared.mjs"]) {
+  const src = join(distDir, file);
+  const dest = join(destDir, file);
+  copyFileSync(src, dest);
+  console.log(`Copied ${src} -> ${dest}`);
+}
