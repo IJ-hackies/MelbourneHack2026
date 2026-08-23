@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useLiveLocation } from "@/lib/use-live-location";
@@ -83,17 +83,19 @@ export function RouteMap({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const startMarkerRef = useRef<maplibregl.Marker | null>(null);
   const liveMarkerRef = useRef<maplibregl.Marker | null>(null);
   const followingRef = useRef(true);
   const recenterControlRef = useRef<HTMLButtonElement | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const liveLocation = useLiveLocation(true);
   const { setProgress } = useLiveProgress();
 
   // Mounts the map and draws the static route once per geometry/segments
   // change — deliberately does NOT depend on live location, so a GPS tick
-  // never tears down and rebuilds the whole map.
+  // never tears down and rebuilds the whole map. No start marker: per
+  // product decision, live location (once available) is the only "current
+  // position" indicator — there's no separate fixed "start" concept to show.
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -104,23 +106,15 @@ export function RouteMap({
       container: containerRef.current,
       style: RASTER_STYLE,
       // Set explicitly so the camera starts over the actual route even if
-      // fitBounds below never runs (a silent style/network failure
-      // previously left the map on its style's built-in default view — the
-      // whole world at zoom 0 — instead of failing loudly or falling back
-      // to something sane).
+      // fitBounds below never runs.
       center: [geometry.start.lon, geometry.start.lat],
       zoom: 14,
     });
     mapRef.current = map;
-    followingRef.current = true;
+    followingRef.current = false; // enabled once the initial route view has been shown
 
-    // Surfaces tile/style load failures in devtools instead of silently
-    // falling back to whatever partial view rendered — this is exactly
-    // the kind of failure that previously looked like "wrong library" but
-    // was actually invisible until logged.
     map.on("error", (e) => console.error("RouteMap: MapLibre error", e.error ?? e));
 
-    // Manual pan/zoom suspends camera-follow until the user asks to resume.
     map.on("dragstart", () => {
       followingRef.current = false;
       recenterControlRef.current?.classList.remove("hidden");
@@ -132,90 +126,79 @@ export function RouteMap({
       }
     });
 
+    const drawRoute = () => {
+      map.addSource("route-line", {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: {},
+          geometry: { type: "LineString", coordinates: lineCoordinates },
+        },
+      });
+      // Segment tones are cosmetic labels only for V1 (no per-segment
+      // geometry exists yet) — draw a single neutral line rather than
+      // fabricating a segment-colored path the data doesn't support.
+      map.addLayer({
+        id: "route-line",
+        type: "line",
+        source: "route-line",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#0e6e64", "line-width": 5, "line-opacity": 0.9 },
+      });
+      new maplibregl.Marker({ color: "#e8703a" })
+        .setLngLat([geometry.end.lon, geometry.end.lat])
+        .addTo(map);
+    };
+
     const fitToRoute = () => {
+      map.resize(); // guards against a 0-size container at construction time
+      const bounds = lineCoordinates.reduce(
+        (b, coord) => b.extend(coord),
+        new maplibregl.LngLatBounds(lineCoordinates[0], lineCoordinates[0])
+      );
+      map.fitBounds(bounds, { padding: 48, maxZoom: 16, duration: 0 });
+      followingRef.current = true;
+    };
+
+    const onReady = () => {
       try {
-        map.resize(); // guards against a 0-size container at construction time
-        const bounds = lineCoordinates.reduce(
-          (b, coord) => b.extend(coord),
-          new maplibregl.LngLatBounds(lineCoordinates[0], lineCoordinates[0])
-        );
-        map.fitBounds(bounds, { padding: 48, maxZoom: 16, duration: 0 });
-
-        if (!map.getSource("route-line")) {
-          map.addSource("route-line", {
-            type: "geojson",
-            data: {
-              type: "Feature",
-              properties: {},
-              geometry: { type: "LineString", coordinates: lineCoordinates },
-            },
-          });
-          // Segment tones are cosmetic labels only for V1 (no per-segment
-          // geometry exists yet) — draw a single neutral line rather than
-          // fabricating a segment-colored path the data doesn't support.
-          map.addLayer({
-            id: "route-line",
-            type: "line",
-            source: "route-line",
-            layout: { "line-join": "round", "line-cap": "round" },
-            paint: { "line-color": "#0e6e64", "line-width": 5, "line-opacity": 0.9 },
-          });
-
-          startMarkerRef.current = new maplibregl.Marker({ color: "#0e6e64" })
-            .setLngLat([geometry.start.lon, geometry.start.lat])
-            .addTo(map);
-          new maplibregl.Marker({ color: "#e8703a" })
-            .setLngLat([geometry.end.lon, geometry.end.lat])
-            .addTo(map);
-        }
+        if (!map.getSource("route-line")) drawRoute();
+        // Deferred one animation frame: raster tiles can finish loading fast
+        // enough that "load" fires before the container has completed its
+        // layout pass, so resize()/fitBounds would measure a stale size and
+        // land far more zoomed out than the route actually spans.
+        requestAnimationFrame(fitToRoute);
       } catch (err) {
-        // Surface failures in devtools instead of silently sitting on the
-        // default view with no indication anything went wrong.
         console.error("RouteMap: failed to render route", err);
       }
     };
 
-    // Deferred one animation frame: raster tiles can finish loading fast
-    // enough that "load" fires before the container has completed its
-    // layout pass, so map.resize()/fitBounds would measure a stale size —
-    // this showed up as the map landing far more zoomed-out than the route
-    // actually spans (its short real line effectively invisible at that
-    // zoom). isStyleLoaded() separately covers the case where the style
-    // finished loading before this listener was even attached (a real
-    // MapLibre race condition — "load" only fires once).
-    const deferredFitToRoute = () => requestAnimationFrame(fitToRoute);
+    // isStyleLoaded() covers the case where the style finished loading
+    // before this listener was attached (a real MapLibre race condition —
+    // "load" only fires once, and is missed entirely if registered late).
     if (map.isStyleLoaded()) {
-      deferredFitToRoute();
+      onReady();
     } else {
-      map.on("load", deferredFitToRoute);
+      map.on("load", onReady);
     }
 
     return () => {
       map.remove();
       mapRef.current = null;
-      startMarkerRef.current = null;
       liveMarkerRef.current = null;
     };
     // geometry/segments intentionally re-mount the map on change rather than
     // diffing sources in place — route details are read once per navigation.
   }, [geometry, segments]);
 
-  // Live position updates: a separate, lighter effect that only moves an
-  // existing marker and (optionally) recenters the camera — never touches
-  // the map/route setup above.
+  // Live position updates: a separate, lighter effect that only moves the
+  // live marker and (optionally) keeps both the live position and the
+  // destination in view — never touches the map/route setup above.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || liveLocation.status !== "tracking") return;
 
     const { lat, lon } = liveLocation;
-
-    // Replaces the static start marker the first time a fix arrives, per
-    // the confirmed decision — avoids two overlapping markers at the
-    // common case where the user starts at the route origin.
-    if (startMarkerRef.current) {
-      startMarkerRef.current.remove();
-      startMarkerRef.current = null;
-    }
 
     if (!liveMarkerRef.current) {
       const el = document.createElement("div");
@@ -226,7 +209,15 @@ export function RouteMap({
     }
 
     if (followingRef.current) {
-      map.easeTo({ center: [lon, lat], duration: 500 });
+      // Keeps both the live position and the destination in frame while
+      // following, rather than zooming in tight on only the live dot —
+      // otherwise the route/destination can end up outside the visible
+      // area entirely as soon as tracking starts.
+      const bounds = new maplibregl.LngLatBounds([lon, lat], [lon, lat]).extend([
+        geometry.end.lon,
+        geometry.end.lat,
+      ]);
+      map.fitBounds(bounds, { padding: 64, maxZoom: 17, duration: 500 });
     }
 
     const remainingM = remainingMetres({ lat, lon }, geometry);
@@ -236,22 +227,56 @@ export function RouteMap({
     });
   }, [liveLocation, geometry, setProgress]);
 
+  // Custom fullscreen toggle (CSS-based, not the native Fullscreen API) —
+  // the Fullscreen API is unreliable on iOS Safari, so this instead expands
+  // the map to a fixed full-viewport overlay within the app's own UI, which
+  // works consistently on both desktop and mobile.
+  useEffect(() => {
+    mapRef.current?.resize();
+  }, [isFullscreen]);
+
   const handleRecenter = () => {
     followingRef.current = true;
     recenterControlRef.current?.classList.add("hidden");
     if (mapRef.current && liveLocation.status === "tracking") {
-      mapRef.current.easeTo({ center: [liveLocation.lon, liveLocation.lat], duration: 500 });
+      const bounds = new maplibregl.LngLatBounds(
+        [liveLocation.lon, liveLocation.lat],
+        [liveLocation.lon, liveLocation.lat]
+      ).extend([geometry.end.lon, geometry.end.lat]);
+      mapRef.current.fitBounds(bounds, { padding: 64, maxZoom: 17, duration: 500 });
     }
   };
 
   return (
-    <div className="relative h-full w-full">
+    <div
+      className={
+        isFullscreen
+          ? "fixed inset-0 z-50 bg-surface"
+          : "relative h-full w-full"
+      }
+    >
       <div ref={containerRef} className="h-full w-full" />
+      <button
+        type="button"
+        onClick={() => setIsFullscreen((v) => !v)}
+        aria-label={isFullscreen ? "Exit fullscreen map" : "Expand map to fullscreen"}
+        className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-surface shadow-md"
+      >
+        {isFullscreen ? (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M8 21v-3a2 2 0 0 0-2-2H3M16 21v-3a2 2 0 0 1 2-2h3" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" />
+          </svg>
+        )}
+      </button>
       <button
         ref={recenterControlRef}
         type="button"
         onClick={handleRecenter}
-        className="absolute right-3 bottom-3 hidden rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-text shadow-md"
+        className="absolute bottom-3 left-3 hidden rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-text shadow-md"
       >
         Recenter
       </button>
