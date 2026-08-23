@@ -233,6 +233,14 @@ def _fetch_weather_uncached(target_hour: datetime) -> dict[str, float] | None:
     return None
 
 
+def current_temperature_c(target_hour: datetime) -> float | None:
+    """Public wrapper around _fetch_weather for callers (e.g.
+    route-planner.py's heat-adaptive shade bias) that just need the real
+    current temperature, not a full crowd feature vector."""
+    weather = _fetch_weather(target_hour)
+    return weather["temperature_c"] if weather else None
+
+
 def build_crowd_features(
     sensor_id: str, target_hour: datetime
 ) -> tuple[dict[str, float | int | str | bool | None], str, list[str]]:

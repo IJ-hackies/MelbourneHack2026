@@ -11,7 +11,15 @@ Response:  { "routes": [
                  "pedestrian_flow_avg_per_hour": number | null,
                  "tags": [string, ...],
                  "quality": {"status": "ok"|"unavailable", "warnings": [...]} },
-               ... ] }
+               ... ],
+             "heat_context": { "temperature_c": number|null, "advisory": bool,
+                                "extreme": bool, "shade_bias_multiplier": number } | null }
+
+heat_context is the real current temperature at the Melbourne CBD point
+(same source as /api/weather) and how much harder "shaded" routing is
+biasing toward canopy right now — the app's actual heat-adaptation
+behaviour, not just a UI label. null only when the load itself failed
+before any weather lookup happened.
 
 Never fabricates a path, a canopy score, or a crowd figure: any point that
 can't be computed from real data is null with a warning, and a candidate
@@ -65,6 +73,16 @@ CROWD_QUERY_PADDING_M = 500.0
 CROWD_INFLUENCE_RADIUS_M = 180.0
 CROWD_PENALTY_WEIGHT = 0.6
 MAX_CROWD_SENSORS_CONSIDERED = 12
+
+# Heat-adaptive shade routing: on a hot day, "shaded" should mean it more
+# strongly, not use the same fixed bias as a mild afternoon — this is the
+# app's actual climate-adaptation behaviour (routing you to cope with heat
+# that's already happening), not just marketing copy. Thresholds follow the
+# same bands as the plan page's "Feels hot" condition label
+# (condition-provider.ts's feelsLabel) so the advisory and the routing
+# behaviour agree with each other.
+HEAT_ADVISORY_TEMP_C = 28.0
+HEAT_EXTREME_TEMP_C = 33.0
 
 
 def _ensure_loaded() -> str | None:
@@ -262,6 +280,22 @@ def _meaningfully_different(candidate: dict, accepted: list[dict], metric_key: s
     return True
 
 
+def _heat_context() -> dict:
+    """Real current temperature (Melbourne CBD point, same source as
+    /api/weather) and the shade-bias multiplier it implies. Never fabricates
+    a temperature — advisory/extreme are simply False when the live weather
+    feed is unavailable, and shade routing falls back to the flat baseline
+    bias rather than guessing."""
+    temp_c = feature_lookup.current_temperature_c(datetime.now(tz=UTC))
+    if temp_c is None:
+        return {"temperature_c": None, "advisory": False, "extreme": False, "shade_bias_multiplier": 1.0}
+    if temp_c >= HEAT_EXTREME_TEMP_C:
+        return {"temperature_c": temp_c, "advisory": True, "extreme": True, "shade_bias_multiplier": 2.2}
+    if temp_c >= HEAT_ADVISORY_TEMP_C:
+        return {"temperature_c": temp_c, "advisory": True, "extreme": False, "shade_bias_multiplier": 1.6}
+    return {"temperature_c": temp_c, "advisory": False, "extreme": False, "shade_bias_multiplier": 1.0}
+
+
 def plan_route(origin: dict, destination: dict) -> dict:
     load_error = _ensure_loaded()
     if load_error:
@@ -275,7 +309,7 @@ def plan_route(origin: dict, destination: dict) -> dict:
             "tags": [],
             "quality": {"status": "unavailable", "warnings": [load_error]},
         }
-        return {"routes": [unavailable]}
+        return {"routes": [unavailable], "heat_context": None}
 
     graph = graph_loader.load_graph()
     node_coords = graph["node_coords"]
@@ -300,7 +334,7 @@ def plan_route(origin: dict, destination: dict) -> dict:
             "tags": [],
             "quality": {"status": "unavailable", "warnings": warnings},
         }
-        return {"routes": [unavailable]}
+        return {"routes": [unavailable], "heat_context": None}
 
     snap_warnings = []
     if start_snap_m and start_snap_m > 50:
@@ -308,11 +342,14 @@ def plan_route(origin: dict, destination: dict) -> dict:
     if end_snap_m and end_snap_m > 50:
         snap_warnings.append(f"destination_snap_distance_m_{round(end_snap_m)}")
 
+    heat_context = _heat_context()
+
     fastest = _build_candidate("fastest", node_coords, adjacency, start_id, end_id)
     candidates = [fastest]
 
     shaded = _build_candidate(
-        "shaded", node_coords, adjacency, start_id, end_id, shade_bias=router.SHADE_BIAS
+        "shaded", node_coords, adjacency, start_id, end_id,
+        shade_bias=router.SHADE_BIAS * heat_context["shade_bias_multiplier"],
     )
     # Only surface "shaded" as a distinct option when it's a real, noticeably
     # different trade-off — a path that's technically different by a few
@@ -334,7 +371,7 @@ def plan_route(origin: dict, destination: dict) -> dict:
         c["quality"]["warnings"] = [*c["quality"]["warnings"], *snap_warnings]
 
     _apply_tags(candidates)
-    return {"routes": candidates}
+    return {"routes": candidates, "heat_context": heat_context}
 
 
 class handler(BaseHTTPRequestHandler):

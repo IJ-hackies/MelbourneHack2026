@@ -1,8 +1,10 @@
-import { callRoutePlanner } from "@/lib/routing/route-client";
+import { callRoutePlanner, type HeatContext } from "@/lib/routing/route-client";
 import type { Coordinates, RouteOption, RouteQueryInput } from "./types";
 
+export type RouteListResult = { routes: RouteOption[]; heatContext: HeatContext | null };
+
 export interface RouteProvider {
-  listRoutes(input: RouteQueryInput): Promise<RouteOption[]>;
+  listRoutes(input: RouteQueryInput): Promise<RouteListResult>;
   getRoute(id: string, input: RouteQueryInput): Promise<RouteOption | null>;
 }
 
@@ -39,56 +41,64 @@ const TAG_LABELS: Record<string, { label: string; tone: "default" | "warm" }> = 
 };
 
 class RealRouteProvider implements RouteProvider {
-  async listRoutes(input: RouteQueryInput): Promise<RouteOption[]> {
+  async listRoutes(input: RouteQueryInput): Promise<RouteListResult> {
     const origin = input.origin ?? DEFAULT_ORIGIN;
     const destination: Coordinates = { lat: input.destination.lat, lon: input.destination.lon };
 
     const planned = await callRoutePlanner(origin, destination);
-    const ok = planned.filter((r) => r.qualityStatus === "ok" && r.path && r.distanceKm !== null);
+    const ok = planned.routes.filter((r) => r.qualityStatus === "ok" && r.path && r.distanceKm !== null);
 
     if (ok.length > 0) {
-      return ok.map((route, i) => ({
-        id: route.id,
-        minutes: route.minutes ?? Math.round((route.distanceKm! * 1000) / 80),
-        distanceKm: route.distanceKm!,
-        recommended: i === 0,
-        description:
-          route.id === "shaded"
-            ? "Real walking route, weighted toward higher tree-canopy-density streets."
-            : "Real walking route along the City of Melbourne pedestrian network.",
-        tags: route.tags.map((t) => TAG_LABELS[t]).filter(Boolean),
-        geometry: { start: origin, end: destination, path: route.path! },
-        segments: [],
-        quality: "ok",
-        canopyDensityAvg: route.canopyDensityAvg,
-        pedestrianFlowAvgPerHour: route.pedestrianFlowAvgPerHour,
-      }));
+      return {
+        heatContext: planned.heatContext,
+        routes: ok.map((route, i) => ({
+          id: route.id,
+          minutes: route.minutes ?? Math.round((route.distanceKm! * 1000) / 80),
+          distanceKm: route.distanceKm!,
+          recommended: i === 0,
+          description:
+            route.id === "shaded"
+              ? "Real walking route, weighted toward higher tree-canopy-density streets."
+              : route.id === "quieter"
+                ? "Real walking route, weighted away from currently busy streets."
+                : "Real walking route along the City of Melbourne pedestrian network.",
+          tags: route.tags.map((t) => TAG_LABELS[t]).filter(Boolean),
+          geometry: { start: origin, end: destination, path: route.path! },
+          segments: [],
+          quality: "ok",
+          canopyDensityAvg: route.canopyDensityAvg,
+          pedestrianFlowAvgPerHour: route.pedestrianFlowAvgPerHour,
+        })),
+      };
     }
 
     // Routing unavailable (outside graph coverage, or the function failed) —
     // fall back to a straight-line estimate, but say so honestly rather than
     // presenting it identically to a real route.
     const straightLineKm = haversineKm(origin, destination);
-    return [
-      {
-        id: "fastest",
-        minutes: Math.round((straightLineKm * 1000) / FALLBACK_WALKING_SPEED_M_PER_MIN),
-        distanceKm: Math.round(straightLineKm * 1000) / 1000,
-        recommended: true,
-        description:
-          "Estimated straight-line distance — real street routing is unavailable for this destination.",
-        tags: [{ label: "Estimated", tone: "warm" }],
-        geometry: { start: origin, end: destination },
-        segments: [],
-        quality: "unavailable",
-        canopyDensityAvg: null,
-        pedestrianFlowAvgPerHour: null,
-      },
-    ];
+    return {
+      heatContext: planned.heatContext,
+      routes: [
+        {
+          id: "fastest",
+          minutes: Math.round((straightLineKm * 1000) / FALLBACK_WALKING_SPEED_M_PER_MIN),
+          distanceKm: Math.round(straightLineKm * 1000) / 1000,
+          recommended: true,
+          description:
+            "Estimated straight-line distance — real street routing is unavailable for this destination.",
+          tags: [{ label: "Estimated", tone: "warm" }],
+          geometry: { start: origin, end: destination },
+          segments: [],
+          quality: "unavailable",
+          canopyDensityAvg: null,
+          pedestrianFlowAvgPerHour: null,
+        },
+      ],
+    };
   }
 
   async getRoute(id: string, input: RouteQueryInput): Promise<RouteOption | null> {
-    const routes = await this.listRoutes(input);
+    const { routes } = await this.listRoutes(input);
     return routes.find((r) => r.id === id) ?? null;
   }
 }

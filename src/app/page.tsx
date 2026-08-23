@@ -23,7 +23,13 @@ export default async function Home({
   const host = (await headers()).get("host");
 
   if (host && APEX_HOSTS.includes(host)) {
-    return <MarketingPage appOrigin={getAppOrigin(host)} />;
+    const supabase = await createClient();
+    const { data } = await supabase.rpc("community_impact").maybeSingle();
+    const impactRow = data as { total_walks: number; total_emissions_kg: number } | null;
+    const communityImpact = impactRow
+      ? { totalWalks: Number(impactRow.total_walks), totalEmissionsKg: Number(impactRow.total_emissions_kg) }
+      : null;
+    return <MarketingPage appOrigin={getAppOrigin(host)} communityImpact={communityImpact} />;
   }
 
   const supabase = await createClient();
@@ -84,7 +90,7 @@ async function PlanScreen({
     }
   }
 
-  const [conditions, routes, savedPlaces, recentSearches] =
+  const [conditions, routeResult, savedPlaces, recentSearches] =
     destination && hasCoordinates
       ? await Promise.all([
           conditionProvider.getConditions({
@@ -102,10 +108,11 @@ async function PlanScreen({
         ])
       : await Promise.all([
           Promise.resolve([]),
-          Promise.resolve([]),
+          Promise.resolve({ routes: [], heatContext: null }),
           listSavedPlaces(),
           listRecentSearches(),
         ]);
+  const { routes, heatContext } = routeResult;
   const top = routes.find((r) => r.recommended) ?? routes[0];
   const routeHref = (id: string) =>
     `/route/${id}?to=${encodeURIComponent(destination ?? "")}&lat=${resolvedLat}&lon=${resolvedLon}`;
@@ -185,6 +192,17 @@ async function PlanScreen({
           </div>
         ) : (
           <>
+            {heatContext?.advisory && (
+              <div className="flex items-start gap-2.5 rounded-2xl border border-heat/30 bg-heat-soft px-4 py-3">
+                <ConditionIcon tone="heat" className="mt-0.5 h-4 w-4 shrink-0" />
+                <p className="text-[0.84rem] text-text">
+                  {heatContext.extreme ? "Extreme heat" : "Heat advisory"} —{" "}
+                  {Math.round(heatContext.temperatureC!)}°C right now, so shaded routing is
+                  prioritising tree canopy more heavily than usual.
+                </p>
+              </div>
+            )}
+
             <div>
               <h2 className="font-display text-lg font-semibold tracking-tight text-text lg:text-xl">
                 {routes.length === 1 ? `Your route to ${destination}` : `${routes.length} ways to ${destination}`}

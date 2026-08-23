@@ -12,7 +12,14 @@ type RouteCandidateResponse = {
   quality: { status: QualityStatus; warnings: string[] };
 };
 
-type RoutePlannerResponse = { routes: RouteCandidateResponse[] };
+type HeatContextResponse = {
+  temperature_c: number | null;
+  advisory: boolean;
+  extreme: boolean;
+  shade_bias_multiplier: number;
+} | null;
+
+type RoutePlannerResponse = { routes: RouteCandidateResponse[]; heat_context: HeatContextResponse };
 
 export type PlannedRoute = {
   id: string;
@@ -26,19 +33,34 @@ export type PlannedRoute = {
   warnings: string[];
 };
 
-const UNAVAILABLE: PlannedRoute[] = [
-  {
-    id: "fastest",
-    path: null,
-    distanceKm: null,
-    minutes: null,
-    canopyDensityAvg: null,
-    pedestrianFlowAvgPerHour: null,
-    tags: [],
-    qualityStatus: "unavailable",
-    warnings: ["route_planner_unreachable"],
-  },
-];
+// Real current temperature driving how hard "shaded" routing biases toward
+// canopy right now — the app's actual climate-adaptation behaviour (see
+// api/route-planner.py's _heat_context), surfaced so the UI can explain why
+// rather than silently changing route geometry.
+export type HeatContext = {
+  temperatureC: number | null;
+  advisory: boolean;
+  extreme: boolean;
+};
+
+export type PlannedRoutes = { routes: PlannedRoute[]; heatContext: HeatContext | null };
+
+const UNAVAILABLE: PlannedRoutes = {
+  routes: [
+    {
+      id: "fastest",
+      path: null,
+      distanceKm: null,
+      minutes: null,
+      canopyDensityAvg: null,
+      pedestrianFlowAvgPerHour: null,
+      tags: [],
+      qualityStatus: "unavailable",
+      warnings: ["route_planner_unreachable"],
+    },
+  ],
+  heatContext: null,
+};
 
 // Server Components/Route Handlers only: Node's fetch needs an absolute
 // URL, and next/headers (inside getBaseUrl) is only callable server-side.
@@ -48,7 +70,7 @@ const UNAVAILABLE: PlannedRoute[] = [
 export async function callRoutePlanner(
   origin: Coordinates,
   destination: Coordinates
-): Promise<PlannedRoute[]> {
+): Promise<PlannedRoutes> {
   try {
     const res = await fetch(new URL("/api/route-planner", await getBaseUrl()), {
       method: "POST",
@@ -58,17 +80,26 @@ export async function callRoutePlanner(
     });
     const data: RoutePlannerResponse = await res.json();
     if (!data.routes?.length) return UNAVAILABLE;
-    return data.routes.map((r) => ({
-      id: r.id,
-      path: r.path,
-      distanceKm: r.distance_km,
-      minutes: r.minutes,
-      canopyDensityAvg: r.canopy_density_avg,
-      pedestrianFlowAvgPerHour: r.pedestrian_flow_avg_per_hour,
-      tags: r.tags,
-      qualityStatus: r.quality.status,
-      warnings: r.quality.warnings,
-    }));
+    return {
+      routes: data.routes.map((r) => ({
+        id: r.id,
+        path: r.path,
+        distanceKm: r.distance_km,
+        minutes: r.minutes,
+        canopyDensityAvg: r.canopy_density_avg,
+        pedestrianFlowAvgPerHour: r.pedestrian_flow_avg_per_hour,
+        tags: r.tags,
+        qualityStatus: r.quality.status,
+        warnings: r.quality.warnings,
+      })),
+      heatContext: data.heat_context
+        ? {
+            temperatureC: data.heat_context.temperature_c,
+            advisory: data.heat_context.advisory,
+            extreme: data.heat_context.extreme,
+          }
+        : null,
+    };
   } catch {
     return UNAVAILABLE;
   }
