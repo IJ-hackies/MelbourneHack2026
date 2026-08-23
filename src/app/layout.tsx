@@ -29,9 +29,14 @@ const robotoMono = Roboto_Mono({
   display: "swap",
 });
 
+// `?? ""` alone isn't enough here — an env var set to the empty string
+// (a common placeholder default in CI/deploy configs) is not null/undefined,
+// so `??` alone would pass it straight through to `new URL()` and crash the
+// entire production build. Falsy-check each candidate instead.
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
+  "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
