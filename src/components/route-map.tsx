@@ -112,6 +112,9 @@ export function RouteMap({
     });
     mapRef.current = map;
     followingRef.current = false; // enabled once the initial route view has been shown
+    // Temporary debug hook for live production diagnosis — remove once the
+    // route-line rendering bug is confirmed fixed.
+    if (typeof window !== "undefined") (window as unknown as { __debugMap?: unknown }).__debugMap = map;
 
     map.on("error", (e) => console.error("RouteMap: MapLibre error", e.error ?? e));
 
