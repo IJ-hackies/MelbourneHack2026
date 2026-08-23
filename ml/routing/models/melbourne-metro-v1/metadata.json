@@ -1,0 +1,26 @@
+{
+  "schema_version": 2,
+  "release": "melbourne-metro-v1",
+  "graph_file": "graph.json",
+  "graph_bytes": 26248679,
+  "graph_sha256": "21496c32d84898e507e416832193c62a982e383976c25f16349f3d09c7d06808",
+  "edge_shade_field": "canopy_density",
+  "shade_grid_file": "shade_grid.json",
+  "shade_grid_bytes": 3517343,
+  "shade_grid_sha256": "3bc73f25fd7327aa12b7627865e57db1b0a58addd509770285e18573d249d5c8",
+  "shade_source_dataset_id": "com_tree_canopy_2021",
+  "node_count": 197534,
+  "edge_count": 300318,
+  "bbox": [
+    144.7792522,
+    -37.9560103,
+    145.1501575,
+    -37.6647483
+  ],
+  "source_dataset_id": "com_pedestrian_network+osm_inner_metro_overpass",
+  "source_license": "CC BY 4.0 (City of Melbourne) + ODbL 1.0 (OpenStreetMap)",
+  "source_license_url": "https://creativecommons.org/licenses/by/4.0/ ; https://www.openstreetmap.org/copyright",
+  "source_attribution": "City of Melbourne \u2014 Pedestrian Network; (c) OpenStreetMap contributors",
+  "coverage_note": "Inner + middle-ring Melbourne (~15km radius from the CBD): City of Melbourne's own pedestrian network data stays authoritative inside that municipality (see the predecessor melbourne-inner-v1 release), merged with an OpenStreetMap extract (fetch_osm_extract.py, ODbL) covering the surrounding councils (Port Phillip, Yarra, Stonnington, inner Boroondara, Moreland/Merri-bek, Maribyrnong, inner Moonee Valley, inner Glen Eira). Still not full Greater Melbourne \u2014 outer suburbs remain outside this bbox and fall back to the straight-line estimate. Tree-canopy shade data (shade_source_dataset_id) is still City-of-Melbourne-only \u2014 the extended area routes on real streets but scores 0.0 canopy_density (not null) on every edge outside the original municipality; a wider Vicmap re-clip is a real, flagged follow-up, not implemented in this release.",
+  "built_at_utc": "2026-08-23T15:30:30.209495+00:00"
+}

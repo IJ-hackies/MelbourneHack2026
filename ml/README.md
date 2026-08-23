@@ -113,9 +113,11 @@ overrides the catalog rectangle for paginated ArcGIS layers.
   The 0.1 m City surface model is about 12.98 GB and is deliberately not part of
   the automatic install.
 
-The City pedestrian graph is municipal, not metropolitan. Use the OSM Victoria
-extract (ODbL) for broader coverage. Building and tree shade are geometry/solar
-calculations; they should not be forced into the forecasting model.
+The promoted pedestrian graph (`melbourne-metro-v1`, see `ml/routing/README.md`)
+now merges City of Melbourne's own data with an OSM extract
+(`osm_inner_metro_overpass`) for inner+middle-ring coverage — still not full
+Greater Melbourne. Building and tree shade are geometry/solar calculations;
+they should not be forced into the forecasting model.
 
 ## Licence cautions
 

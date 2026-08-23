@@ -149,8 +149,13 @@
   diagnostic leakage, especially for Transport Activity. Do not claim its
   metrics as leakage-safe or production performance; publish a corrected retrain
   under a new release version.
-- The City pedestrian network is municipal and dated; Greater Melbourne needs
-  the catalogued OSM/Vicmap supplements and explicit topology validation.
+- The promoted routing graph (`melbourne-metro-v1`) now merges the City
+  pedestrian network with an OSM extract for inner+middle-ring coverage — see
+  `ml/routing/README.md`. Still not full Greater Melbourne; canopy/shade data
+  is still City-of-Melbourne-only (0.0, not null, outside it). Merging two
+  independently-digitized sources needed real proximity-based node snapping,
+  not just exact-coordinate matching — exact-match-only merge produced two
+  fully disconnected components.
 - The archived City hourly export overlaps the historical attachment and live
   slice, and overlapping revisions differ. The crowd builder applies strict
   date precedence; do not replace it with raw concatenation.

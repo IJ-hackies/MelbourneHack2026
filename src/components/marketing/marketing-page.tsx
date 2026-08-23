@@ -349,6 +349,18 @@ export function MarketingPage({
             © {new Date().getFullYear()} LeafRoute · Melbourne, Australia
           </p>
         </div>
+        <p className="mx-auto mt-4 max-w-5xl text-[0.7rem] text-text-tertiary">
+          Routing and tree-canopy data © City of Melbourne (CC BY 4.0) and{" "}
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            className="underline hover:no-underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            OpenStreetMap contributors
+          </a>{" "}
+          (ODbL).
+        </p>
       </footer>
     </div>
   );

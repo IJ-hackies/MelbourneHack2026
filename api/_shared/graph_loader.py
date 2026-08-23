@@ -13,7 +13,15 @@ from pathlib import Path
 from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-METADATA_PATH = "ml/routing/models/melbourne-inner-v1/metadata.json"
+METADATA_PATH = "ml/routing/models/melbourne-metro-v1/metadata.json"
+# Derived, not hardcoded a second time — graph_file/shade_grid_file live
+# alongside metadata.json in the same promoted-release directory. A past
+# version of this file hardcoded "melbourne-inner-v1" again in load_graph()/
+# load_shade_grid(), so switching METADATA_PATH to a new release silently
+# kept loading the OLD release's graph/shade-grid files against the NEW
+# release's metadata (byte-count/checksum mismatch caught it, but only at
+# runtime, not at review time).
+MODEL_DIR = (PROJECT_ROOT / METADATA_PATH).parent
 
 _graph_cache: dict[str, Any] | None = None
 _metadata_cache: dict[str, Any] | None = None
@@ -48,7 +56,7 @@ def load_graph() -> dict[str, Any]:
         return _graph_cache
 
     metadata = load_metadata()
-    graph_path = PROJECT_ROOT / "ml" / "routing" / "models" / "melbourne-inner-v1" / metadata["graph_file"]
+    graph_path = MODEL_DIR / metadata["graph_file"]
 
     actual_bytes = graph_path.stat().st_size
     if actual_bytes != metadata["graph_bytes"]:
@@ -81,7 +89,7 @@ def load_shade_grid() -> dict[str, Any] | None:
     if "shade_grid_file" not in metadata:
         return None
 
-    grid_path = PROJECT_ROOT / "ml" / "routing" / "models" / "melbourne-inner-v1" / metadata["shade_grid_file"]
+    grid_path = MODEL_DIR / metadata["shade_grid_file"]
 
     actual_bytes = grid_path.stat().st_size
     if actual_bytes != metadata["shade_grid_bytes"]:

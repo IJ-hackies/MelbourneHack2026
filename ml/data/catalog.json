@@ -782,6 +782,19 @@
       "notes": "Needed for pedestrian coverage outside the City municipality; preserve OSM attribution and derived-database obligations."
     },
     {
+      "id": "osm_inner_metro_overpass",
+      "profile": "core",
+      "title": "OpenStreetMap inner+middle-ring Melbourne extract (Overpass API)",
+      "publisher": "OpenStreetMap contributors via Overpass API",
+      "signal": "routing",
+      "page_url": "https://overpass-api.de/",
+      "url": "https://overpass-api.de/api/interpreter",
+      "output": "osm_extract.json",
+      "license": "ODbL 1.0",
+      "license_url": "https://www.openstreetmap.org/copyright",
+      "notes": "A single ~15km-radius bbox query (ml/routing/scripts/fetch_osm_extract.py), not the full-state osm_victoria_pbf export -- used to build melbourne-metro-v1's extended pedestrian graph without a new heavy geospatial dependency to parse a PBF. Preserve OSM attribution and derived-database obligations; osm_victoria_pbf remains catalogued for a future full-metro pass."
+    },
+    {
       "id": "vic_tirtl_sites",
       "profile": "extended",
       "title": "TIRTL traffic count sites",

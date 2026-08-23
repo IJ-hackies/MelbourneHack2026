@@ -126,7 +126,13 @@ def main() -> None:
         "shade_grid_file": "shade_grid.json",
         "shade_grid_bytes": len(shade_grid_bytes),
         "shade_grid_sha256": shade_grid_sha256,
-        "shade_source_dataset_id": "com_tree_canopy_2021+vicmap_tree_urban_extended",
+        # Still City-of-Melbourne-only: the planned wider Vicmap re-clip
+        # (convert_vicmap_tree_points.py) hit an ArcGIS pagination limit
+        # partway through a ~15km-radius query and wasn't promoted with
+        # this release — canopy_density is 0.0 (not null) outside the
+        # original City boundary, meaning "no data" reads as "no canopy",
+        # not "unknown". A real, flagged follow-up, not a silent gap.
+        "shade_source_dataset_id": "com_tree_canopy_2021",
         "node_count": len(new_node_coords),
         "edge_count": sum(len(edges) for edges in new_adjacency) // 2,
         "bbox": bbox,
@@ -143,7 +149,12 @@ def main() -> None:
             "(Port Phillip, Yarra, Stonnington, inner Boroondara, "
             "Moreland/Merri-bek, Maribyrnong, inner Moonee Valley, inner Glen "
             "Eira). Still not full Greater Melbourne — outer suburbs remain "
-            "outside this bbox and fall back to the straight-line estimate."
+            "outside this bbox and fall back to the straight-line estimate. "
+            "Tree-canopy shade data (shade_source_dataset_id) is still "
+            "City-of-Melbourne-only — the extended area routes on real "
+            "streets but scores 0.0 canopy_density (not null) on every "
+            "edge outside the original municipality; a wider Vicmap re-clip "
+            "is a real, flagged follow-up, not implemented in this release."
         ),
         "built_at_utc": datetime.now(UTC).isoformat(),
     }
