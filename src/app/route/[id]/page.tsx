@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ActiveWalk } from "@/components/active-walk";
+import { ConditionIcon } from "@/components/condition-icon";
 import { RouteMap } from "@/components/route-map-lazy";
 import { ShareRouteButton } from "@/components/share-route-button";
 import { routeProvider } from "@/lib/providers/route-provider";
+import { getQuietestHourToday } from "@/lib/providers/quietest-hour";
 import { LiveProgressProvider } from "@/lib/live-progress-context";
 import { createClient } from "@/lib/supabase/server";
 
@@ -53,10 +55,13 @@ export default async function RouteDetail({
     Number.isFinite(resolvedOriginLat) && Number.isFinite(resolvedOriginLon)
       ? { lat: resolvedOriginLat, lon: resolvedOriginLon }
       : undefined;
-  const { routes } = await routeProvider.listRoutes({
-    destination: { label: destination, lat: resolvedLat, lon: resolvedLon },
-    origin,
-  });
+  const [{ routes }, quietestHour] = await Promise.all([
+    routeProvider.listRoutes({
+      destination: { label: destination, lat: resolvedLat, lon: resolvedLon },
+      origin,
+    }),
+    getQuietestHourToday({ lat: resolvedLat, lon: resolvedLon }),
+  ]);
   const route = routes.find((r) => r.id === id);
   if (!route) notFound();
   const otherRoutes = routes.filter((r) => r.id !== id);
@@ -164,6 +169,17 @@ export default async function RouteDetail({
       </div>
 
       <div className="flex flex-col gap-6 lg:sticky lg:top-24">
+        {quietestHour && (
+          <div className="flex items-start gap-2.5 rounded-2xl border border-border bg-surface px-4 py-3">
+            <ConditionIcon tone="crowd" className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="text-[0.84rem] text-text">
+              Foot traffic near {destination} looks quietest around{" "}
+              <span className="font-semibold">{quietestHour.label}</span> today, if you&apos;d
+              rather wait.
+            </p>
+          </div>
+        )}
+
         <ActiveWalk
           routeId={route.id}
           destination={destination}

@@ -105,12 +105,17 @@ class LiveConditionProvider implements ConditionProvider {
     }
 
     const rate = Math.round(signal.pedestrianFlowPerHour);
-    const detail = `${rate} people/hr nearby`;
 
     if (signal.typicalFlowPerHour === null || signal.typicalFlowPerHour <= 0) {
       return { label: "Crowds nearby", value: `${rate}/hr`, tone: "crowd" };
     }
 
+    // typicalFlowPerHour is a flat rolling 7-day average across every hour
+    // (see feature_lookup.py's flow_rolling_past_168h_mean — every hour of
+    // the past week, not filtered to this same hour/weekday), so the detail
+    // line says exactly that rather than implying a day-specific baseline
+    // ("usual Wednesday afternoon") the underlying number doesn't support.
+    const detail = `${rate} people/hr nearby, vs. ${Math.round(signal.typicalFlowPerHour)}/hr average this week`;
     const ratio = signal.pedestrianFlowPerHour / signal.typicalFlowPerHour;
     const value = ratio >= 1.3 ? "Busier than usual" : ratio <= 0.7 ? "Quieter than usual" : "Typical crowds";
     return { label: "Crowds nearby", value, detail, tone: "crowd" };
