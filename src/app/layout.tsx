@@ -29,17 +29,36 @@ const robotoMono = Roboto_Mono({
   display: "swap",
 });
 
-// `?? ""` alone isn't enough here — an env var set to the empty string
-// (a common placeholder default in CI/deploy configs) is not null/undefined,
-// so `??` alone would pass it straight through to `new URL()` and crash the
-// entire production build. Falsy-check each candidate instead.
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
-  "http://localhost:3000";
+// Resolves a real deployment env var into a valid absolute URL for
+// metadataBase — defensively, since a misconfigured value here (empty
+// string, a bare domain with no scheme, stray whitespace) must never be
+// able to crash the entire production build over an OG-image nicety.
+function resolveSiteUrl(): URL {
+  const candidates = [
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+  ];
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+    if (!trimmed) continue;
+    // A bare domain (e.g. "leafroute.org", no scheme) is invalid as an
+    // absolute URL on its own — retry it with https:// prepended before
+    // giving up on the candidate entirely.
+    for (const attempt of [trimmed, `https://${trimmed}`]) {
+      try {
+        return new URL(attempt);
+      } catch {
+        // try the next attempt/candidate
+      }
+    }
+  }
+  return new URL("http://localhost:3000");
+}
+
+const siteUrl = resolveSiteUrl();
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: siteUrl,
   title: {
     default: "LeafRoute",
     template: "%s · LeafRoute",
