@@ -62,8 +62,9 @@ _sensor_locations_cache: tuple[datetime, list[dict]] | None = None
 _SENSOR_LOCATIONS_CACHE_TTL = timedelta(hours=1)
 
 
-def _http_get_json(url: str, timeout: float = 5.0) -> dict:
-    with urllib.request.urlopen(url, timeout=timeout) as resp:
+def _http_get_json(url: str, timeout: float = 8.0) -> dict:
+    req = urllib.request.Request(url, headers={"User-Agent": "LeafRoute/0.1 (hackathon project)"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read())
 
 
@@ -107,7 +108,8 @@ def resolve_nearest_crowd_sensor(
     unavailable, never guess a sensor_id."""
     try:
         sensors = _fetch_sensor_locations()
-    except Exception:
+    except Exception as exc:
+        print(f"resolve_nearest_crowd_sensor: sensor locations fetch failed: {exc!r}")
         return None, None, ["live_sensor_locations_feed_unreachable"]
 
     best_id: str | None = None
