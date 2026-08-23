@@ -7,14 +7,42 @@ import { useLiveLocation } from "@/lib/use-live-location";
 import { useLiveProgress } from "@/lib/live-progress-context";
 import type { Coordinates, RouteGeometry, RouteOption } from "@/lib/providers/types";
 
-// MapTiler's "Streets" style (closest visual match to Google Maps) when a
-// free API key is configured; otherwise falls back to OpenFreeMap's
-// keyless "liberty" style so local dev works with zero setup.
+// Provider priority: Mapbox Streets (closest visual match to Google Maps,
+// mature/well-established account infra) > MapTiler Streets > OpenFreeMap's
+// keyless "liberty" style, so local dev and any account outage always have
+// something that renders.
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
-const MAP_STYLE_URL = MAPTILER_KEY
-  ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`
-  : "https://tiles.openfreemap.org/styles/liberty";
+const MAP_STYLE_URL = MAPBOX_TOKEN
+  ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12?access_token=${MAPBOX_TOKEN}`
+  : MAPTILER_KEY
+    ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`
+    : "https://tiles.openfreemap.org/styles/liberty";
 const WALKING_SPEED_M_PER_MIN = 80;
+
+// Mapbox's hosted styles reference their sources/sprite/glyphs via a
+// `mapbox://` scheme that MapLibre (unlike Mapbox GL JS) doesn't resolve on
+// its own — this is MapLibre's documented pattern for using Mapbox styles
+// without depending on Mapbox's own renderer (which would also pull
+// OpenFreeMap/MapTiler tiles under Mapbox's ToS, since that SDK is licensed
+// for Mapbox data only). See maplibre.org's Mapbox-migration docs.
+function transformMapboxRequest(url: string, resourceType?: string): { url: string } {
+  if (!MAPBOX_TOKEN || !url.startsWith("mapbox://")) return { url };
+
+  if (resourceType === "Source") {
+    const id = url.replace("mapbox://", "");
+    return { url: `https://api.mapbox.com/v4/${id}.json?secure&access_token=${MAPBOX_TOKEN}` };
+  }
+  if (resourceType === "SpriteImage" || resourceType === "SpriteJSON") {
+    const path = url.replace("mapbox://sprites/", "");
+    return { url: `https://api.mapbox.com/styles/v1/${path}?access_token=${MAPBOX_TOKEN}` };
+  }
+  if (resourceType === "Glyphs") {
+    const path = url.replace("mapbox://fonts/", "");
+    return { url: `https://api.mapbox.com/fonts/v1/${path}?access_token=${MAPBOX_TOKEN}` };
+  }
+  return { url };
+}
 
 function haversineM(a: Coordinates, b: Coordinates): number {
   const r = 6371000;
@@ -88,6 +116,7 @@ export function RouteMap({
       // to something sane).
       center: [geometry.start.lon, geometry.start.lat],
       zoom: 14,
+      transformRequest: transformMapboxRequest,
     });
     mapRef.current = map;
     followingRef.current = true;
