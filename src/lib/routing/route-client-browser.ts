@@ -1,4 +1,3 @@
-import { getBaseUrl } from "@/lib/base-url";
 import type { Coordinates, QualityStatus } from "@/lib/providers/types";
 
 type RoutePlannerResponse = {
@@ -24,17 +23,17 @@ const UNAVAILABLE: PlannedRoute = {
   warnings: ["route_planner_unreachable"],
 };
 
-// Server Components/Route Handlers only: Node's fetch needs an absolute
-// URL, and next/headers (inside getBaseUrl) is only callable server-side.
-// For Client Components, use route-client-browser.ts instead — it's kept
-// in a separate module so bundling it for the browser never pulls in
-// next/headers via this file.
-export async function callRoutePlanner(
+// Client Components (e.g. RouteMap re-routing from live location): the
+// browser resolves a relative URL against the current origin on its own,
+// so this doesn't need getBaseUrl()/next-headers at all — kept in its own
+// module so bundling it for the browser never pulls in next/headers via
+// route-client.ts's server-only sibling function.
+export async function callRoutePlannerFromBrowser(
   origin: Coordinates,
   destination: Coordinates
 ): Promise<PlannedRoute> {
   try {
-    const res = await fetch(new URL("/api/route-planner", await getBaseUrl()), {
+    const res = await fetch("/api/route-planner", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ origin, destination }),

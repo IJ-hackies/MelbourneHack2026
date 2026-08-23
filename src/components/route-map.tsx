@@ -5,6 +5,7 @@ import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useLiveLocation } from "@/lib/use-live-location";
 import { useLiveProgress } from "@/lib/live-progress-context";
+import { callRoutePlannerFromBrowser } from "@/lib/routing/route-client-browser";
 import type { Coordinates, RouteGeometry, RouteOption } from "@/lib/providers/types";
 
 // Three vector-tile providers (Mapbox, MapTiler, OpenFreeMap) each hit
@@ -15,20 +16,20 @@ import type { Coordinates, RouteGeometry, RouteOption } from "@/lib/providers/ty
 // compositing, sprite/glyph/style-spec resolution) for any one of those to
 // silently break. Plain raster PNG tiles sidestep all of that — just
 // <img>-style GET requests, the same technology most "just works" web maps
-// have used for 15+ years. CARTO's free, keyless "Voyager" basemap (built
-// on OSM data) is used instead of the default OSM Mapnik style — flatter,
-// less visually busy, closer to the Google-Maps-style look originally asked
-// for than Mapnik's more literal/"realistic" rendering.
+// have used for 15+ years. CARTO's free, keyless "Positron" basemap (built
+// on OSM data) is used instead of the more tan/cream "Voyager" style — its
+// whiter, lighter palette is the closest free keyless match to Google
+// Maps' look.
 const RASTER_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
     basemap: {
       type: "raster",
       tiles: [
-        "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        "https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+        "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+        "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+        "https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
       ],
       tileSize: 256,
       attribution: "© OpenStreetMap contributors © CARTO",
@@ -37,6 +38,9 @@ const RASTER_STYLE: maplibregl.StyleSpecification = {
   layers: [{ id: "basemap-tiles", type: "raster", source: "basemap", minzoom: 0, maxzoom: 20 }],
 };
 const WALKING_SPEED_M_PER_MIN = 80;
+// Below this, a fresh GPS fix isn't worth re-routing for — avoids hitting
+// the routing API on every few-metre GPS jitter while stationary.
+const REROUTE_THRESHOLD_M = 30;
 
 // MapLibre resolves its internal Web Worker (used to process every GeoJSON
 // source — the route line included) relative to its own `import.meta.url`.
@@ -102,6 +106,14 @@ export function RouteMap({
   const followingRef = useRef(true);
   const recenterControlRef = useRef<HTMLButtonElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // The path actually used for remaining-distance/ETA math and the drawn
+  // line — starts as the server-computed static route, then gets replaced
+  // by a real re-routed path from the user's live position as they walk,
+  // the same way Google Maps keeps the route line anchored to where you
+  // actually are rather than the original starting point.
+  const currentPathRef = useRef<Coordinates[] | null>(null);
+  const lastRoutedFromRef = useRef<Coordinates | null>(null);
+  const reroutingRef = useRef(false);
 
   const liveLocation = useLiveLocation(true);
   const { setProgress } = useLiveProgress();
@@ -116,6 +128,8 @@ export function RouteMap({
 
     const waypoints = geometry.path?.length ? geometry.path : [geometry.start, geometry.end];
     const lineCoordinates = waypoints.map((c) => [c.lon, c.lat] as [number, number]);
+    currentPathRef.current = geometry.path?.length ? geometry.path : null;
+    lastRoutedFromRef.current = null;
 
     const map = new maplibregl.Map({
       container: containerRef.current,
@@ -207,13 +221,15 @@ export function RouteMap({
   }, [geometry, segments]);
 
   // Live position updates: a separate, lighter effect that only moves the
-  // live marker and (optionally) keeps both the live position and the
-  // destination in view — never touches the map/route setup above.
+  // live marker, keeps both the live position and destination in view, and
+  // (throttled) fetches a fresh real route from wherever the user actually
+  // is — never touches the map/route setup above.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || liveLocation.status !== "tracking") return;
 
     const { lat, lon } = liveLocation;
+    const here: Coordinates = { lat, lon };
 
     if (!liveMarkerRef.current) {
       const el = document.createElement("div");
@@ -235,11 +251,39 @@ export function RouteMap({
       map.fitBounds(bounds, { padding: 64, maxZoom: 17, duration: 500 });
     }
 
-    const remainingM = remainingMetres({ lat, lon }, geometry);
+    const effectivePath = currentPathRef.current ?? geometry.path ?? null;
+    const remainingM = effectivePath
+      ? remainingMetres(here, { ...geometry, path: effectivePath })
+      : haversineM(here, geometry.end);
     setProgress({
       distanceRemainingKm: Math.round((remainingM / 1000) * 100) / 100,
       etaMinutes: Math.round(remainingM / WALKING_SPEED_M_PER_MIN),
     });
+
+    const lastRoutedFrom = lastRoutedFromRef.current;
+    const movedEnoughToReroute =
+      !lastRoutedFrom || haversineM(here, lastRoutedFrom) >= REROUTE_THRESHOLD_M;
+    if (!movedEnoughToReroute || reroutingRef.current) return;
+
+    reroutingRef.current = true;
+    lastRoutedFromRef.current = here;
+    callRoutePlannerFromBrowser(here, geometry.end)
+      .then((planned) => {
+        if (planned.qualityStatus !== "ok" || !planned.path?.length) return;
+        currentPathRef.current = planned.path;
+        const source = map.getSource("route-line") as maplibregl.GeoJSONSource | undefined;
+        source?.setData({
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: planned.path.map((p) => [p.lon, p.lat]),
+          },
+        });
+      })
+      .finally(() => {
+        reroutingRef.current = false;
+      });
   }, [liveLocation, geometry, setProgress]);
 
   // Custom fullscreen toggle (CSS-based, not the native Fullscreen API) —
