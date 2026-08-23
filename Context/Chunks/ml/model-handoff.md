@@ -20,8 +20,9 @@ sources:
   - api/traffic-inference.py
   - api/_shared/model_loader.py
   - api/_shared/feature_lookup.py
+  - api/_shared/crowd_model.py
 links: [heatroute, ml/crowd-training, ml/crowd-modeling, ml/traffic-training, ml/traffic-modeling, ml/planned-forecasting, software/routing-boundary]
-verified: edcfab5
+verified: 7cdd997
 ---
 
 ## Implementation status (update)
@@ -30,24 +31,29 @@ Both contracts are now implemented as root-level Python Vercel Functions —
 `api/crowd-inference.py` and `api/traffic-inference.py` — sharing
 `api/_shared/model_loader.py` (checksum verification + cached booster
 loading) and `api/_shared/feature_lookup.py` (live request-time feature
-assembly, distinct from the offline `ml/` training pipeline). Crowd is wired
-into `conditionProvider` (`software/routing-boundary`) via `ml-client.ts`;
-traffic is implemented but not called from any provider yet.
+assembly, distinct from the offline `ml/` training pipeline). Crowd model
+load/predict was further extracted into `api/_shared/crowd_model.py` so
+`api/route-planner.py` can score candidate routes' real crowd levels without
+a self HTTP call — see `software/routing-boundary`. Crowd is wired into
+`conditionProvider` and route scoring; traffic is implemented but not called
+from any provider yet.
+
+`_fetch_weather`/`_fetch_sensor_locations`/`_fetch_sensor_history` in
+`feature_lookup.py` are cached (per-hour, 1h, 5min) — without this,
+`route-planner.py` sampling multiple points per candidate hit Open-Meteo/
+Opendatasoft once per sample with no reuse, a real ~47s→~10s latency bug.
 
 Crowd's feature lookup genuinely queries live data: the City's pedestrian-counts
 dataset exposes an Opendatasoft Explore v2.1 `/records` endpoint (filterable by
-`location_id`), not the bulk `/exports` the offline pipeline uses, plus
-Open-Meteo for target-hour temperature. The crowd endpoint also accepts
-`{lat, lon}` directly (a software-adapter extension beyond the strict v1
-contract) and resolves the nearest sensor itself via
-`feature_lookup.resolve_nearest_crowd_sensor` — a live query against the
-sensor-locations dataset (same pattern), not a committed snapshot, since
-relocations aren't an effective-dated history; a sensor farther than 0.5km
-adds a quality warning rather than being silently presented as the
-destination. Traffic's lookup always returns `quality.status: "unavailable"`
-— SCATS/Transport Activity are batch-archive-only (`ml/data/catalog.json`)
-with no live query endpoint; the checksum/load path is still exercised, but a
-real signal needs a scheduled ingestion job.
+`location_id`, paginated at its 100-row-per-request cap — an earlier `limit=200`
+silently 400'd and made crowd inference always fail), plus Open-Meteo for
+target-hour temperature. The crowd endpoint also accepts `{lat, lon}` directly
+and resolves the nearest sensor via `feature_lookup.resolve_nearest_crowd_sensor`
+— a live query, not a committed snapshot; a sensor farther than 0.5km adds a
+quality warning. Traffic's lookup always returns `quality.status:
+"unavailable"` — SCATS/Transport Activity are batch-archive-only
+(`ml/data/catalog.json`) with no live endpoint; a real signal needs a
+scheduled ingestion job.
 
 ## What is ready
 
@@ -64,9 +70,8 @@ time. (`ml/crowd/SOFTWARE_HANDOFF.md`, `ml/traffic/SOFTWARE_HANDOFF.md`)
 | traffic SCATS | vehicles/intersection/hour | 31.7 MiB | 59 | 300 |
 | traffic countline | vehicles/countline/hour | 4.3 MiB | 59 | 300 |
 
-These are boosted-tree ensembles, not neural networks; each model's max
-observed tree depth is 8. Artifact bytes, rounds, features, and hashes live
-in metadata.
+These are boosted-tree ensembles (max depth 8), not neural networks. Artifact
+bytes, rounds, features, and hashes live in metadata.
 
 ## Software architecture and contracts
 
@@ -86,43 +91,33 @@ mismatch — see "Implementation status" above for the now-implemented adapters.
   stand-in for an unavailable prediction. Neither release has calibrated
   uncertainty, so software must not invent a confidence value.
 
-For each request, metadata is authoritative for feature order, feature types,
-native categorical categories, and unseen-unit behavior. Preserve NaN for
-missing numeric inputs. Unknown crowd sensors/traffic units use the native
-missing-category branch plus the recorded `__unseen` flag and warning; other
-unknown categories fail/degrade rather than receiving a made-up code.
+For each request, metadata is authoritative for feature order/types/native
+categorical categories/unseen-unit behavior. Preserve NaN for missing numeric
+inputs; unknown crowd sensors/traffic units use the native missing-category
+branch plus the recorded `__unseen` flag rather than a made-up code.
 
 Historical lags must be exact and no newer than `feature_asof`; past-only
-rolling windows exclude the target hour. Crowd additionally needs a
-forecast-equivalent target-hour weather row. SCATS uses fixed AEST semantics;
-Transport Activity uses Melbourne wall time despite its misleading `Z`; crowd
-uses `Australia/Melbourne` and must preserve DST ambiguity flags.
+rolling windows exclude the target hour. Crowd needs a forecast-equivalent
+target-hour weather row. SCATS uses fixed AEST; Transport Activity uses
+Melbourne wall time despite its misleading `Z`; crowd uses
+`Australia/Melbourne` and must preserve DST ambiguity flags.
 
-## Serving compute
+## Serving and build compute
 
 A 23 August 2026 Linux CPU smoke audit (XGBoost 3.4.1, one thread, synthetic
-rows, excludes feature lookup/HTTP) gives capacity evidence, not an SLA:
-crowd loads in 399ms/315MiB RSS (0.76ms/13.63ms median for 1/100 rows);
-SCATS 322ms/187MiB (0.26ms/1.18ms); countline 280ms/129MiB (0.21ms/0.88ms).
+rows) gives capacity evidence, not an SLA: crowd loads in 399ms/315MiB RSS
+(0.76ms/13.63ms median for 1/100 rows); SCATS 322ms/187MiB; countline
+280ms/129MiB. CPU inference is sufficient, no serving GPU needed — but
+`route-planner.py` samples multiple crowd predictions per candidate route
+(see Implementation status), so batch/cache rather than issuing many one-row
+requests; don't treat smoke timings as latency guarantees across hosts.
 
-CPU inference is sufficient; a serving GPU is unnecessary. Allow roughly 1 GiB
-for a crowd-only worker and 2 GiB for one holding all three boosters, then
-load-test the real feature/API path — don't treat smoke timings as latency
-guarantees across hosts/versions, and batch units per target hour rather than
-issuing thousands of one-row requests.
-
-## Training and build compute
-
-- Crowd fitting used CUDA, XGBoost `hist`, eight CPU threads, and full pandas
-  tables (330 MiB + 153 MiB compressed Parquet inputs). No elapsed time,
-  peak RAM/VRAM, energy, or GPU model was retained. Plan on a CUDA workstation
-  and at least 16 GiB host RAM, but treat that as an estimate pending telemetry.
-- Traffic feature building is CPU/DuckDB work, proven with four threads and a
-  12 GiB memory limit; fitting used CUDA external memory, 65,536-row disk-backed
-  batches, one XGBoost CPU thread, no row cap, and no whole-table pandas load.
-  Elapsed time, peak VRAM, energy, and GPU identity were not recorded — GPU
-  acceleration does not reduce the 12 GiB DuckDB envelope; measure the next
-  run rather than publishing an invented number.
+Crowd fitting used CUDA, XGBoost `hist`, eight CPU threads, full pandas
+tables; plan on a CUDA workstation and 16 GiB+ host RAM as an estimate.
+Traffic feature building is CPU/DuckDB (four threads, 12 GiB limit); fitting
+used CUDA external memory with disk-backed batches. Elapsed time/peak
+RAM/VRAM/energy were not retained for either — measure the next run rather
+than publishing an invented number.
 
 ## Publication and route integration
 
@@ -131,14 +126,19 @@ while ignoring every other model plus all raw, processed, recovery, training,
 evaluation, preview, and provenance artifacts. `.gitattributes` sends exactly
 the three promoted UBJSON paths to Git LFS.
 
-Before route scoring (not just inference), software still needs effective-dated
-sensor/unit-to-edge mapping, spatial coverage/distance rules, source-specific
-normalization, and route-level validation. Raw counts aren't comparable across
-counters, and SCATS/countline scales are never comparable to each other. Keep
-raw predictions and warnings in the API even if the UI gets a versioned score.
+Crowd route scoring now exists (`route-planner.py`'s corridor-sampling
+"quieter" candidate, `software/routing-boundary`) but as pragmatic real-time
+point sampling, not a proper effective-dated sensor-to-edge mapping — traffic
+still has neither. SCATS/countline scales remain never comparable to each
+other; keep raw predictions and warnings in the API even as the UI gets a
+versioned score.
 
 ## Gotchas
 
+- `requirements.txt` must pin `xgboost-cpu` to the **exact** training version,
+  not just the same major version — a 3.0.5-vs-3.4.1 mismatch silently
+  produced predictions ~1000x too low under a plausible-looking `degraded`
+  status. Verify any bump with a real prediction, not just a clean load.
 - Traffic v1 predates the corrected feature allow-list: unavailable target-hour
   diagnostics explain about 0.37% of SCATS gain and about 28% of countline gain.
 - Seven crowd test sensors were unseen (MAE 59.43 vs 46.29 for seen sensors).

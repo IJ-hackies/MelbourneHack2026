@@ -1,17 +1,25 @@
 # Current State
 
-- Git source baseline `a85a787` merges refreshed `origin/main` into the preserved
-  ML work branch. The application is now LeafRoute: a Next.js/React/TypeScript/
+- Git source baseline `7cdd997`. LeafRoute is a Next.js/React/TypeScript/
   Tailwind app with Supabase auth, onboarding, preferences, saved places,
-  recent searches, walk history, account/password-reset controls, guest planning,
-  Nominatim geocoding, and Playwright smoke tests. A real MapLibre map and a
-  real pedestrian routing graph now exist (`ml/routing/`, `api/route-planner.py`
-  — see `software/routing-boundary`); route-edge ML calibration and shade
-  modelling remain unimplemented.
-- `src/lib/providers/route-provider.ts` and `condition-provider.ts` expose the
-  software integration seam but return fixed fixtures and ignore query details.
-  `src/app/page.tsx` parses geocoded coordinates but currently passes only the
-  destination label into those providers.
+  recent searches, walk history, account/password-reset controls, guest
+  planning, Photon geocoding (switched from Nominatim — see below), and
+  Playwright smoke tests. A real MapLibre map and a real pedestrian routing
+  graph (`ml/routing/`, `api/route-planner.py`) are both live in production
+  — see `software/routing-boundary` for the full contract.
+- `src/lib/providers/route-provider.ts` and `condition-provider.ts` now
+  return real, live data end-to-end: up to three genuinely-differentiated
+  routes (fastest/shaded/quieter, heat-adaptive shade bias) and three real
+  conditions (weather/crowd/shade). The `preferences` field on
+  `RouteQueryInput` is still accepted but read by neither provider
+  implementation — dead plumbing, not wired to anything.
+- Route listing moved client-side (`src/components/route-planner.tsx` +
+  `/api/plan-routes`) specifically so the query origin is the user's real
+  geolocation fix, not a static default — the previous server-rendered flow
+  always used a fixed CBD point regardless of where the user actually was,
+  which only self-corrected (partially, and only the map line) once
+  live-tracking kicked in client-side. The resolved origin now carries
+  through to `/route/[id]` via `originLat`/`originLon` query params.
 - The `ml` lane owns `ml/data/catalog.json` and `ml/scripts/fetch_datasets.py`.
   Crowd snapshots live under `ml/crowd/datasets/`, traffic snapshots under
   `ml/traffic/datasets/`, and shared inputs under `ml/data/raw/`. All are local,
@@ -88,15 +96,20 @@
 
 ## Open threads
 
-- Define the software/ML contract for time-indexed route-segment predictions,
-  including missing data, freshness, and confidence semantics.
-- Carry geocoded coordinates through `RouteQueryInput`; the current plan and
-  route-detail calls reduce destinations to labels before provider invocation.
-- Replace the fixed route/condition providers and ephemeral active-walk timer;
-  document the emissions factor before treating walk history as more than an
-  illustrative estimate.
-- Implement the documented crowd/traffic Python adapters and separately define
-  route-edge calibration; do not pool intersection and countline scales.
+- Traffic inference is implemented (`api/traffic-inference.py`) but still not
+  called from any provider — SCATS/Transport Activity have no live query
+  endpoint, so a real signal needs a scheduled ingestion job, unlike crowd's
+  live sensor-location + counts lookup.
+- Route-edge crowd scoring (`route-planner.py`'s "quieter" candidate) is
+  pragmatic real-time point-sampling along a path, not a validated
+  effective-dated sensor-to-edge model — do not present it as more rigorous
+  than it is; do not pool SCATS/countline scales if traffic is ever wired in.
+- `RouteQueryInput.preferences` is accepted end-to-end but not read by either
+  provider implementation — either wire it into route scoring or remove the
+  dead field.
+- `route-map.tsx`'s mid-walk re-routing always re-targets the `"fastest"`
+  candidate on movement, never the plan-time selection (shaded/quieter) —
+  a deliberate simplification worth revisiting if users complain about it.
 - Investigate why recent-enhanced is 13.0% worse in MAE than the matched recent
   ablation; all history also reached the 2,500-round ceiling and may benefit
   from targeted tuning rather than a broad search.
@@ -117,11 +130,13 @@
 
 - `Context/Chunks/heatroute.md` is product intent as well as root context; its
   planned features are not implemented APIs or algorithms.
-- MapLibre, FastAPI/Pydantic, a real pedestrian routing engine, shade modelling,
-  traffic serving/route calibration, and environmental forecasting are still
-  deferred. History exists, but emissions use a hard-coded illustrative
-  `distanceKm * 0.19` factor. Offline fixed-site models do not imply route-level
-  prediction.
+- MapLibre, real routing, and shade (as a tree-canopy-density grid, not
+  building/solar geometry) are all implemented; traffic serving/route
+  calibration and environmental forecasting remain deferred. Emissions still
+  use a hard-coded illustrative `distanceKm * 0.19` factor, now surfaced both
+  per-user (history) and cross-user (marketing page's real
+  `community_impact()` aggregate) — neither is a documented per-trip
+  calculation, just consistently the same constant everywhere.
 - Transport Activity timestamps are Melbourne wall time despite a trailing
   `Z`; annual `02:55 -> 02:00` records occur exactly on the DST rollback date.
   Do not reinterpret them as UTC or traffic patterns shift by 10-11 hours.
@@ -167,3 +182,10 @@
 - There is no `backend` or `infra` category. Dataset acquisition remains owned
   by `ml/data-acquisition`; add a new category only for a real independent
   source area.
+- `requirements.txt`'s `xgboost-cpu` pin must match the promoted crowd model's
+  training version **exactly**, not just its major version — a past 3.0.5-vs-
+  3.4.1 mismatch silently produced predictions ~1000x too low under a
+  plausible `degraded` status, not a load failure. See `ml/model-handoff`.
+- Destination search proxies Photon (`photon.komoot.io`), not Nominatim —
+  switched because Nominatim's tokenizer failed on partial mid-word queries
+  and on a missing apostrophe in a real street name.
