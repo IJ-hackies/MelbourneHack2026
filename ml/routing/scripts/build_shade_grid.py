@@ -23,8 +23,16 @@ import math
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_POINTS = ROOT / "ml" / "routing" / "datasets" / "tree_canopy_points.json"
-DEFAULT_GRAPH_METADATA = ROOT / "ml" / "routing" / "models" / "melbourne-inner-v1" / "metadata.json"
+# tree_canopy_points_extended.json (convert_vicmap_tree_points.py) covers the
+# same inner+middle-ring bbox as melbourne-metro-v1's graph; the original
+# tree_canopy_points.json (fetch_tree_canopy.py) is City-of-Melbourne-only
+# and stays as the melbourne-inner-v1 predecessor's input.
+DEFAULT_POINTS = ROOT / "ml" / "routing" / "datasets" / "tree_canopy_points_extended.json"
+# The bbox comes from the raw graph currently being built (graph_raw.json's
+# own node coordinates), not a previously-promoted release's metadata.json —
+# reading a promoted release here would break on a release's first-ever
+# build, before that metadata.json exists yet.
+DEFAULT_GRAPH_RAW = ROOT / "ml" / "routing" / "processed" / "graph_raw.json"
 DEFAULT_OUTPUT = ROOT / "ml" / "routing" / "processed" / "shade_grid.json"
 
 # ~40m cells: fine enough to distinguish a leafy side street from a bare
@@ -90,13 +98,16 @@ def build(points_path: Path, bbox: list[float], cell_size_m: float) -> dict:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--points", type=Path, default=DEFAULT_POINTS)
-    parser.add_argument("--graph-metadata", type=Path, default=DEFAULT_GRAPH_METADATA)
+    parser.add_argument("--graph-raw", type=Path, default=DEFAULT_GRAPH_RAW)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--cell-size-m", type=float, default=CELL_SIZE_M)
     args = parser.parse_args()
 
-    with args.graph_metadata.open() as f:
-        bbox = json.load(f)["bbox"]
+    with args.graph_raw.open() as f:
+        node_coords = json.load(f)["node_coords"]
+    lons = [c[0] for c in node_coords]
+    lats = [c[1] for c in node_coords]
+    bbox = [min(lons), min(lats), max(lons), max(lats)]
 
     grid = build(args.points, bbox, args.cell_size_m)
     args.output.parent.mkdir(parents=True, exist_ok=True)

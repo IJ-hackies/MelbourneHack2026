@@ -20,12 +20,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_INPUT = ROOT / "ml" / "routing" / "processed" / "graph_raw.json"
 DEFAULT_SHADE_GRID = ROOT / "ml" / "routing" / "processed" / "shade_grid.json"
-DEFAULT_OUTPUT_DIR = ROOT / "ml" / "routing" / "models" / "melbourne-inner-v1"
-RELEASE = "melbourne-inner-v1"
-SOURCE_DATASET_ID = "com_pedestrian_network"
-SOURCE_LICENSE = "CC BY 4.0"
-SOURCE_LICENSE_URL = "https://creativecommons.org/licenses/by/4.0/"
-SOURCE_ATTRIBUTION = "City of Melbourne — Pedestrian Network"
+DEFAULT_OUTPUT_DIR = ROOT / "ml" / "routing" / "models" / "melbourne-metro-v1"
+RELEASE = "melbourne-metro-v1"
+# Dual attribution: the City of Melbourne dataset (still authoritative inside
+# its own boundary) plus OpenStreetMap (fetch_osm_extract.py) for the
+# surrounding inner+middle-ring councils — see build_graph.py's merge.
+SOURCE_DATASET_ID = "com_pedestrian_network+osm_inner_metro_overpass"
+SOURCE_LICENSE = "CC BY 4.0 (City of Melbourne) + ODbL 1.0 (OpenStreetMap)"
+SOURCE_LICENSE_URL = "https://creativecommons.org/licenses/by/4.0/ ; https://www.openstreetmap.org/copyright"
+SOURCE_ATTRIBUTION = "City of Melbourne — Pedestrian Network; (c) OpenStreetMap contributors"
 
 
 def largest_component_node_ids(adjacency: list[list[tuple[int, float]]]) -> set[int]:
@@ -123,7 +126,7 @@ def main() -> None:
         "shade_grid_file": "shade_grid.json",
         "shade_grid_bytes": len(shade_grid_bytes),
         "shade_grid_sha256": shade_grid_sha256,
-        "shade_source_dataset_id": "com_tree_canopy_2021",
+        "shade_source_dataset_id": "com_tree_canopy_2021+vicmap_tree_urban_extended",
         "node_count": len(new_node_coords),
         "edge_count": sum(len(edges) for edges in new_adjacency) // 2,
         "bbox": bbox,
@@ -132,11 +135,15 @@ def main() -> None:
         "source_license_url": SOURCE_LICENSE_URL,
         "source_attribution": SOURCE_ATTRIBUTION,
         "coverage_note": (
-            "City of Melbourne municipality only, per ml/data/catalog.json's "
-            "com_pedestrian_network notes ('Primary hackathon graph; static "
-            "and limited to the municipality'). Queries outside this bbox "
-            "will fail to snap to a graph node — a wider OSM-based merge "
-            "remains a documented fast-follow, not implemented here."
+            "Inner + middle-ring Melbourne (~15km radius from the CBD): City "
+            "of Melbourne's own pedestrian network data stays authoritative "
+            "inside that municipality (see the predecessor melbourne-inner-v1 "
+            "release), merged with an OpenStreetMap extract "
+            "(fetch_osm_extract.py, ODbL) covering the surrounding councils "
+            "(Port Phillip, Yarra, Stonnington, inner Boroondara, "
+            "Moreland/Merri-bek, Maribyrnong, inner Moonee Valley, inner Glen "
+            "Eira). Still not full Greater Melbourne — outer suburbs remain "
+            "outside this bbox and fall back to the straight-line estimate."
         ),
         "built_at_utc": datetime.now(UTC).isoformat(),
     }

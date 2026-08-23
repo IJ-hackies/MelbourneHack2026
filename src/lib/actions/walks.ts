@@ -26,7 +26,12 @@ export async function logWalk({
     user_id: user.id,
     route_id: routeId,
     destination,
-    minutes,
+    // walks.minutes is a smallint column, but route.minutes upstream
+    // (api/route-planner.py's round(x, 1)) is a decimal like 30.2 — every
+    // insert with a fractional value was silently rejected by Postgres,
+    // which meant no signed-in walk was ever actually saved. Round here,
+    // at the DB boundary, rather than changing what's displayed elsewhere.
+    minutes: Math.round(minutes),
     distance_km: distanceKm,
     emissions_kg: emissionsKg,
   });

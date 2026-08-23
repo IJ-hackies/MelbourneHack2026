@@ -32,11 +32,14 @@ export function WalkRow({
       <div className="flex items-center gap-3">
         <Link
           href={`/?to=${encodeURIComponent(destination)}`}
-          className="text-[0.78rem] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          className="hidden text-[0.78rem] font-medium text-primary sm:inline hover:underline"
         >
           Walk again
         </Link>
         <div className="font-display text-sm font-semibold text-text">{minutes} min</div>
+        {/* Always visible, not hover-gated — a hover-only reveal never
+            appears at all on touch devices, which made this effectively
+            unreachable on mobile. */}
         <button
           type="button"
           onClick={() =>
@@ -51,7 +54,7 @@ export function WalkRow({
           }
           disabled={isPending}
           aria-label={`Remove ${destination} from your history`}
-          className="text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-50"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-tertiary transition-colors hover:bg-surface-alt hover:text-heat disabled:opacity-50"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
             <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z" />
