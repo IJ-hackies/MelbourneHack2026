@@ -38,6 +38,21 @@ const RASTER_STYLE: maplibregl.StyleSpecification = {
 };
 const WALKING_SPEED_M_PER_MIN = 80;
 
+// MapLibre resolves its internal Web Worker (used to process every GeoJSON
+// source — the route line included) relative to its own `import.meta.url`.
+// Under Next.js/Turbopack bundling that resolves to the bundled chunk's own
+// hashed URL, not the real package location, so the worker request 404s.
+// The failure is silent: no thrown error, the worker just never responds,
+// so GeoJSON sources never finish processing (`querySourceFeatures()` stays
+// empty forever, `map.once("idle", ...)` never fires) while raster tiles —
+// which don't need the worker — keep rendering fine. This is what actually
+// caused the route line to never appear. scripts/copy-maplibre-worker.mjs
+// copies the real worker script to public/ so this points MapLibre at a
+// real, reachable URL instead.
+if (typeof window !== "undefined") {
+  maplibregl.setWorkerUrl("/maplibre-gl-worker.mjs");
+}
+
 function haversineM(a: Coordinates, b: Coordinates): number {
   const r = 6371000;
   const toRad = (deg: number) => (deg * Math.PI) / 180;
@@ -112,9 +127,6 @@ export function RouteMap({
     });
     mapRef.current = map;
     followingRef.current = false; // enabled once the initial route view has been shown
-    // Temporary debug hook for live production diagnosis — remove once the
-    // route-line rendering bug is confirmed fixed.
-    if (typeof window !== "undefined") (window as unknown as { __debugMap?: unknown }).__debugMap = map;
 
     map.on("error", (e) => console.error("RouteMap: MapLibre error", e.error ?? e));
 
@@ -130,7 +142,6 @@ export function RouteMap({
     });
 
     const drawRoute = () => {
-      console.log("RouteMap: drawing route, point count:", lineCoordinates.length, "first:", lineCoordinates[0], "last:", lineCoordinates[lineCoordinates.length - 1]);
       map.addSource("route-line", {
         type: "geojson",
         data: {
@@ -147,22 +158,11 @@ export function RouteMap({
         type: "line",
         source: "route-line",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": "#e8703a", "line-width": 8, "line-opacity": 1 },
+        paint: { "line-color": "#0e6e64", "line-width": 5, "line-opacity": 0.9 },
       });
-      console.log(
-        "RouteMap: layer registered?",
-        Boolean(map.getLayer("route-line")),
-        "all layer ids:",
-        map.getStyle()?.layers?.map((l) => l.id)
-      );
-      new maplibregl.Marker({ color: "#0e6e64" })
+      new maplibregl.Marker({ color: "#e8703a" })
         .setLngLat([geometry.end.lon, geometry.end.lat])
         .addTo(map);
-      // The marker (DOM-positioned, outside the WebGL canvas) shows up
-      // regardless, but the GL-rendered line layer needs an explicit
-      // repaint on a pure-raster base style — addLayer's normal automatic
-      // repaint doesn't reliably reach a freshly added vector overlay here.
-      map.triggerRepaint();
     };
 
     const fitToRoute = () => {
@@ -173,17 +173,6 @@ export function RouteMap({
       );
       map.fitBounds(bounds, { padding: 48, maxZoom: 16, duration: 0 });
       followingRef.current = true;
-      map.triggerRepaint();
-      map.once("idle", () => {
-        console.log(
-          "RouteMap: after idle, route-line paint props:",
-          map.getPaintProperty("route-line", "line-color"),
-          "canvas size:",
-          map.getCanvas().width,
-          map.getCanvas().height
-        );
-        map.triggerRepaint();
-      });
     };
 
     const onReady = () => {
