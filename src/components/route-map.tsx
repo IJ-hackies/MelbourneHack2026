@@ -105,10 +105,17 @@ export function RouteMap({
   geometry,
   segments,
   routeId,
+  quality = "ok",
 }: {
   geometry: RouteGeometry;
   segments?: RouteOption["segments"];
   routeId?: string;
+  // "unavailable" means geometry.path is a fabricated-looking straight line
+  // (no real street data for this destination), not an actual walkable
+  // route — drawn dashed instead of solid so it never reads as a real
+  // turn-by-turn path, and the 3D-buildings toggle (irrelevant to a straight
+  // line, and misleading pitched over one) is hidden.
+  quality?: RouteOption["quality"];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -226,7 +233,12 @@ export function RouteMap({
         type: "line",
         source: "route-line",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": "#0e6e64", "line-width": 5, "line-opacity": 0.9 },
+        paint: {
+          "line-color": "#0e6e64",
+          "line-width": 5,
+          "line-opacity": 0.9,
+          ...(quality === "unavailable" ? { "line-dasharray": [0.01, 2] } : {}),
+        },
       });
       new maplibregl.Marker({ color: "#e8703a" })
         .setLngLat([geometry.end.lon, geometry.end.lat])
@@ -274,7 +286,7 @@ export function RouteMap({
     // diffing sources in place — route details are read once per navigation.
     // show3D is included so toggling it swaps style+pitch via a clean
     // remount rather than trying to hot-swap style/source state in place.
-  }, [geometry, segments, show3D]);
+  }, [geometry, segments, show3D, quality]);
 
   // Live position updates: a separate, lighter effect that only moves the
   // live marker, keeps both the live position and destination in view, and
@@ -466,6 +478,7 @@ export function RouteMap({
     >
       <div ref={containerRef} className="h-full w-full" />
       <div className="absolute top-3 right-3 flex gap-2">
+        {quality !== "unavailable" && (
         <button
           type="button"
           onClick={() => setShow3D((v) => !v)}
@@ -477,6 +490,7 @@ export function RouteMap({
         >
           3D
         </button>
+        )}
         <button
           type="button"
           onClick={() => setIsFullscreen((v) => !v)}

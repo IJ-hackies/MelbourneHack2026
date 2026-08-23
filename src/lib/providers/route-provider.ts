@@ -104,7 +104,7 @@ class RealRouteProvider implements RouteProvider {
           distanceKm: Math.round(straightLineKm * 1000) / 1000,
           recommended: true,
           description:
-            "Estimated straight-line distance — real street routing is unavailable for this destination.",
+            "This destination is outside our mapped walking area (City of Melbourne only, for now), so we can't plot real streets — this is a straight-line distance estimate, not turn-by-turn directions.",
           tags: [{ label: "Estimated", tone: "warm" }],
           geometry: { start: origin, end: destination },
           segments: [],

@@ -126,8 +126,28 @@ export default async function RouteDetail({
       </div>
 
       <div className="flex flex-col gap-6">
+        {route.quality === "unavailable" && (
+          <div className="flex items-start gap-2.5 rounded-2xl border border-heat/30 bg-heat-soft px-4 py-3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 h-4 w-4 shrink-0 text-heat">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v5M12 16h.01" />
+            </svg>
+            <p className="text-[0.84rem] text-text">
+              <strong className="font-semibold">No street-level directions here yet.</strong>{" "}
+              {destination} is outside the area we have real walking-path data for (City of
+              Melbourne only, for now). The line below is a straight-line estimate to help you
+              gauge distance, not a route to actually follow.
+            </p>
+          </div>
+        )}
+
         <div className="h-72 overflow-hidden rounded-2xl border border-border bg-surface-alt sm:h-96 lg:h-[32rem]">
-          <RouteMap geometry={route.geometry} segments={route.segments} routeId={route.id} />
+          <RouteMap
+            geometry={route.geometry}
+            segments={route.segments}
+            routeId={route.id}
+            quality={route.quality}
+          />
         </div>
 
         <p className="text-sm text-text-secondary">{route.description}</p>
