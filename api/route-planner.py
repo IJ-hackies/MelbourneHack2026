@@ -52,16 +52,11 @@ _load_error: str | None = None
 CROWD_SAMPLE_SPACING_M = 250.0
 CROWD_SAMPLE_MAX_POINTS = 12
 
-# A candidate must differ from an already-accepted one by at least this much
-# on distance to even be considered — otherwise two near-identical paths
-# (common on a short trip where only one reasonable route exists) would show
-# up as separate-looking cards for zero real difference, which is exactly
-# what looked like a bug to a user comparing two routes that both rounded to
-# "18.5 min".
-MIN_DISTANCE_DIFFERENCE_FRACTION = 0.02
-# A shaded/quieter candidate additionally needs its headline metric to move
-# by at least this much, or it's not offering a real trade-off worth a
-# separate card even if the geometry technically differs by a few metres.
+# A shaded/quieter candidate needs its headline metric (the entire reason it
+# gets its own card) to move by at least this much versus every
+# already-accepted candidate, regardless of how much extra distance/time it
+# costs — see _meaningfully_different's docstring for why gating on distance
+# too let through routes that cost real minutes for ~0% actual benefit.
 MIN_SHADE_DIFFERENCE = 0.04
 MIN_CROWD_DIFFERENCE_FRACTION = 0.08
 
@@ -253,30 +248,36 @@ def _apply_tags(candidates: list[dict]) -> None:
         if len(by_crowd) >= 2 and len({c["pedestrian_flow_avg_per_hour"] for c in by_crowd}) > 1:
             min(by_crowd, key=lambda c: c["pedestrian_flow_avg_per_hour"])["tags"].append("least_crowded")
 
-    fastest = min((c for c in ok), key=lambda c: c["distance_km"], default=None)
+    # Gates on minutes, not distance — currently always equivalent (minutes
+    # is distance / a fixed walking speed) but "fastest" should track time
+    # directly so it can't silently mislabel a route if per-node pace,
+    # elevation, or traffic ever makes the two diverge.
+    fastest = min((c for c in ok), key=lambda c: c["minutes"], default=None)
     if fastest is not None:
         fastest["tags"].insert(0, "fastest")
 
 
 def _meaningfully_different(candidate: dict, accepted: list[dict], metric_key: str, relative_metric: bool) -> bool:
-    """A candidate only earns its own card if it's a real, noticeably
-    different trade-off from every candidate already accepted — not just a
-    technically-different path that rounds to the same displayed numbers
-    (e.g. two near-duplicate short-trip routes that both show "18.5 min")."""
+    """A candidate only earns its own card if it delivers a real, noticeably
+    better result on the metric that's the entire point of that candidate
+    type — "quieter" must actually be quieter, "shaded" must actually be
+    shadier — regardless of how much extra distance/time it costs to get
+    there. Gating on distance instead (or as an alternative pass condition)
+    let a route through purely for costing meaningfully more time even when
+    its crowd/shade improvement rounded to ~0%, which is a real trade-off no
+    user would choose and not what the card claims to offer."""
     if candidate["quality"]["status"] != "ok":
         return False
     min_metric_diff = MIN_CROWD_DIFFERENCE_FRACTION if relative_metric else MIN_SHADE_DIFFERENCE
     for other in accepted:
-        dist_ref = max(other["distance_km"], 0.001)
-        distance_diff = abs(candidate["distance_km"] - other["distance_km"]) / dist_ref
         metric_a, metric_b = candidate.get(metric_key), other.get(metric_key)
         if metric_a is None or metric_b is None:
-            metric_diff = 0.0
-        elif relative_metric:
+            return False
+        if relative_metric:
             metric_diff = abs(metric_a - metric_b) / max(abs(metric_b), 0.01)
         else:
             metric_diff = abs(metric_a - metric_b)
-        if distance_diff < MIN_DISTANCE_DIFFERENCE_FRACTION and metric_diff < min_metric_diff:
+        if metric_diff < min_metric_diff:
             return False
     return True
 

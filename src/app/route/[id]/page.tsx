@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ActiveWalk } from "@/components/active-walk";
-import { ConditionIcon } from "@/components/condition-icon";
 import { RouteMap } from "@/components/route-map";
 import { ShareRouteButton } from "@/components/share-route-button";
 import { routeProvider } from "@/lib/providers/route-provider";
@@ -145,47 +144,6 @@ export default async function RouteDetail({
       </div>
 
       <div className="flex flex-col gap-6 lg:sticky lg:top-24">
-        <div>
-          <h2 className="font-display text-base font-semibold tracking-tight text-text">
-            Conditions along this route
-          </h2>
-          {route.segments.length === 0 && (
-            <p className="mt-3 text-sm text-text-tertiary">
-              Not available yet — this needs per-segment heat/crowd/traffic data the app
-              doesn&apos;t have.
-            </p>
-          )}
-          <div className="mt-3 flex flex-col gap-3">
-            {route.segments.map((seg) => (
-              <div key={seg.label}>
-                <div className="mb-1.5 flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1.5 text-text-secondary">
-                    <ConditionIcon tone={seg.tone} className="h-3.5 w-3.5" />
-                    {seg.label}
-                  </span>
-                  <span className="font-mono text-[0.76rem] text-text-tertiary">
-                    {seg.share}%
-                  </span>
-                </div>
-                <div className="h-1.5 rounded-full bg-surface-sunk">
-                  <div
-                    className={`h-full rounded-full ${
-                      seg.tone === "primary"
-                        ? "bg-primary"
-                        : seg.tone === "heat"
-                          ? "bg-heat"
-                          : seg.tone === "crowd"
-                            ? "bg-crowd"
-                            : "bg-traffic"
-                    }`}
-                    style={{ width: `${seg.share}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         <ActiveWalk
           routeId={route.id}
           destination={destination}

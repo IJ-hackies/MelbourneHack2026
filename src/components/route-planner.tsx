@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import { ConditionIcon } from "@/components/condition-icon";
 import { Spinner } from "@/components/spinner";
 import { formatDeparture } from "@/lib/routes";
+import { getCached, setCached } from "@/lib/client-cache";
 import type { Coordinates, RouteOption } from "@/lib/providers/types";
+
+// Same short-lived, correctness-conscious trade-off as ConditionsPanel —
+// long enough to make re-picking a destination you just looked at instant,
+// short enough that live heat-adaptive bias/crowd data never goes stale.
+const ROUTES_CACHE_TTL_MS = 90_000;
+type CachedRoutePlan = { routes: RouteOption[]; heatContext: HeatContext; quietestHour: QuietestHour };
 
 type HeatContext = { temperatureC: number | null; advisory: boolean; extreme: boolean } | null;
 type QuietestHour = { label: string; pedestrianFlowPerHour: number } | null;
@@ -39,7 +46,11 @@ function resolveOrigin(): Promise<{ origin: Coordinates; isReal: boolean }> {
 // raw minutes/canopy numbers across cards themselves.
 function tradeOffLabel(route: RouteOption, fastest: RouteOption): string {
   const parts: string[] = [];
-  const minuteDelta = route.minutes - fastest.minutes;
+  // Rounded explicitly — route.minutes/fastest.minutes are each already
+  // rounded to 1dp server-side, but subtracting two such floats (e.g.
+  // 30.2 - 21.6) can still land on a binary-float artefact like
+  // 8.599999999999998 without this.
+  const minuteDelta = Math.round((route.minutes - fastest.minutes) * 10) / 10;
   parts.push(minuteDelta > 0 ? `+${minuteDelta} min` : minuteDelta < 0 ? `${minuteDelta} min` : "Same time");
 
   if (
@@ -110,6 +121,19 @@ export function RoutePlanner({
       if (cancelled) return;
 
       const { origin } = originRef.current;
+      // Rounded to ~11m precision so trivial GPS jitter between two quick
+      // searches from roughly the same spot still hits the cache.
+      const cacheKey = `routes:${origin.lat.toFixed(4)},${origin.lon.toFixed(4)}->${destination.lat.toFixed(4)},${destination.lon.toFixed(4)}`;
+      const cached = getCached<CachedRoutePlan>(cacheKey);
+      if (cached) {
+        setRoutes(cached.routes);
+        setHeatContext(cached.heatContext);
+        setQuietestHour(cached.quietestHour);
+        setSelectedId(cached.routes.find((r) => r.recommended)?.id ?? cached.routes[0]?.id ?? null);
+        if (cached.routes.length === 0) setLoadError(true);
+        return;
+      }
+
       const params = new URLSearchParams({
         destLat: String(destination.lat),
         destLon: String(destination.lon),
@@ -122,11 +146,17 @@ export function RoutePlanner({
         const data = await res.json();
         if (cancelled) return;
         const nextRoutes: RouteOption[] = data.routes ?? [];
+        const nextHeatContext: HeatContext = data.heatContext ?? null;
+        const nextQuietestHour: QuietestHour = data.quietestHour ?? null;
         setRoutes(nextRoutes);
-        setHeatContext(data.heatContext ?? null);
-        setQuietestHour(data.quietestHour ?? null);
+        setHeatContext(nextHeatContext);
+        setQuietestHour(nextQuietestHour);
         setSelectedId(nextRoutes.find((r) => r.recommended)?.id ?? nextRoutes[0]?.id ?? null);
-        if (nextRoutes.length === 0) setLoadError(true);
+        if (nextRoutes.length === 0) {
+          setLoadError(true);
+        } else {
+          setCached(cacheKey, { routes: nextRoutes, heatContext: nextHeatContext, quietestHour: nextQuietestHour }, ROUTES_CACHE_TTL_MS);
+        }
       } catch {
         if (!cancelled) {
           setRoutes([]);

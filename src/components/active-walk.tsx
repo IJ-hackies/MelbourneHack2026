@@ -247,13 +247,16 @@ export function ActiveWalk({
         <div className="mt-3 flex gap-5 border-t border-primary/25 pt-3 text-sm">
           <div>
             <div className="font-display text-base font-semibold text-text">
-              {progress.distanceWalkedKm} km
+              {/* Defensively rounded here too, not just at the producer
+                  (route-map.tsx) — a display value should never trust an
+                  upstream rounding step it can't see. */}
+              {(Math.round(progress.distanceWalkedKm * 100) / 100).toFixed(2)} km
             </div>
             <div className="text-xs text-text-tertiary">Walked so far</div>
           </div>
           <div>
             <div className="font-display text-base font-semibold text-text">
-              {progress.emissionsSavedKg ?? 0} kg
+              {(Math.round((progress.emissionsSavedKg ?? 0) * 100) / 100).toFixed(2)} kg
             </div>
             <div className="text-xs text-text-tertiary">CO₂e saved so far</div>
           </div>

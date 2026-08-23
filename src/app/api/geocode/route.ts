@@ -11,6 +11,17 @@ const BBOX = "144.5,-38.05,145.35,-37.55";
 // word and its house-number/street parsing tolerates the missing apostrophe.
 const PHOTON_URL = "https://photon.komoot.io/api";
 
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const r = 6371;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return Math.round(2 * r * Math.asin(Math.sqrt(h)) * 100) / 100;
+}
+
 type PhotonProperties = {
   name?: string;
   housenumber?: string;
@@ -21,7 +32,38 @@ type PhotonProperties = {
   state?: string;
   postcode?: string;
   country?: string;
+  osm_key?: string;
+  osm_value?: string;
 };
+
+// A coarse, honest place category derived from OSM's own tagging — used
+// client-side to pick a recognisable icon per suggestion (restaurant, park,
+// transit, shop, ...), the way Google/Apple Maps visually distinguish
+// result types instead of a single generic pin for everything.
+export type PlaceCategory =
+  | "food"
+  | "park"
+  | "transit"
+  | "shop"
+  | "lodging"
+  | "landmark"
+  | "address"
+  | "place";
+
+function categoryFor(p: PhotonProperties): PlaceCategory {
+  const key = p.osm_key;
+  const value = p.osm_value;
+  if (key === "amenity" && (value === "restaurant" || value === "cafe" || value === "fast_food" || value === "bar" || value === "pub")) {
+    return "food";
+  }
+  if (key === "leisure" || key === "natural" || (key === "landuse" && value === "recreation_ground")) return "park";
+  if (key === "railway" || key === "highway" && value === "bus_stop" || key === "public_transport") return "transit";
+  if (key === "shop") return "shop";
+  if (key === "tourism" && value === "hotel") return "lodging";
+  if (key === "tourism" || key === "historic" || key === "amenity") return "landmark";
+  if (p.housenumber || p.street) return "address";
+  return "place";
+}
 
 type PhotonFeature = {
   properties: PhotonProperties;
@@ -36,14 +78,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ results: [] });
   }
 
+  // A real live location (when the browser has one) biases ranking toward
+  // where the user actually is, same as typing into Google Maps while
+  // location is on — falls back to the Melbourne CBD centroid otherwise,
+  // never a hard restriction either way.
+  const userLat = Number(searchParams.get("lat"));
+  const userLon = Number(searchParams.get("lon"));
+  const hasUserLocation = Number.isFinite(userLat) && Number.isFinite(userLon);
+
   const url = new URL(PHOTON_URL);
   url.searchParams.set("q", q);
-  url.searchParams.set("limit", "6");
+  // More candidates than are shown by default — the client only renders a
+  // handful inline but keeps the rest for the "show all matches" expansion
+  // (Enter with nothing highlighted) so there's a real list to pick from,
+  // not just the top few.
+  url.searchParams.set("limit", "12");
   url.searchParams.set("bbox", BBOX);
-  // Biases (doesn't restrict) ranking toward the Melbourne CBD, so a partial
-  // query still favours local results without a hard bounding-box cutoff.
-  url.searchParams.set("lat", "-37.8136");
-  url.searchParams.set("lon", "144.9631");
+  url.searchParams.set("lat", hasUserLocation ? String(userLat) : "-37.8136");
+  url.searchParams.set("lon", hasUserLocation ? String(userLon) : "144.9631");
 
   let res: Response;
   try {
@@ -92,6 +144,8 @@ export async function GET(request: Request) {
         address: secondaryParts.join(", ") || "Melbourne, Victoria",
         lat,
         lon,
+        category: categoryFor(p),
+        distanceKm: hasUserLocation ? haversineKm(userLat, userLon, lat, lon) : null,
       };
     });
 

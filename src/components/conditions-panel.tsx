@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { ConditionIcon } from "@/components/condition-icon";
+import { getCached, setCached } from "@/lib/client-cache";
 import type { Condition } from "@/lib/providers/types";
+
+// Short TTL — long enough that re-selecting the same destination a moment
+// later (e.g. clicking back from a route, or re-picking a saved place)
+// feels instant, short enough that live weather/crowd/shade never goes
+// stale for long.
+const CONDITIONS_CACHE_TTL_MS = 90_000;
 
 function ConditionSkeleton() {
   return (
@@ -29,7 +36,15 @@ export function ConditionsPanel({
   useEffect(() => {
     let cancelled = false;
 
+    const cacheKey = `conditions:${destination.lat.toFixed(5)},${destination.lon.toFixed(5)}`;
+
     async function load() {
+      const cached = getCached<Condition[]>(cacheKey);
+      if (cached) {
+        setConditions(cached);
+        return;
+      }
+
       setConditions(null);
       const params = new URLSearchParams({
         label: destination.label,
@@ -39,7 +54,9 @@ export function ConditionsPanel({
       try {
         const res = await fetch(`/api/conditions?${params.toString()}`, { cache: "no-store" });
         const data = await res.json();
-        if (!cancelled) setConditions(data.conditions ?? []);
+        const result: Condition[] = data.conditions ?? [];
+        if (!cancelled) setConditions(result);
+        setCached(cacheKey, result, CONDITIONS_CACHE_TTL_MS);
       } catch {
         if (!cancelled) setConditions([]);
       }

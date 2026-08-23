@@ -53,7 +53,7 @@ class RealRouteProvider implements RouteProvider {
         heatContext: planned.heatContext,
         routes: ok.map((route, i) => ({
           id: route.id,
-          minutes: route.minutes ?? Math.round((route.distanceKm! * 1000) / 80),
+          minutes: route.minutes ?? Math.round((route.distanceKm! * 1000) / FALLBACK_WALKING_SPEED_M_PER_MIN),
           distanceKm: route.distanceKm!,
           recommended: i === 0,
           description:
