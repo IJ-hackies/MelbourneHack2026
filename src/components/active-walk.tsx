@@ -10,6 +10,11 @@ import { PENDING_WALK_STORAGE_KEY, type PendingWalk } from "@/lib/pending-walk";
 // on a phone is commonly 5-15m in open air, so this has to be a radius,
 // not an exact match.
 const ARRIVAL_RADIUS_KM = 0.015;
+// A single GPS fix landing inside the radius isn't reliable enough to
+// permanently mark the walk done — urban-canyon multipath near tall
+// buildings can produce one wildly wrong reading. Require it to hold for a
+// few consecutive live updates before it's treated as real arrival.
+const ARRIVAL_CONFIRM_TICKS = 3;
 
 export function ActiveWalk({
   routeId,
@@ -27,18 +32,30 @@ export function ActiveWalk({
   const [manuallyFinished, setManuallyFinished] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSaving] = useTransition();
+  const [collapsed, setCollapsed] = useState(false);
   const { progress } = useLiveProgress();
   const savedRef = useRef(false);
+  const arrivalStreakRef = useRef(0);
+  const [confirmedArrival, setConfirmedArrival] = useState(false);
 
-  // Auto-completes once live location puts the user within arrival radius —
-  // derived directly from progress rather than mirrored into its own state,
-  // so there's nothing to keep in sync. The manual "Finish walk" button
-  // stays as a fallback for when GPS is denied/unavailable and this can
-  // never become true on its own.
-  const arrived = progress ? progress.distanceRemainingKm <= ARRIVAL_RADIUS_KM : false;
-  const done = manuallyFinished || arrived;
+  const withinArrivalRadius = progress ? progress.distanceRemainingKm <= ARRIVAL_RADIUS_KM : false;
+  useEffect(() => {
+    if (!progress) return;
+    arrivalStreakRef.current = withinArrivalRadius ? arrivalStreakRef.current + 1 : 0;
+    if (arrivalStreakRef.current >= ARRIVAL_CONFIRM_TICKS) setConfirmedArrival(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progress?.distanceRemainingKm]);
+
+  // Auto-completes once live location has held the user inside the arrival
+  // radius for several consecutive updates (see ARRIVAL_CONFIRM_TICKS) — the
+  // manual "Finish walk" button stays as a fallback for when GPS is
+  // denied/unavailable and this can never become true on its own.
+  const done = manuallyFinished || confirmedArrival;
 
   const emissionsKg = (distanceKm * 0.19).toFixed(2);
+  const percentComplete = progress
+    ? Math.min(100, Math.max(0, Math.round((1 - progress.distanceRemainingKm / Math.max(distanceKm, 0.001)) * 100)))
+    : 0;
 
   useEffect(() => {
     if (!done || savedRef.current) return;
@@ -67,9 +84,16 @@ export function ActiveWalk({
 
   if (done) {
     return (
-      <div className="rounded-2xl bg-primary p-5 text-surface">
-        <div className="text-[0.76rem] tracking-wide text-surface/85 uppercase">
-          Walk complete
+      <div className="leafroute-arrive rounded-2xl bg-primary p-5 text-surface">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface/20">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </span>
+          <div className="text-[0.76rem] tracking-wide text-surface/85 uppercase">
+            Walk complete
+          </div>
         </div>
         <div className="mt-3 flex gap-5 text-sm">
           <div>
@@ -102,44 +126,140 @@ export function ActiveWalk({
     );
   }
 
+  // Collapsing only makes sense once there's something live to summarise —
+  // maximises map space during active navigation, the way a real nav app
+  // shrinks its trip card to a strip once you're underway, while keeping
+  // the map itself (and its own controls) untouched.
+  if (collapsed && progress) {
+    return (
+      <button
+        type="button"
+        onClick={() => setCollapsed(false)}
+        aria-label="Expand walk details"
+        className="flex w-full items-center gap-3 rounded-2xl border border-primary bg-primary-soft px-4 py-3 text-left"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-surface">
+          {progress.nextTurn ? (
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`h-4 w-4 ${progress.nextTurn.direction === "left" ? "-scale-x-100" : ""}`}
+            >
+              <path d="M8 6 3 11l5 5" />
+              <path d="M3 11h11a5 5 0 0 1 5 5v3" />
+            </svg>
+          ) : (
+            <span className="h-2.5 w-2.5 rounded-full bg-surface" aria-hidden="true" />
+          )}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-display text-sm font-semibold text-text">
+            {progress.nextTurn
+              ? `Turn ${progress.nextTurn.direction} in ${progress.nextTurn.distanceMetres} m`
+              : `${progress.etaMinutes} min to ${destination}`}
+          </span>
+          <span className="block text-[0.72rem] text-text-secondary">
+            {progress.distanceRemainingKm} km remaining
+          </span>
+        </span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0 text-text-tertiary">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+    );
+  }
+
   // No manual "start" step and no elapsed-time stopwatch — walking progress
   // is automatic, driven by live location (RouteMap) the same way Google
   // Maps updates a live ETA, not a clock the user has to start themselves.
   return (
-    <div className="rounded-2xl border border-primary bg-primary-soft p-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-[0.76rem] tracking-wide text-text-secondary uppercase">
-            Walking to {destination}
-          </div>
-          <div className="mt-1 font-display text-[1.7rem] font-semibold tracking-tight text-text">
-            {progress ? `${progress.etaMinutes} min` : `${minutes} min`}
+    <div className={`relative rounded-2xl border border-primary bg-primary-soft p-5 ${progress ? "pr-12" : ""}`}>
+      {progress && (
+        <button
+          type="button"
+          onClick={() => setCollapsed(true)}
+          aria-label="Collapse walk details"
+          className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full text-text-tertiary transition-colors hover:bg-surface/40 hover:text-text"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+            <path d="m18 15-6-6-6 6" />
+          </svg>
+        </button>
+      )}
+      {/* Next turn is the dominant element once GPS tracking is live — real
+          nav apps lead with "what do I do next", not the ETA. */}
+      {progress?.nextTurn ? (
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-surface">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`h-5 w-5 ${progress.nextTurn.direction === "left" ? "-scale-x-100" : ""}`}
+            >
+              <path d="M8 6 3 11l5 5" />
+              <path d="M3 11h11a5 5 0 0 1 5 5v3" />
+            </svg>
+          </span>
+          <div>
+            <div className="font-display text-lg font-semibold tracking-tight text-text capitalize">
+              Turn {progress.nextTurn.direction} in {progress.nextTurn.distanceMetres} m
+            </div>
+            <div className="text-[0.76rem] text-text-secondary">
+              then continue toward {destination}
+            </div>
           </div>
         </div>
-        <span className="flex h-2.5 w-2.5 rounded-full bg-primary" aria-hidden="true" />
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-[0.76rem] tracking-wide text-text-secondary uppercase">
+              Walking to {destination}
+            </div>
+            <div className="mt-1 font-display text-[1.7rem] font-semibold tracking-tight text-text">
+              {progress ? `${progress.etaMinutes} min` : `${minutes} min`}
+            </div>
+          </div>
+          <span className="flex h-2.5 w-2.5 rounded-full bg-primary" aria-hidden="true" />
+        </div>
+      )}
+
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-sunk">
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-500"
+          style={{ width: `${percentComplete}%` }}
+        />
       </div>
       <p className="mt-2 text-xs text-text-secondary">
         {progress
-          ? `${progress.distanceRemainingKm} km remaining, based on your live location`
+          ? `${progress.distanceRemainingKm} km remaining · ${progress.etaMinutes} min, based on average walking pace`
           : `${distanceKm} km · waiting for your live location to start updating`}
       </p>
-      {progress?.nextTurn && (
-        <p className="mt-1.5 flex items-center gap-1.5 text-sm font-medium text-text">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={`h-4 w-4 shrink-0 ${progress.nextTurn.direction === "left" ? "-scale-x-100" : ""}`}
-          >
-            <path d="M8 6 3 11l5 5" />
-            <path d="M3 11h11a5 5 0 0 1 5 5v3" />
-          </svg>
-          Turn {progress.nextTurn.direction} in {progress.nextTurn.distanceMetres} m
-        </p>
+
+      {progress && progress.distanceWalkedKm !== undefined && progress.distanceWalkedKm > 0 && (
+        <div className="mt-3 flex gap-5 border-t border-primary/25 pt-3 text-sm">
+          <div>
+            <div className="font-display text-base font-semibold text-text">
+              {progress.distanceWalkedKm} km
+            </div>
+            <div className="text-xs text-text-tertiary">Walked so far</div>
+          </div>
+          <div>
+            <div className="font-display text-base font-semibold text-text">
+              {progress.emissionsSavedKg ?? 0} kg
+            </div>
+            <div className="text-xs text-text-tertiary">CO₂e saved so far</div>
+          </div>
+        </div>
       )}
+
       <button
         type="button"
         onClick={() => setManuallyFinished(true)}

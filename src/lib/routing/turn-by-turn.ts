@@ -8,7 +8,7 @@ export type Turn = { pathIndex: number; direction: "left" | "right"; angleDeg: n
 // Only a bearing change past this threshold gets surfaced as an instruction.
 const TURN_THRESHOLD_DEG = 30;
 
-function bearingDeg(a: Coordinates, b: Coordinates): number {
+export function bearingDeg(a: Coordinates, b: Coordinates): number {
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const toDeg = (rad: number) => (rad * 180) / Math.PI;
   const y = Math.sin(toRad(b.lon - a.lon)) * Math.cos(toRad(b.lat));

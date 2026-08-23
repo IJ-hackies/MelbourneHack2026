@@ -1,12 +1,11 @@
 import { headers } from "next/headers";
 import { PendingLink } from "@/components/pending-link";
-import { ConditionIcon } from "@/components/condition-icon";
+import { ConditionsPanel } from "@/components/conditions-panel";
 import { DestinationSearch } from "@/components/destination-search";
 import { SavedPlacesRow } from "@/components/saved-places-row";
 import { MarketingPage } from "@/components/marketing/marketing-page";
 import { RoutePlanner } from "@/components/route-planner";
 import { APEX_HOSTS, getAppOrigin } from "@/lib/hosts";
-import { conditionProvider } from "@/lib/providers/condition-provider";
 import { listSavedPlaces } from "@/lib/actions/places";
 import { listRecentSearches } from "@/lib/actions/searches";
 import { createClient } from "@/lib/supabase/server";
@@ -66,18 +65,11 @@ async function PlanScreen({
       }
     : null;
 
-  const [conditions, savedPlaces, recentSearches] =
-    destination && hasCoordinates
-      ? await Promise.all([
-          conditionProvider.getConditions({
-            label: destination,
-            lat: resolvedLat!,
-            lon: resolvedLon!,
-          }),
-          listSavedPlaces(),
-          listRecentSearches(),
-        ])
-      : await Promise.all([Promise.resolve([]), listSavedPlaces(), listRecentSearches()]);
+  // Conditions and routes both load client-side (ConditionsPanel,
+  // RoutePlanner) so they can start fetching in parallel the moment this
+  // page paints, each with its own skeleton, rather than one blocking the
+  // page render and the other only starting once that finished.
+  const [savedPlaces, recentSearches] = await Promise.all([listSavedPlaces(), listRecentSearches()]);
 
   return (
     <main className="mx-auto grid max-w-xl grid-cols-1 gap-8 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[360px_1fr] lg:items-start lg:gap-12 lg:py-12">
@@ -116,32 +108,7 @@ async function PlanScreen({
         <SavedPlacesRow places={savedPlaces} current={current} signedIn={Boolean(userId)} />
 
         {destination && (
-          <div className="grid grid-cols-3 gap-2 lg:grid-cols-1 lg:gap-2.5">
-            {conditions.map((c) => (
-              <div
-                key={c.label}
-                className="rounded-2xl border border-border bg-surface px-2.5 py-3 text-center lg:flex lg:items-center lg:gap-3 lg:px-4 lg:py-3 lg:text-left"
-              >
-                <ConditionIcon
-                  tone={c.tone}
-                  className="mx-auto mb-1.5 h-[18px] w-[18px] lg:mx-0 lg:mb-0"
-                />
-                <div className="lg:flex-1">
-                  <div className="lg:flex lg:items-baseline lg:justify-between">
-                    <div className="font-display text-[1.05rem] font-semibold text-text">
-                      {c.value}
-                    </div>
-                    <div className="mt-0.5 text-[0.68rem] tracking-wide text-text-tertiary uppercase lg:mt-0">
-                      {c.label}
-                    </div>
-                  </div>
-                  {c.detail && (
-                    <div className="mt-0.5 text-[0.68rem] text-text-tertiary lg:text-right">{c.detail}</div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <ConditionsPanel destination={{ label: destination, lat: resolvedLat!, lon: resolvedLon! }} />
         )}
       </div>
 

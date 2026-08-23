@@ -8,6 +8,27 @@ import { routeProvider } from "@/lib/providers/route-provider";
 import { LiveProgressProvider } from "@/lib/live-progress-context";
 import { createClient } from "@/lib/supabase/server";
 
+function buildRouteHref(
+  routeId: string,
+  {
+    destination,
+    resolvedLat,
+    resolvedLon,
+    origin,
+  }: { destination: string; resolvedLat: number; resolvedLon: number; origin?: { lat: number; lon: number } }
+) {
+  const params = new URLSearchParams({
+    to: destination,
+    lat: String(resolvedLat),
+    lon: String(resolvedLon),
+  });
+  if (origin) {
+    params.set("originLat", String(origin.lat));
+    params.set("originLon", String(origin.lon));
+  }
+  return `/route/${routeId}?${params.toString()}`;
+}
+
 export default async function RouteDetail({
   params,
   searchParams,
@@ -33,11 +54,13 @@ export default async function RouteDetail({
     Number.isFinite(resolvedOriginLat) && Number.isFinite(resolvedOriginLon)
       ? { lat: resolvedOriginLat, lon: resolvedOriginLon }
       : undefined;
-  const route = await routeProvider.getRoute(id, {
+  const { routes } = await routeProvider.listRoutes({
     destination: { label: destination, lat: resolvedLat, lon: resolvedLon },
     origin,
   });
+  const route = routes.find((r) => r.id === id);
   if (!route) notFound();
+  const otherRoutes = routes.filter((r) => r.id !== id);
 
   const supabase = await createClient();
   const {
@@ -76,10 +99,35 @@ export default async function RouteDetail({
             {route.distanceKm} km to {destination}
           </p>
         </div>
+
+        {otherRoutes.length > 0 && (
+          <div className="flex gap-2.5 overflow-x-auto pb-1">
+            {otherRoutes.map((other) => (
+              <Link
+                key={other.id}
+                href={buildRouteHref(other.id, { destination, resolvedLat, resolvedLon, origin })}
+                className="flex shrink-0 items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5 transition-colors hover:border-text-tertiary"
+              >
+                <div className="font-display text-base font-semibold text-text">
+                  {other.minutes}
+                  <span className="ml-0.5 font-sans text-[0.68rem] font-medium text-text-tertiary">
+                    min
+                  </span>
+                </div>
+                <div className="text-left">
+                  <div className="text-[0.78rem] font-medium text-text-secondary">
+                    {other.tags[0]?.label ?? "Alternative"}
+                  </div>
+                  <div className="text-[0.7rem] text-text-tertiary">Switch to this route</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-6">
-        <div className="h-48 overflow-hidden rounded-2xl border border-border bg-surface-alt lg:h-80">
+        <div className="h-72 overflow-hidden rounded-2xl border border-border bg-surface-alt sm:h-96 lg:h-[32rem]">
           <RouteMap geometry={route.geometry} segments={route.segments} routeId={route.id} />
         </div>
 

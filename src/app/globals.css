@@ -74,3 +74,63 @@ textarea:focus-visible,
 select:focus-visible {
   outline: none;
 }
+
+/* Live walking position puck (route-map.tsx) — a Google-Maps-style dot with
+   a directional arrow and an ambient pulse, instead of a plain circle. */
+.leafroute-live-marker {
+  position: relative;
+  width: 26px;
+  height: 26px;
+}
+
+.leafroute-live-marker-pulse {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: rgba(37, 99, 235, 0.35);
+  animation: leafroute-pulse 2.2s ease-out infinite;
+}
+
+@keyframes leafroute-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leafroute-live-marker-pulse {
+    animation: none;
+    opacity: 0.25;
+  }
+}
+
+/* Small arrival "beat" on the walk-complete card (active-walk.tsx) — a
+   single settle-in, not a looping effect, kept minimal on purpose. */
+.leafroute-arrive {
+  animation: leafroute-arrive-keyframes 0.4s ease-out;
+}
+
+@keyframes leafroute-arrive-keyframes {
+  from {
+    transform: scale(0.97);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leafroute-arrive {
+    animation: none;
+  }
+}
