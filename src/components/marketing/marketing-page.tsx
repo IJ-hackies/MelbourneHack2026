@@ -2,7 +2,6 @@ import { PendingLink } from "@/components/pending-link";
 import { ConditionIcon } from "@/components/condition-icon";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { ContactForm } from "@/components/marketing/contact-form";
-import { co2Comparison } from "@/lib/co2-comparisons";
 
 const FEATURES = [
   {
@@ -52,11 +51,6 @@ export function MarketingPage({
   appOrigin?: string;
   communityImpact?: { totalWalks: number; totalEmissionsKg: number; totalDistanceKm: number } | null;
 }) {
-  // Recomputed on every render of this page, so it's a different, still-
-  // accurate comparison each time someone lands here rather than the same
-  // fixed "km not driven" line every visit.
-  const communityComparison = communityImpact ? co2Comparison(communityImpact.totalEmissionsKg) : null;
-
   return (
     <div>
       <MarketingHeader appOrigin={appOrigin} />
@@ -207,98 +201,6 @@ export function MarketingPage({
           </div>
         </section>
 
-        {/* Climate action: mitigation + adaptation */}
-        <section className="border-t border-border px-5 py-20 sm:px-8 lg:px-12">
-          <div className="mx-auto max-w-5xl">
-            <div className="max-w-xl">
-              <h2 className="font-display text-2xl font-semibold tracking-tight text-text sm:text-3xl">
-                Two sides of the same climate problem.
-              </h2>
-              <p className="mt-3 text-text-secondary">
-                Cutting emissions and coping with the heat we&apos;ve already
-                locked in aren&apos;t separate problems. They show up on the same
-                walk, so LeafRoute is built around both.
-              </p>
-            </div>
-
-            <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <div className="rounded-3xl border border-primary bg-primary-soft p-8">
-                <span className="rounded-full bg-primary px-2.5 py-1 text-[0.68rem] font-semibold tracking-wide text-surface uppercase">
-                  Reduce
-                </span>
-                <h3 className="mt-4 font-display text-lg font-semibold tracking-tight text-text">
-                  One less car trip
-                </h3>
-                <p className="mt-2 text-[0.9rem] leading-relaxed text-text-secondary">
-                  Every walk you log gets a transparent, honest estimate of
-                  the emissions it saved compared to driving. Nothing here is
-                  inflated or guessed, and it all builds up in your history
-                  automatically.
-                </p>
-                <div className="mt-5 border-t border-primary/25 pt-4">
-                  {communityImpact && communityImpact.totalWalks > 0 ? (
-                    <>
-                      <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
-                        <div className="font-display text-2xl font-semibold tracking-tight text-text">
-                          {communityImpact.totalEmissionsKg.toFixed(1)}
-                          <span className="ml-1 text-sm font-medium text-text-secondary">
-                            kg CO₂e avoided
-                          </span>
-                        </div>
-                        <div className="font-display text-2xl font-semibold tracking-tight text-text">
-                          {communityImpact.totalDistanceKm.toFixed(1)}
-                          <span className="ml-1 text-sm font-medium text-text-secondary">km walked</span>
-                        </div>
-                      </div>
-                      <p className="mt-1.5 text-[0.78rem] text-text-tertiary">
-                        Real total across {communityImpact.totalWalks} logged{" "}
-                        {communityImpact.totalWalks === 1 ? "walk" : "walks"} from every visitor, signed
-                        in or not, updated live.
-                        {communityComparison && <> That&apos;s about the same as {communityComparison}.</>}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-[0.84rem] text-text-secondary">
-                      Be the first walk counted here. Every logged walk adds
-                      its estimated avoided emissions to this total, live,
-                      for everyone to see.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-heat/30 bg-heat-soft p-8">
-                <span className="rounded-full bg-heat px-2.5 py-1 text-[0.68rem] font-semibold tracking-wide text-surface uppercase">
-                  Adapt
-                </span>
-                <h3 className="mt-4 font-display text-lg font-semibold tracking-tight text-text">
-                  Cope with the heat that&apos;s already here
-                </h3>
-                <p className="mt-2 text-[0.9rem] leading-relaxed text-text-secondary">
-                  On a genuinely hot day, LeafRoute leans harder into shaded
-                  streets, using real tree canopy data to drive the route
-                  instead of a fixed rule that ignores what it&apos;s actually
-                  like outside.
-                </p>
-                <p className="mt-5 border-t border-heat/25 pt-4 text-[0.78rem] text-text-tertiary">
-                  A live heat advisory appears on the plan screen whenever
-                  today&apos;s temperature crosses that threshold.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8 flex justify-start">
-              <PendingLink
-                href={`${appOrigin}/signup`}
-                newTabOnDesktop={Boolean(appOrigin)}
-                className="rounded-full bg-primary px-7 py-3.5 text-center text-[0.95rem] font-semibold text-surface transition-opacity hover:opacity-90"
-              >
-                Start tracking your walks
-              </PendingLink>
-            </div>
-          </div>
-        </section>
-
         {/* Features */}
         <section id="features" className="scroll-mt-20 border-t border-border px-5 py-20 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-5xl">
@@ -332,6 +234,16 @@ export function MarketingPage({
                   </p>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-10 flex justify-start">
+              <PendingLink
+                href={`${appOrigin}/signup`}
+                newTabOnDesktop={Boolean(appOrigin)}
+                className="rounded-full bg-primary px-7 py-3.5 text-center text-[0.95rem] font-semibold text-surface transition-opacity hover:opacity-90"
+              >
+                Start tracking your walks
+              </PendingLink>
             </div>
           </div>
         </section>
