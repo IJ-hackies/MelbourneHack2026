@@ -33,7 +33,6 @@ from __future__ import annotations
 
 import json
 import math
-import resource
 import sys
 import threading
 import time
@@ -42,17 +41,9 @@ from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 
-
-def _checkpoint(label: str) -> None:
-    # Temporary diagnostic for tracking down a production OOM kill —
-    # ru_maxrss is KB on Linux (Vercel's runtime), bytes on macOS.
-    print(f"route-planner: checkpoint {label}: rss={resource.getrusage(resource.RUSAGE_SELF).ru_maxrss}")
-
 sys.path.append(str(Path(__file__).resolve().parent))
 
-_checkpoint("module_top")
 from _shared import crowd_model, feature_lookup, graph_loader, rate_limit, router
-_checkpoint("after_shared_imports")
 
 _load_error: str | None = None
 
@@ -368,9 +359,7 @@ def plan_route(origin: dict, destination: dict) -> dict:
     user (see route-provider.ts's chooseRecommendedId) — a preference set to
     a maximum or minimum must never change how many real route options a
     search returns, only which one is suggested first."""
-    _checkpoint("start")
     load_error = _ensure_loaded()
-    _checkpoint("after_ensure_loaded")
     if load_error:
         unavailable = {
             "id": "fastest",
@@ -415,9 +404,7 @@ def plan_route(origin: dict, destination: dict) -> dict:
     if end_snap_m and end_snap_m > 50:
         snap_warnings.append(f"destination_snap_distance_m_{round(end_snap_m)}")
 
-    _checkpoint("before_heat_context")
     heat_context = _heat_context()
-    _checkpoint("after_heat_context")
     # One shared timestamp and one shared per-sensor prediction cache for the
     # whole request — fastest/shaded/quieter and the crowd-penalty corridor
     # lookup all query the same live sensors around the same origin/
@@ -438,14 +425,12 @@ def plan_route(origin: dict, destination: dict) -> dict:
         )
 
         fastest = _build_candidate("fastest", node_coords, adjacency, start_id, end_id, now, crowd_cache)
-        _checkpoint("after_fastest")
         candidates = [fastest]
 
         shaded = _build_candidate(
             "shaded", node_coords, adjacency, start_id, end_id, now, crowd_cache,
             shade_bias=router.SHADE_BIAS * heat_context["shade_bias_multiplier"],
         )
-        _checkpoint("after_shaded")
         # Only surface "shaded" as a distinct option when it's a real, noticeably
         # different trade-off — a path that's technically different by a few
         # metres but rounds to the same displayed time/percentage is a
@@ -454,14 +439,12 @@ def plan_route(origin: dict, destination: dict) -> dict:
             candidates.append(shaded)
 
         crowd_penalty = penalty_future.result()
-        _checkpoint("after_crowd_penalty")
 
     if crowd_penalty:
         quieter = _build_candidate(
             "quieter", node_coords, adjacency, start_id, end_id, now, crowd_cache,
             node_penalty=crowd_penalty, penalty_weight=CROWD_PENALTY_WEIGHT,
         )
-        _checkpoint("after_quieter")
         if _meaningfully_different(quieter, candidates, "pedestrian_flow_avg_per_hour", relative_metric=True):
             candidates.append(quieter)
 
