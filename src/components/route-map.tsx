@@ -151,7 +151,7 @@ export function RouteMap({
   const headingDegRef = useRef<number | null>(null);
 
   const liveLocation = useLiveLocation(true);
-  const { setProgress } = useLiveProgress();
+  const { progress, setProgress } = useLiveProgress();
 
   // Mounts the map and draws the static route once per geometry/segments
   // change — deliberately does NOT depend on live location, so a GPS tick
@@ -521,21 +521,44 @@ export function RouteMap({
         </svg>
         Recenter
       </button>
-      {isOffline && (
-        <span className="absolute top-3 left-3 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[0.72rem] font-medium text-text shadow-sm">
-          Offline, so the route won&apos;t update until you&apos;re back online
-        </span>
-      )}
-      {!isOffline && liveLocation.status === "denied" && (
-        <span className="absolute top-3 left-3 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[0.72rem] font-medium text-text shadow-sm">
-          Location permission denied
-        </span>
-      )}
-      {!isOffline && liveLocation.status === "unavailable" && (
-        <span className="absolute top-3 left-3 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[0.72rem] font-medium text-text shadow-sm">
-          Location unavailable
-        </span>
-      )}
+      <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
+        {/* Always rendered, starting at 0 the moment this page mounts, not
+            only once a live GPS fix arrives — a walker checking "has this
+            started tracking me yet" should see it counting from zero
+            immediately, the same way active-walk.tsx's own copy of these
+            numbers does once progress exists. */}
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-surface/95 px-3 py-2 shadow-sm backdrop-blur-sm">
+          <div className="text-center">
+            <div className="font-display text-sm font-semibold tabular-nums text-text">
+              {(progress?.distanceWalkedKm ?? 0).toFixed(2)} km
+            </div>
+            <div className="text-[0.62rem] tracking-wide text-text-tertiary uppercase">Walked</div>
+          </div>
+          <div className="h-6 w-px bg-border" aria-hidden="true" />
+          <div className="text-center">
+            <div className="font-display text-sm font-semibold tabular-nums text-primary">
+              {(progress?.emissionsSavedKg ?? 0).toFixed(2)} kg
+            </div>
+            <div className="text-[0.62rem] tracking-wide text-text-tertiary uppercase">CO₂e saved</div>
+          </div>
+        </div>
+
+        {isOffline && (
+          <span className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[0.72rem] font-medium text-text shadow-sm">
+            Offline, so the route won&apos;t update until you&apos;re back online
+          </span>
+        )}
+        {!isOffline && liveLocation.status === "denied" && (
+          <span className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[0.72rem] font-medium text-text shadow-sm">
+            Location permission denied
+          </span>
+        )}
+        {!isOffline && liveLocation.status === "unavailable" && (
+          <span className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[0.72rem] font-medium text-text shadow-sm">
+            Location unavailable
+          </span>
+        )}
+      </div>
     </div>
   );
 }

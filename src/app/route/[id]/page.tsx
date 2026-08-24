@@ -9,6 +9,20 @@ import { getQuietestHourToday } from "@/lib/providers/quietest-hour";
 import { LiveProgressProvider } from "@/lib/live-progress-context";
 import { createClient } from "@/lib/supabase/server";
 
+// A route's tags[0] (from route-planner.py's real, data-derived tagging)
+// only ever gets set when a candidate is *meaningfully* better than the
+// others on that metric -- a shaded/quieter candidate that's still a
+// distinct card but not meaningfully different from fastest on its own
+// metric ends up with no tag at all, previously falling back to a generic
+// "Alternative" label that threw away real information about what kind of
+// route it actually is.
+function routeTypeLabel(route: { id: string; tags: { label: string }[] }): string {
+  if (route.tags[0]) return route.tags[0].label;
+  if (route.id === "shaded") return "Shaded";
+  if (route.id === "quieter") return "Quieter";
+  return "Fastest";
+}
+
 function buildRouteHref(
   routeId: string,
   {
@@ -64,7 +78,6 @@ export default async function RouteDetail({
   ]);
   const route = routes.find((r) => r.id === id);
   if (!route) notFound();
-  const otherRoutes = routes.filter((r) => r.id !== id);
 
   const supabase = await createClient();
   const {
@@ -93,6 +106,9 @@ export default async function RouteDetail({
             <h1 className="font-display text-[1.6rem] font-semibold tracking-tight text-text lg:text-[1.9rem]">
               {route.minutes} min
             </h1>
+            <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[0.68rem] font-semibold tracking-wide text-primary-strong uppercase">
+              {routeTypeLabel(route)}
+            </span>
             {route.quality === "unavailable" && (
               <span className="rounded-full bg-heat-soft px-2.5 py-1 text-[0.68rem] font-semibold tracking-wide text-heat uppercase">
                 Estimated
@@ -104,28 +120,61 @@ export default async function RouteDetail({
           </p>
         </div>
 
-        {otherRoutes.length > 0 && (
-          <div className="flex gap-2.5 overflow-x-auto pb-1">
-            {otherRoutes.map((other) => (
-              <Link
-                key={other.id}
-                href={buildRouteHref(other.id, { destination, resolvedLat, resolvedLon, origin })}
-                className="flex shrink-0 items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5 transition-colors hover:border-text-tertiary"
-              >
-                <div className="font-display text-base font-semibold text-text">
-                  {other.minutes}
-                  <span className="ml-0.5 font-sans text-[0.68rem] font-medium text-text-tertiary">
-                    min
-                  </span>
-                </div>
-                <div className="text-left">
-                  <div className="text-[0.78rem] font-medium text-text-secondary">
-                    {other.tags[0]?.label ?? "Alternative"}
-                  </div>
-                  <div className="text-[0.7rem] text-text-tertiary">Switch to this route</div>
-                </div>
-              </Link>
-            ))}
+        {routes.length > 1 && (
+          <div>
+            <p className="mb-2 text-[0.72rem] font-medium tracking-wide text-text-tertiary uppercase">
+              {routes.length} routes to {destination}
+            </p>
+            <div className="flex gap-2.5 overflow-x-auto pb-1">
+              {routes.map((r) => {
+                const isCurrent = r.id === route.id;
+                return (
+                  <Link
+                    key={r.id}
+                    href={buildRouteHref(r.id, { destination, resolvedLat, resolvedLon, origin })}
+                    aria-current={isCurrent ? "true" : undefined}
+                    className={`flex shrink-0 items-center gap-3 rounded-2xl border px-4 py-2.5 transition-colors ${
+                      isCurrent
+                        ? "border-primary bg-primary-soft"
+                        : "border-border bg-surface hover:border-text-tertiary"
+                    }`}
+                  >
+                    <div
+                      className={`font-display text-base font-semibold ${isCurrent ? "text-primary-strong" : "text-text"}`}
+                    >
+                      {r.minutes}
+                      <span className="ml-0.5 font-sans text-[0.68rem] font-medium text-text-tertiary">
+                        min
+                      </span>
+                    </div>
+                    <div className="text-left">
+                      <div
+                        className={`text-[0.78rem] font-medium ${isCurrent ? "text-primary-strong" : "text-text-secondary"}`}
+                      >
+                        {routeTypeLabel(r)}
+                      </div>
+                      <div className="text-[0.7rem] text-text-tertiary">
+                        {isCurrent ? "Your current route" : "Switch to this route"}
+                      </div>
+                    </div>
+                    {isCurrent && (
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 shrink-0 text-primary"
+                        aria-hidden="true"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

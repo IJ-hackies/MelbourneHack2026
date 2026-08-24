@@ -34,7 +34,9 @@ from __future__ import annotations
 import json
 import math
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
@@ -106,6 +108,18 @@ def _sample_points(node_coords: list, node_ids: list[int], distance_m: float) ->
     return [(node_coords[node_ids[i]][1], node_coords[node_ids[i]][0]) for i in indices]
 
 
+_crowd_cache_lock = threading.Lock()
+
+# Each uncached sensor prediction is dominated by a live network fetch of
+# that sensor's history (feature_lookup's _HISTORY_CACHE_TTL-bounded HTTP
+# call), not CPU work, so up to MAX_CROWD_SENSORS_CONSIDERED of these were
+# previously run one after another and their wall-clock time just added up.
+# Real requests routinely need 6-12 distinct sensors across the corridor
+# penalty and the three candidates' path sampling, so this was the actual
+# dominant cost in "route finding is slow", not the Dijkstra runs.
+_CROWD_FETCH_WORKERS = 8
+
+
 def _predict_crowd_cached(cache: dict[str, dict], sensor_id: str, now: datetime) -> dict:
     """crowd_model.predict, memoized per plan_route() call. fastest/shaded/
     quieter candidates (each calling _crowd_avg_for_path) and the "quieter"
@@ -114,9 +128,30 @@ def _predict_crowd_cached(cache: dict[str, dict], sensor_id: str, now: datetime)
     that sensor's history and re-ran the model, repeating real network I/O
     and the feature-scan work for a result that can't have changed within
     the same request."""
-    if sensor_id not in cache:
-        cache[sensor_id] = crowd_model.predict(sensor_id, now)
-    return cache[sensor_id]
+    with _crowd_cache_lock:
+        cached = cache.get(sensor_id)
+    if cached is not None:
+        return cached
+    result = crowd_model.predict(sensor_id, now)
+    with _crowd_cache_lock:
+        cache[sensor_id] = result
+    return result
+
+
+def _predict_crowd_many(cache: dict[str, dict], sensor_ids: list[str], now: datetime) -> None:
+    """Warms `cache` for every id in sensor_ids, fetching the still-uncached
+    ones concurrently instead of one at a time -- these are independent
+    network calls to the same upstream API, so there's no reason a slow
+    sensor blocks the others from starting."""
+    with _crowd_cache_lock:
+        pending = [sid for sid in sensor_ids if sid not in cache]
+    if not pending:
+        return
+    if len(pending) == 1:
+        _predict_crowd_cached(cache, pending[0], now)
+        return
+    with ThreadPoolExecutor(max_workers=min(_CROWD_FETCH_WORKERS, len(pending))) as pool:
+        list(pool.map(lambda sid: _predict_crowd_cached(cache, sid, now), pending))
 
 
 def _crowd_avg_for_path(
@@ -137,6 +172,7 @@ def _crowd_avg_for_path(
             continue
         sensor_ids.add(sensor_id)
 
+    _predict_crowd_many(crowd_cache, list(sensor_ids), now)
     readings: list[float] = []
     for sensor_id in sensor_ids:
         result = _predict_crowd_cached(crowd_cache, sensor_id, now)
@@ -183,6 +219,7 @@ def _build_crowd_penalty(
     corridor_sensors.sort(key=lambda s: router.haversine_m(mid_lon, mid_lat, s[2], s[1]))
     corridor_sensors = corridor_sensors[:MAX_CROWD_SENSORS_CONSIDERED]
 
+    _predict_crowd_many(crowd_cache, [s[0] for s in corridor_sensors], now)
     sensor_flows: list[tuple[float, float, float]] = []  # (lat, lon, flow)
     for sensor_id, lat, lon in corridor_sensors:
         result = _predict_crowd_cached(crowd_cache, sensor_id, now)
@@ -376,21 +413,33 @@ def plan_route(origin: dict, destination: dict) -> dict:
     now = datetime.now(tz=UTC)
     crowd_cache: dict[str, dict] = {}
 
-    fastest = _build_candidate("fastest", node_coords, adjacency, start_id, end_id, now, crowd_cache)
-    candidates = [fastest]
+    # The "quieter" corridor penalty is independent of the fastest/shaded
+    # candidates (only the thread-safe shared crowd_cache is touched by
+    # both), and it's dominated by the same kind of live sensor-history
+    # fetches as candidate crowd-sampling -- kicking it off on a background
+    # thread lets its network I/O overlap with the fastest/shaded Dijkstra
+    # runs instead of waiting for them to finish first.
+    with ThreadPoolExecutor(max_workers=1) as penalty_pool:
+        penalty_future = penalty_pool.submit(
+            _build_crowd_penalty, node_coords, origin, destination, now, crowd_cache
+        )
 
-    shaded = _build_candidate(
-        "shaded", node_coords, adjacency, start_id, end_id, now, crowd_cache,
-        shade_bias=router.SHADE_BIAS * heat_context["shade_bias_multiplier"],
-    )
-    # Only surface "shaded" as a distinct option when it's a real, noticeably
-    # different trade-off — a path that's technically different by a few
-    # metres but rounds to the same displayed time/percentage is a
-    # fake-looking duplicate card for zero real difference to the user.
-    if _meaningfully_different(shaded, candidates, "canopy_density_avg", relative_metric=False):
-        candidates.append(shaded)
+        fastest = _build_candidate("fastest", node_coords, adjacency, start_id, end_id, now, crowd_cache)
+        candidates = [fastest]
 
-    crowd_penalty = _build_crowd_penalty(node_coords, origin, destination, now, crowd_cache)
+        shaded = _build_candidate(
+            "shaded", node_coords, adjacency, start_id, end_id, now, crowd_cache,
+            shade_bias=router.SHADE_BIAS * heat_context["shade_bias_multiplier"],
+        )
+        # Only surface "shaded" as a distinct option when it's a real, noticeably
+        # different trade-off — a path that's technically different by a few
+        # metres but rounds to the same displayed time/percentage is a
+        # fake-looking duplicate card for zero real difference to the user.
+        if _meaningfully_different(shaded, candidates, "canopy_density_avg", relative_metric=False):
+            candidates.append(shaded)
+
+        crowd_penalty = penalty_future.result()
+
     if crowd_penalty:
         quieter = _build_candidate(
             "quieter", node_coords, adjacency, start_id, end_id, now, crowd_cache,

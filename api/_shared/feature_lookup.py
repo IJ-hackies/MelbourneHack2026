@@ -227,7 +227,19 @@ def _index_records(records: list[dict]) -> dict[tuple[str, int], float | None]:
 
 
 def _flow_at_indexed(index: dict[tuple[str, int], float | None], target: datetime) -> float | None:
-    return index.get((target.date().isoformat(), target.hour))
+    # The index is keyed by the City of Melbourne dataset's own sensing_date/
+    # hourday fields, which are Melbourne civil wall-clock time, unconverted
+    # (same convention this app already treats SCATS/Transport Activity
+    # timestamps with). `target` here is always a real UTC-aware datetime
+    # (route-planner.py's datetime.now(tz=UTC), or crowd-inference.py parsing
+    # ml-client.ts's toISOString()) -- comparing its raw .date()/.hour
+    # against Melbourne-local keys without converting first was a real,
+    # ~10-11 hour systematic offset bug: most lookups either silently hit a
+    # different, wrong hour's row (a real number, just for the wrong time)
+    # or missed entirely, which is what actually produced "Crowds nearby:
+    # Unavailable" for real, well-covered sensors.
+    local = target.astimezone(MELBOURNE_TZ)
+    return index.get((local.date().isoformat(), local.hour))
 
 
 # Keyed by the target hour truncated to the day + hour Open-Meteo actually
