@@ -13,9 +13,7 @@ export default async function Preferences() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select(
-      "heat_sensitivity, comfort_balance, pace, prefer_quieter_streets, prefer_lower_traffic, calendar_suggestions"
-    )
+    .select("heat_sensitivity, comfort_balance, pace, prefer_quieter_streets, prefer_lower_traffic")
     .eq("id", user.id)
     .single();
 

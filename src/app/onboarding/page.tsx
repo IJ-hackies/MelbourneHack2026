@@ -14,7 +14,7 @@ export default async function Onboarding() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, heat_sensitivity, comfort_balance, pace, prefer_quieter_streets, prefer_lower_traffic, calendar_suggestions")
+    .select("display_name, heat_sensitivity, comfort_balance, pace, prefer_quieter_streets, prefer_lower_traffic")
     .eq("id", user.id)
     .single();
 

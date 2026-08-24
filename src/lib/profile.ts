@@ -9,7 +9,6 @@ export type Profile = {
   pace: number;
   prefer_quieter_streets: boolean;
   prefer_lower_traffic: boolean;
-  calendar_suggestions: boolean;
 };
 
 export const defaultProfile: Omit<Profile, "id"> = {
@@ -20,5 +19,4 @@ export const defaultProfile: Omit<Profile, "id"> = {
   pace: 2,
   prefer_quieter_streets: true,
   prefer_lower_traffic: true,
-  calendar_suggestions: false,
 };

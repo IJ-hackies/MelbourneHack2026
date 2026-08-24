@@ -32,18 +32,11 @@ export function PreferencesForm({
   const [pace, setPace] = useState(profile.pace);
   const [quieterStreets, setQuieterStreets] = useState(profile.prefer_quieter_streets);
   const [lowerTraffic, setLowerTraffic] = useState(profile.prefer_lower_traffic);
-  const [calendarSuggestions, setCalendarSuggestions] = useState(
-    profile.calendar_suggestions
-  );
 
   const slidersClass =
     layout === "onboarding"
       ? "flex flex-col gap-6"
       : "grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-x-16 lg:gap-y-6";
-  const togglesClass =
-    layout === "onboarding"
-      ? "flex flex-col gap-2"
-      : "grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-x-16";
 
   return (
     <form action={formAction} className="flex flex-col gap-8">
@@ -52,11 +45,6 @@ export function PreferencesForm({
       <input type="hidden" name="pace" value={pace} />
       <input type="hidden" name="prefer_quieter_streets" value={String(quieterStreets)} />
       <input type="hidden" name="prefer_lower_traffic" value={String(lowerTraffic)} />
-      <input
-        type="hidden"
-        name="calendar_suggestions"
-        value={String(calendarSuggestions)}
-      />
 
       <div className={slidersClass}>
         <Slider
@@ -87,43 +75,25 @@ export function PreferencesForm({
         />
       </div>
 
-      <div className={togglesClass}>
-        <div>
-          {layout === "settings" && (
-            <h2 className="font-display text-base font-semibold tracking-tight text-text">
-              Recommendation priority
-            </h2>
-          )}
-          <Toggle
-            name="Prefer quieter streets"
-            description="When a quieter option exists, we'll recommend it first instead of fastest. This doesn't change which routes are offered."
-            checked={quieterStreets}
-            onChange={setQuieterStreets}
-          />
-          <Toggle
-            name="Prefer lower traffic"
-            description="Saved for when vehicle-traffic routing ships. It doesn&apos;t affect route choices yet."
-            checked={lowerTraffic}
-            onChange={setLowerTraffic}
-            comingSoon
-          />
-        </div>
-
-        <div>
-          {layout === "settings" && (
-            <h2 className="font-display text-base font-semibold tracking-tight text-text">
-              Integrations
-            </h2>
-          )}
-          <Toggle
-            name="Calendar suggestions"
-            description="Not built yet, so this can't be turned on. Once it ships, it'll only read your next event's time and location, and always ask you to confirm before routing."
-            checked={calendarSuggestions}
-            onChange={setCalendarSuggestions}
-            comingSoon
-            disabled
-          />
-        </div>
+      <div>
+        {layout === "settings" && (
+          <h2 className="font-display text-base font-semibold tracking-tight text-text">
+            Recommendation priority
+          </h2>
+        )}
+        <Toggle
+          name="Prefer quieter streets"
+          description="When a quieter option exists, we'll recommend it first instead of fastest. This doesn't change which routes are offered."
+          checked={quieterStreets}
+          onChange={setQuieterStreets}
+        />
+        <Toggle
+          name="Prefer lower traffic"
+          description="Saved for when vehicle-traffic routing ships. It doesn&apos;t affect route choices yet."
+          checked={lowerTraffic}
+          onChange={setLowerTraffic}
+          comingSoon
+        />
       </div>
 
       {state?.error && (

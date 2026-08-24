@@ -21,7 +21,6 @@ function readPreferences(formData: FormData) {
     pace: clampedInt(formData, "pace", 2, 0, 4),
     prefer_quieter_streets: formData.get("prefer_quieter_streets") === "true",
     prefer_lower_traffic: formData.get("prefer_lower_traffic") === "true",
-    calendar_suggestions: formData.get("calendar_suggestions") === "true",
   };
 }
 
