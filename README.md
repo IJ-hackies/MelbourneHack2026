@@ -130,3 +130,7 @@ The hourly pedestrian-count dataset is the exception: its current publisher API 
 ## License
 
 Built for a hackathon. No license has been chosen yet.
+
+## AI disclosure
+
+Claude (Anthropic) was used as a development assistant throughout this project, including code implementation, debugging, and documentation.
