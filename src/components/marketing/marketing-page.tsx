@@ -207,71 +207,6 @@ export function MarketingPage({
           </div>
         </section>
 
-        {/* Features */}
-        <section id="features" className="scroll-mt-20 border-t border-border px-5 py-20 sm:px-8 lg:px-12">
-          <div className="mx-auto max-w-5xl">
-            <div className="max-w-xl">
-              <h2 className="font-display text-2xl font-semibold tracking-tight text-text sm:text-3xl">
-                Built for a warming city.
-              </h2>
-              <p className="mt-3 text-text-secondary">
-                Melbourne is already seeing more extreme heat days, and on
-                those days the shortest path is often the wrong one. LeafRoute
-                weighs real, live conditions instead of just distance, so
-                walking stays a genuine alternative to driving even as it
-                gets hotter.
-              </p>
-            </div>
-
-            <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2">
-              {FEATURES.map((f) => (
-                <div
-                  key={f.title}
-                  className="rounded-2xl border border-border bg-surface p-6"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-alt">
-                    <ConditionIcon tone={f.tone} className="h-5 w-5" />
-                  </div>
-                  <h3 className="mt-4 font-display text-base font-semibold text-text">
-                    {f.title}
-                  </h3>
-                  <p className="mt-1.5 text-[0.9rem] leading-relaxed text-text-secondary">
-                    {f.body}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* How it works */}
-        <section
-          id="how-it-works"
-          className="scroll-mt-20 border-t border-border bg-surface/40 px-5 py-20 sm:px-8 lg:px-12"
-        >
-          <div className="mx-auto max-w-5xl">
-            <h2 className="font-display text-2xl font-semibold tracking-tight text-text sm:text-3xl">
-              How it works
-            </h2>
-
-            <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-6">
-              {STEPS.map((step) => (
-                <div key={step.number}>
-                  <div className="font-display text-sm font-semibold text-primary">
-                    {step.number}
-                  </div>
-                  <h3 className="mt-2 font-display text-lg font-semibold text-text">
-                    {step.title}
-                  </h3>
-                  <p className="mt-2 text-[0.9rem] leading-relaxed text-text-secondary">
-                    {step.body}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Climate action: mitigation + adaptation */}
         <section className="border-t border-border px-5 py-20 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-5xl">
@@ -360,6 +295,71 @@ export function MarketingPage({
               >
                 Start tracking your walks
               </PendingLink>
+            </div>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section id="features" className="scroll-mt-20 border-t border-border px-5 py-20 sm:px-8 lg:px-12">
+          <div className="mx-auto max-w-5xl">
+            <div className="max-w-xl">
+              <h2 className="font-display text-2xl font-semibold tracking-tight text-text sm:text-3xl">
+                Built for a warming city.
+              </h2>
+              <p className="mt-3 text-text-secondary">
+                Melbourne is already seeing more extreme heat days, and on
+                those days the shortest path is often the wrong one. LeafRoute
+                weighs real, live conditions instead of just distance, so
+                walking stays a genuine alternative to driving even as it
+                gets hotter.
+              </p>
+            </div>
+
+            <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2">
+              {FEATURES.map((f) => (
+                <div
+                  key={f.title}
+                  className="rounded-2xl border border-border bg-surface p-6"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-alt">
+                    <ConditionIcon tone={f.tone} className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-4 font-display text-base font-semibold text-text">
+                    {f.title}
+                  </h3>
+                  <p className="mt-1.5 text-[0.9rem] leading-relaxed text-text-secondary">
+                    {f.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section
+          id="how-it-works"
+          className="scroll-mt-20 border-t border-border bg-surface/40 px-5 py-20 sm:px-8 lg:px-12"
+        >
+          <div className="mx-auto max-w-5xl">
+            <h2 className="font-display text-2xl font-semibold tracking-tight text-text sm:text-3xl">
+              How it works
+            </h2>
+
+            <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-6">
+              {STEPS.map((step) => (
+                <div key={step.number}>
+                  <div className="font-display text-sm font-semibold text-primary">
+                    {step.number}
+                  </div>
+                  <h3 className="mt-2 font-display text-lg font-semibold text-text">
+                    {step.title}
+                  </h3>
+                  <p className="mt-2 text-[0.9rem] leading-relaxed text-text-secondary">
+                    {step.body}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
