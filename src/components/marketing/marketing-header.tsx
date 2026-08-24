@@ -6,6 +6,7 @@ import { PendingLink } from "@/components/pending-link";
 const NAV_LINKS = [
   { id: "features", label: "Features" },
   { id: "how-it-works", label: "How it works" },
+  { id: "demo", label: "Watch demo" },
   { id: "contact", label: "Contact" },
 ];
 

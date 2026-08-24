@@ -272,24 +272,6 @@ export function MarketingPage({
           </div>
         </section>
 
-        {/* Video */}
-        <section className="border-t border-border px-5 py-20 sm:px-8 lg:px-12">
-          <div className="mx-auto max-w-5xl">
-            <h2 className="font-display text-2xl font-semibold tracking-tight text-text sm:text-3xl">
-              See LeafRoute in action.
-            </h2>
-            <div className="mt-8 aspect-video w-full overflow-hidden rounded-2xl border border-border bg-surface-alt">
-              <iframe
-                className="h-full w-full"
-                src="https://www.youtube.com/embed/v4EALF0QRII"
-                title="LeafRoute walkthrough"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-            </div>
-          </div>
-        </section>
-
         {/* Climate action: mitigation + adaptation */}
         <section className="border-t border-border px-5 py-20 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-5xl">
@@ -378,6 +360,24 @@ export function MarketingPage({
               >
                 Start tracking your walks
               </PendingLink>
+            </div>
+          </div>
+        </section>
+
+        {/* Video */}
+        <section id="demo" className="scroll-mt-20 border-t border-border px-5 py-20 sm:px-8 lg:px-12">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="font-display text-2xl font-semibold tracking-tight text-text sm:text-3xl">
+              See LeafRoute in action.
+            </h2>
+            <div className="mt-8 aspect-video w-full overflow-hidden rounded-2xl border border-border bg-surface-alt">
+              <iframe
+                className="h-full w-full"
+                src="https://www.youtube.com/embed/v4EALF0QRII"
+                title="LeafRoute walkthrough"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
             </div>
           </div>
         </section>
