@@ -32,15 +32,26 @@ export function MarketingHeader({ appOrigin = "" }: { appOrigin?: string }) {
     history.pushState(null, "", `#${id}`);
   }
 
+  function handleLogoClick(e: MouseEvent<HTMLAnchorElement>) {
+    setOpen(false);
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    history.pushState(null, "", "#");
+  }
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-bg/85 backdrop-blur-md relative">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
-        <div className="flex items-center gap-2 font-display text-[1.1rem] font-semibold tracking-tight text-text">
+        <a
+          href="#"
+          onClick={handleLogoClick}
+          className="flex items-center gap-2 font-display text-[1.1rem] font-semibold tracking-tight text-text"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element -- a static
               brand mark, not a page image worth next/image's machinery */}
           <img src="/brand/leafroute-mark.png" alt="" className="h-[22px] w-[22px]" />
           LeafRoute
-        </div>
+        </a>
 
         <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
           {NAV_LINKS.map((link) => (
