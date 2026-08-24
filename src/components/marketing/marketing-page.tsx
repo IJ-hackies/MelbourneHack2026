@@ -96,6 +96,33 @@ export function MarketingPage({
                 Log in
               </PendingLink>
             </div>
+
+            {communityImpact && communityImpact.totalWalks > 0 && (
+              <div className="mx-auto mt-10 flex max-w-md flex-wrap items-center justify-center gap-x-8 gap-y-3 rounded-2xl border border-border bg-surface/70 px-6 py-4 backdrop-blur-sm">
+                <div>
+                  <div className="font-display text-xl font-semibold tracking-tight text-text">
+                    {communityImpact.totalEmissionsKg.toFixed(1)}
+                    <span className="ml-1 text-[0.8rem] font-medium text-text-secondary">kg CO₂e avoided</span>
+                  </div>
+                </div>
+                <div className="h-8 w-px bg-border" aria-hidden="true" />
+                <div>
+                  <div className="font-display text-xl font-semibold tracking-tight text-text">
+                    {communityImpact.totalDistanceKm.toFixed(1)}
+                    <span className="ml-1 text-[0.8rem] font-medium text-text-secondary">km walked</span>
+                  </div>
+                </div>
+                <div className="h-8 w-px bg-border" aria-hidden="true" />
+                <div>
+                  <div className="font-display text-xl font-semibold tracking-tight text-text">
+                    {communityImpact.totalWalks}
+                    <span className="ml-1 text-[0.8rem] font-medium text-text-secondary">
+                      {communityImpact.totalWalks === 1 ? "walk" : "walks"} logged
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Product showcase */}
