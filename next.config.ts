@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               "frame-ancestors 'none'",
+              "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
