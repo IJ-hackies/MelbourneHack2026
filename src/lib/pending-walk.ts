@@ -10,4 +10,10 @@ export type PendingWalk = {
   destination: string;
   minutes: number;
   distanceKm: number;
+  // Matches the id of the row this walk was already counted under in
+  // guest_walk_stats (see lib/actions/walks.ts's logGuestWalk) -- claiming
+  // this pending walk into the signed-in user's real history needs to
+  // delete that row first, or the same walk counts twice toward the public
+  // community total.
+  guestStatId: string | null;
 };

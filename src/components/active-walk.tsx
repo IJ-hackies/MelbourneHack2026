@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useTransition, useState } from "react";
 import Link from "next/link";
-import { logWalk } from "@/lib/actions/walks";
+import { logWalk, logGuestWalk } from "@/lib/actions/walks";
 import { useLiveProgress } from "@/lib/live-progress-context";
 import { PENDING_WALK_STORAGE_KEY, type PendingWalk } from "@/lib/pending-walk";
 import { co2Comparison } from "@/lib/co2-comparisons";
@@ -76,20 +76,23 @@ export function ActiveWalk({
     savedRef.current = true;
 
     if (!signedIn) {
-      // Stashed so claim-pending-walk.tsx can save it the moment this
-      // browser has a real session — otherwise a guest who signs up right
-      // after finishing a walk loses it, with no way to log it retroactively.
-      const pending: PendingWalk = { routeId, destination, minutes, distanceKm };
-      try {
-        localStorage.setItem(PENDING_WALK_STORAGE_KEY, JSON.stringify(pending));
-      } catch {
-        // Storage unavailable (private browsing, quota) — the walk still
-        // completes, it just can't be claimed after signing in, so say so
-        // instead of making a promise this browser can't keep. Deferred a
-        // tick so this effect doesn't call setState synchronously within
-        // itself (react-hooks/set-state-in-effect).
-        queueMicrotask(() => setPendingStashFailed(true));
-      }
+      // Counts this walk toward the public community total immediately,
+      // whether or not this guest ever signs in — logWalk removes the
+      // matching row later if they do, so it's never counted twice.
+      logGuestWalk({ distanceKm }).then(({ id }) => {
+        // Stashed so claim-pending-walk.tsx can save it the moment this
+        // browser has a real session — otherwise a guest who signs up right
+        // after finishing a walk loses it, with no way to log it retroactively.
+        const pending: PendingWalk = { routeId, destination, minutes, distanceKm, guestStatId: id };
+        try {
+          localStorage.setItem(PENDING_WALK_STORAGE_KEY, JSON.stringify(pending));
+        } catch {
+          // Storage unavailable (private browsing, quota) — the walk still
+          // completes, it just can't be claimed after signing in, so say so
+          // instead of making a promise this browser can't keep.
+          setPendingStashFailed(true);
+        }
+      });
       return;
     }
 

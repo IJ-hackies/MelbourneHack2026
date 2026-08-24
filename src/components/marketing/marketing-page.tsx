@@ -50,7 +50,7 @@ export function MarketingPage({
   communityImpact,
 }: {
   appOrigin?: string;
-  communityImpact?: { totalWalks: number; totalEmissionsKg: number } | null;
+  communityImpact?: { totalWalks: number; totalEmissionsKg: number; totalDistanceKm: number } | null;
 }) {
   // Recomputed on every render of this page, so it's a different, still-
   // accurate comparison each time someone lands here rather than the same
@@ -276,15 +276,22 @@ export function MarketingPage({
                 <div className="mt-5 border-t border-primary/25 pt-4">
                   {communityImpact && communityImpact.totalWalks > 0 ? (
                     <>
-                      <div className="font-display text-2xl font-semibold tracking-tight text-text">
-                        {communityImpact.totalEmissionsKg.toFixed(1)}
-                        <span className="ml-1 text-sm font-medium text-text-secondary">
-                          kg CO₂e avoided so far
-                        </span>
+                      <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+                        <div className="font-display text-2xl font-semibold tracking-tight text-text">
+                          {communityImpact.totalEmissionsKg.toFixed(1)}
+                          <span className="ml-1 text-sm font-medium text-text-secondary">
+                            kg CO₂e avoided
+                          </span>
+                        </div>
+                        <div className="font-display text-2xl font-semibold tracking-tight text-text">
+                          {communityImpact.totalDistanceKm.toFixed(1)}
+                          <span className="ml-1 text-sm font-medium text-text-secondary">km walked</span>
+                        </div>
                       </div>
-                      <p className="mt-1 text-[0.78rem] text-text-tertiary">
+                      <p className="mt-1.5 text-[0.78rem] text-text-tertiary">
                         Real total across {communityImpact.totalWalks} logged{" "}
-                        {communityImpact.totalWalks === 1 ? "walk" : "walks"}, updated live.
+                        {communityImpact.totalWalks === 1 ? "walk" : "walks"} from every visitor, signed
+                        in or not, updated live.
                         {communityComparison && <> That&apos;s about the same as {communityComparison}.</>}
                       </p>
                     </>

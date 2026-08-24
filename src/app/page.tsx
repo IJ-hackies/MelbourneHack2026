@@ -20,9 +20,15 @@ export default async function Home({
   if (host && APEX_HOSTS.includes(host)) {
     const supabase = await createClient();
     const { data } = await supabase.rpc("community_impact").maybeSingle();
-    const impactRow = data as { total_walks: number; total_emissions_kg: number } | null;
+    const impactRow = data as
+      | { total_walks: number; total_emissions_kg: number; total_distance_km: number }
+      | null;
     const communityImpact = impactRow
-      ? { totalWalks: Number(impactRow.total_walks), totalEmissionsKg: Number(impactRow.total_emissions_kg) }
+      ? {
+          totalWalks: Number(impactRow.total_walks),
+          totalEmissionsKg: Number(impactRow.total_emissions_kg),
+          totalDistanceKm: Number(impactRow.total_distance_km),
+        }
       : null;
     return <MarketingPage appOrigin={getAppOrigin(host)} communityImpact={communityImpact} />;
   }
