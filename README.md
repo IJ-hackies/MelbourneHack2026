@@ -85,9 +85,47 @@ npm run supabase:reset
 
 ## Data sources
 
-- City of Melbourne open data: pedestrian network, pedestrian counting sensors, urban tree canopy, drinking fountains
+- City of Melbourne open data: pedestrian network, pedestrian counting sensors, urban tree canopy
 - OpenStreetMap, via the Overpass API, for street coverage beyond the City of Melbourne's own network export
 - Open-Meteo, for weather, UV index, and air quality
+
+## Citations
+
+1. **City of Melbourne (n.d.-a).** *Pedestrian Counting System (counts per hour)* [Data set]. City of Melbourne Open Data Portal. Available at: [official dataset page](https://data.melbourne.vic.gov.au/explore/dataset/pedestrian-counting-system-monthly-counts-per-hour/) (accessed 24 August 2026).
+   The portal describes hourly fixed-counter observations from 2009 onward. Our canonical dataset combines three snapshots:
+
+   - Historical attachment through 31 October 2022.
+   - [Internet Archive snapshot captured 12 January 2025](https://web.archive.org/web/20250112000733id_/https://data.melbourne.vic.gov.au/api/v2/catalog/datasets/pedestrian-counting-system-monthly-counts-per-hour/exports/csv), using only 1 November 2022–20 August 2024.
+   - Current portal export from 21 August 2024.
+
+2. **City of Melbourne (n.d.-b).** *Pedestrian Counting System—Sensor Locations* [Data set]. City of Melbourne Open Data Portal. Available at: [official dataset page](https://data.melbourne.vic.gov.au/explore/dataset/pedestrian-counting-system-sensor-locations/) (accessed 24 August 2026).
+   The publisher warns that sensors may be relocated or removed, which matters when interpreting historical counts.
+
+3. **NASA Langley Research Center POWER Project (2026).** *POWER Hourly API: Melbourne CBD point, −37.8136°, 144.9631°, 1 May 2009–20 August 2026* [Data set]. Available at: [POWER Hourly API documentation](https://power.larc.nasa.gov/docs/services/api/temporal/hourly/) (retrieved 21 August 2026).
+   Also follow NASA's [official referencing guide](https://power.larc.nasa.gov/docs/referencing/). NASA requests an acknowledgement such as: "Data were obtained from NASA Langley Research Center's Prediction Of Worldwide Energy Resources project, funded through the NASA Earth Science Division." The current endpoint reports API v2.9.9, although that exact version was not captured in our original provenance.
+
+4. **City of Melbourne (n.d.-c).** *Microclimate Sensors Data* [Data set]. City of Melbourne Open Data Portal. Available at: [official dataset page](https://data.melbourne.vic.gov.au/explore/dataset/microclimate-sensors-data/) (accessed 24 August 2026).
+   Contains approximately 15-minute temperature, humidity, pressure, wind, particulate and noise readings. We aggregated these citywide and lagged them one hour.
+
+5. **City of Melbourne (n.d.-d).** *Transport Activity Counts* [Data set]. City of Melbourne Open Data Portal. Available at: [official dataset page](https://data.melbourne.vic.gov.au/explore/dataset/transport-activity-counts/) (accessed 24 August 2026).
+   The source reports five-minute AIRS classifications for pedestrians, cyclists, e-scooters and motor vehicles, with annual archives from 2023. We used 2023–2026 in the crowd experiment; traffic training used only 2024–11 May 2026.
+
+6. **Department of Transport and Planning Victoria (n.d.-a).** *Traffic Signal Volume Data* [Data set]. Victorian Government Open Data Portal. Available at: [official dataset page](https://opendata.transport.vic.gov.au/dataset/traffic-signal-volume-data) (accessed 24 August 2026).
+   The data contain 15-minute per-detector SCATS volumes. We aggregated these to hourly intersection totals and used 2024–31 July 2026.
+
+7. **Department of Transport and Planning Victoria (n.d.-b).** *Victorian Traffic Signals* [Data set]. Victorian Government Open Data Portal. Available at: [official dataset page](https://opendata.transport.vic.gov.au/dataset/victorian-traffic-signals) (accessed 24 August 2026).
+   Used to associate SCATS identifiers with signal-site coordinates.
+
+8. **Vacanza (n.d.).** *holidays: country- and subdivision-specific public holiday generator* [Python software]. Available at: [documentation](https://holidays.readthedocs.io/en/latest/) (accessed 24 August 2026).
+   LeafRoute uses `holidays.Australia(subdiv="VIC")`. The repository constrains the package to `>=0.70,<1`, but the exact installed version was not preserved.
+
+### Required attribution and licence notes
+
+Sensor locations, microclimate, Transport Activity, SCATS and Victorian Traffic Signals are recorded as [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). A suitable combined attribution is:
+
+> Contains data provided by the City of Melbourne and the Victorian Department of Transport and Planning, used and transformed under Creative Commons Attribution 4.0. Changes include filtering, temporal aggregation, harmonisation and feature engineering.
+
+The hourly pedestrian-count dataset is the exception: its current publisher API metadata has a null licence field. Do not claim that it is CC BY or redistribute its raw/derived data until the City confirms the terms. Internal model use is currently documented as pending confirmation.
 
 ## License
 
