@@ -37,6 +37,7 @@ export function ActiveWalk({
   const savedRef = useRef(false);
   const arrivalStreakRef = useRef(0);
   const [confirmedArrival, setConfirmedArrival] = useState(false);
+  const [pendingStashFailed, setPendingStashFailed] = useState(false);
 
   const withinArrivalRadius = progress ? progress.distanceRemainingKm <= ARRIVAL_RADIUS_KM : false;
   useEffect(() => {
@@ -78,7 +79,11 @@ export function ActiveWalk({
         localStorage.setItem(PENDING_WALK_STORAGE_KEY, JSON.stringify(pending));
       } catch {
         // Storage unavailable (private browsing, quota) — the walk still
-        // completes, it just can't be claimed after signing in.
+        // completes, it just can't be claimed after signing in, so say so
+        // instead of making a promise this browser can't keep. Deferred a
+        // tick so this effect doesn't call setState synchronously within
+        // itself (react-hooks/set-state-in-effect).
+        queueMicrotask(() => setPendingStashFailed(true));
       }
       return;
     }
@@ -111,7 +116,13 @@ export function ActiveWalk({
           </div>
         </div>
         <p className="mt-3 text-xs text-surface/80">
-          {!signedIn ? (
+          {!signedIn && pendingStashFailed ? (
+            <>
+              Estimated avoided emissions vs. an equivalent car trip. This browser
+              couldn&apos;t hold onto this walk to add it to your history later (private
+              browsing or storage is blocked here) — it still counts, just not recorded.
+            </>
+          ) : !signedIn ? (
             <>
               Estimated avoided emissions vs. an equivalent car trip.{" "}
               <Link href="/login" className="underline hover:no-underline">

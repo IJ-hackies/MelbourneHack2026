@@ -377,6 +377,12 @@ export function DestinationSearch({
           ))}
         </ul>
       )}
+
+      {open && !error && !loading && !showingRecents && items.length === 0 && (
+        <div className="absolute z-30 mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-text-tertiary shadow-lg">
+          No results for &quot;{query.trim()}&quot;
+        </div>
+      )}
     </div>
   );
 }

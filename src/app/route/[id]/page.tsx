@@ -7,6 +7,7 @@ import { ShareRouteButton } from "@/components/share-route-button";
 import { routeProvider } from "@/lib/providers/route-provider";
 import { getQuietestHourToday } from "@/lib/providers/quietest-hour";
 import { getWaterStopsNearRoute } from "@/lib/providers/water-stops";
+import { loadSignedInPreferences } from "@/lib/providers/signed-in-preferences";
 import { LiveProgressProvider } from "@/lib/live-progress-context";
 import { createClient } from "@/lib/supabase/server";
 
@@ -70,10 +71,12 @@ export default async function RouteDetail({
     Number.isFinite(resolvedOriginLat) && Number.isFinite(resolvedOriginLon)
       ? { lat: resolvedOriginLat, lon: resolvedOriginLon }
       : undefined;
+  const preferences = await loadSignedInPreferences();
   const [{ routes, heatContext }, quietestHour] = await Promise.all([
     routeProvider.listRoutes({
       destination: { label: destination, lat: resolvedLat, lon: resolvedLon },
       origin,
+      preferences,
     }),
     getQuietestHourToday({ lat: resolvedLat, lon: resolvedLon }),
   ]);
@@ -95,7 +98,7 @@ export default async function RouteDetail({
 
   return (
     <LiveProgressProvider>
-    <main className="mx-auto grid max-w-xl grid-cols-1 gap-6 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[1fr_340px] lg:items-start lg:gap-12 lg:py-12">
+    <main className="mx-auto grid max-w-xl grid-cols-1 gap-6 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[1fr_340px] lg:items-start lg:gap-12 lg:py-12 xl:max-w-6xl xl:grid-cols-[1fr_380px] xl:gap-16">
       <div className="flex flex-col gap-6 lg:col-span-2">
         <div className="flex items-center justify-between gap-4">
           <Link

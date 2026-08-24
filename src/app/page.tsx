@@ -72,7 +72,7 @@ async function PlanScreen({
   // independently once mounted.
 
   return (
-    <main className="mx-auto grid max-w-xl grid-cols-1 gap-8 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[360px_1fr] lg:items-start lg:gap-12 lg:py-12">
+    <main className="mx-auto grid max-w-xl grid-cols-1 gap-8 px-5 py-8 sm:px-8 lg:max-w-5xl lg:grid-cols-[360px_1fr] lg:items-start lg:gap-12 lg:py-12 xl:max-w-6xl xl:gap-16">
       {!userId && (
         <div className="flex flex-col gap-3 rounded-2xl border border-primary bg-primary-soft p-4 sm:flex-row sm:items-center sm:justify-between lg:col-span-2">
           <div className="flex items-center gap-2.5">

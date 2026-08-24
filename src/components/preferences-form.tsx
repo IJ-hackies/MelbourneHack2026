@@ -74,6 +74,7 @@ export function PreferencesForm({
           onChange={setComfortBalance}
           valueLabel={comfortBalance < 50 ? "COMFORT" : "SPEED"}
           hint="Saved for future route ranking. It doesn&apos;t affect route choices yet."
+          comingSoon
         />
         <Slider
           label="Walking pace"
@@ -83,6 +84,7 @@ export function PreferencesForm({
           onChange={setPace}
           valueLabel={paceLabels[pace].toUpperCase()}
           hint="Saved for future ETA tuning. It doesn&apos;t affect route choices yet."
+          comingSoon
         />
       </div>
 
@@ -104,6 +106,7 @@ export function PreferencesForm({
             description="Saved for when vehicle-traffic routing ships. It doesn&apos;t affect route choices yet."
             checked={lowerTraffic}
             onChange={setLowerTraffic}
+            comingSoon
           />
         </div>
 

@@ -8,7 +8,11 @@
   --border: #e2d7bd;
   --text: #2b241a;
   --text-secondary: #6b6252;
-  --text-tertiary: #948a75;
+  /* #948a75 previously computed to ~3.35:1 against --surface, below WCAG
+     AA's 4.5:1 for the small captions/labels this token is used for
+     everywhere -- a real problem for a walking app read in bright outdoor
+     sunlight. This darker value keeps the same hue but clears ~5.1:1. */
+  --text-tertiary: #756b54;
   --primary: #0e6e64;
   --primary-strong: #0a544c;
   --primary-soft: #e3f0ec;

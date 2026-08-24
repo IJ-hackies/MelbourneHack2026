@@ -25,11 +25,21 @@ from __future__ import annotations
 
 import math
 import re
+import threading
 import urllib.parse
 import urllib.request
 import json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+
+# route-planner.py's _predict_crowd_many runs up to 8 sensor predictions
+# concurrently, each of which can reach the module-level caches below
+# (_history_cache, _weather_cache, _sensor_locations_cache). Without this
+# lock, two threads could both see a cache miss for the same key, both fire
+# a redundant live HTTP fetch, and both write -- defeating the caches'
+# entire purpose (avoiding refetching) exactly on the concurrent path they
+# were meant to help.
+_cache_lock = threading.Lock()
 
 MELBOURNE_TZ = ZoneInfo("Australia/Melbourne")
 
@@ -104,12 +114,14 @@ def _fetch_sensor_locations() -> list[dict]:
     sensor-locations dataset (not the offline ml/ mirror)."""
     global _sensor_locations_cache
     now = datetime.now(tz=MELBOURNE_TZ)
-    if _sensor_locations_cache and now - _sensor_locations_cache[0] < _SENSOR_LOCATIONS_CACHE_TTL:
-        return _sensor_locations_cache[1]
+    with _cache_lock:
+        if _sensor_locations_cache and now - _sensor_locations_cache[0] < _SENSOR_LOCATIONS_CACHE_TTL:
+            return _sensor_locations_cache[1]
 
     # ~134 sensors total, well within a couple of paginated 100-row requests.
     records = _fetch_all_records(SENSOR_LOCATIONS_RECORDS_URL, None, "location_id", max_rows=500)
-    _sensor_locations_cache = (now, records)
+    with _cache_lock:
+        _sensor_locations_cache = (now, records)
     return records
 
 
@@ -186,10 +198,11 @@ def _fetch_sensor_history(sensor_id: str, as_of: datetime) -> list[dict]:
     if not _VALID_SENSOR_ID.fullmatch(sensor_id):
         return []
 
-    cached = _history_cache.get(sensor_id)
     now = datetime.now(tz=MELBOURNE_TZ)
-    if cached and now - cached[0] < _HISTORY_CACHE_TTL:
-        return cached[1]
+    with _cache_lock:
+        cached = _history_cache.get(sensor_id)
+        if cached and now - cached[0] < _HISTORY_CACHE_TTL:
+            return cached[1]
 
     # 168+ hours of history needed for the flow_lag_168h feature; two
     # paginated requests comfortably cover that.
@@ -199,7 +212,8 @@ def _fetch_sensor_history(sensor_id: str, as_of: datetime) -> list[dict]:
         "sensing_date desc,hourday desc",
         max_rows=200,
     )
-    _history_cache[sensor_id] = (now, records)
+    with _cache_lock:
+        _history_cache[sensor_id] = (now, records)
     return records
 
 
@@ -251,11 +265,13 @@ _weather_cache: dict[str, dict[str, float] | None] = {}
 
 def _fetch_weather(target_hour: datetime) -> dict[str, float] | None:
     cache_key = target_hour.strftime("%Y-%m-%dT%H")
-    if cache_key in _weather_cache:
-        return _weather_cache[cache_key]
+    with _cache_lock:
+        if cache_key in _weather_cache:
+            return _weather_cache[cache_key]
 
     result = _fetch_weather_uncached(target_hour)
-    _weather_cache[cache_key] = result
+    with _cache_lock:
+        _weather_cache[cache_key] = result
     return result
 
 

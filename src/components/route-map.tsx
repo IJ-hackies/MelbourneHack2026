@@ -32,6 +32,10 @@ const REROUTE_THRESHOLD_M = 30;
 // phone GPS commonly jitters 3-8m even standing still, so counting every
 // tick toward "distance walked" would inflate the live counter while idle.
 const MIN_MOVEMENT_M = 4;
+// A brisk jog is ~3.3 m/s; this leaves real headroom above normal walking
+// pace while still rejecting a GPS reacquisition jump (hundreds of metres
+// in one fix) as "walked".
+const MAX_PLAUSIBLE_SPEED_M_PER_S = 4;
 // Same factor used everywhere else this figure appears (walks.ts, the
 // history page, the marketing community counter) — kept in sync manually
 // since there's no shared constants module yet.
@@ -148,6 +152,7 @@ export function RouteMap({
   // actually walked", the same way a fitness-tracker app would show it.
   const walkedMetresRef = useRef(0);
   const lastPositionRef = useRef<Coordinates | null>(null);
+  const lastFixAtMsRef = useRef<number | null>(null);
   const headingDegRef = useRef<number | null>(null);
 
   const liveLocation = useLiveLocation(true);
@@ -304,12 +309,23 @@ export function RouteMap({
     // rather than snapping to a meaningless bearing between two near-identical
     // points.
     const previous = lastPositionRef.current;
+    const previousFixAtMs = lastFixAtMsRef.current;
+    const nowMs = Date.now();
     const movedM = previous ? haversineM(previous, here) : Infinity;
     if (previous && movedM >= MIN_MOVEMENT_M) {
       headingDegRef.current = bearingDeg(previous, here);
-      walkedMetresRef.current += movedM;
+      // GPS reacquisition after a signal loss (emerging from a tunnel/
+      // building) commonly reports a single large jump between two
+      // consecutive fixes -- counting that entirely as "walked" inflates
+      // both the on-map counter and the emissions-saved figure actually
+      // saved to history. Clamp a single tick's contribution to what's
+      // plausible at a brisk jogging pace instead of the raw GPS distance.
+      const elapsedS = previousFixAtMs ? Math.max(0.001, (nowMs - previousFixAtMs) / 1000) : null;
+      const plausibleM = elapsedS ? MAX_PLAUSIBLE_SPEED_M_PER_S * elapsedS : movedM;
+      walkedMetresRef.current += Math.min(movedM, plausibleM);
     }
     lastPositionRef.current = here;
+    lastFixAtMsRef.current = nowMs;
 
     if (!liveMarkerRef.current) {
       const el = document.createElement("div");

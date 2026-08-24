@@ -13,7 +13,7 @@ const CONDITIONS_CACHE_TTL_MS = 90_000;
 
 function ConditionSkeleton() {
   return (
-    <div className="animate-pulse rounded-2xl border border-border bg-surface px-2.5 py-3 lg:flex lg:items-center lg:gap-3 lg:px-4 lg:py-3">
+    <div className="w-[6.5rem] shrink-0 animate-pulse rounded-2xl border border-border bg-surface px-2.5 py-3 sm:w-auto lg:flex lg:items-center lg:gap-3 lg:px-4 lg:py-3">
       <div className="mx-auto h-[18px] w-[18px] rounded-full bg-surface-alt lg:mx-0" />
       <div className="mt-2 flex flex-col items-center gap-1.5 lg:mt-0 lg:flex-1 lg:items-start">
         <div className="h-2.5 w-16 rounded bg-surface-alt" />
@@ -99,13 +99,18 @@ export function ConditionsPanel({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-1 lg:gap-2.5">
+    // A 2-col grid left a lone half-width tile dangling on an odd count
+    // (currently 5) -- a horizontally-scrollable row on narrow screens
+    // avoids that remainder entirely and keeps the plan page shorter before
+    // a mobile user reaches the actual route cards, switching to a fixed
+    // grid once there's room to lay every tile out evenly.
+    <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 lg:grid-cols-1 lg:gap-2.5">
       {conditions === null
         ? Array.from({ length: 5 }, (_, i) => <ConditionSkeleton key={i} />)
         : conditions.map((c) => (
             <div
               key={c.label}
-              className="rounded-2xl border border-border bg-surface px-2.5 py-3 text-center lg:flex lg:items-center lg:gap-3 lg:px-4 lg:py-3 lg:text-left"
+              className="w-[6.5rem] shrink-0 snap-start rounded-2xl border border-border bg-surface px-2.5 py-3 text-center sm:w-auto lg:flex lg:items-center lg:gap-3 lg:px-4 lg:py-3 lg:text-left"
             >
               <ConditionIcon tone={c.tone} className="mx-auto mb-1.5 h-[18px] w-[18px] lg:mx-0 lg:mb-0" />
               <div className="min-w-0 lg:flex-1">

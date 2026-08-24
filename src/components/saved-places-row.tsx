@@ -136,10 +136,22 @@ export function SavedPlacesRow({
   const work = places.find((p) => p.kind === "work");
   const favorites = places.filter((p) => p.kind === "favorite");
 
+  // Rounded to ~11m precision rather than requiring exact equality --
+  // re-searching the same address can legitimately return marginally
+  // different coordinates from the geocoder, which previously made
+  // "+ Save this place" reappear for an address already saved and invited a
+  // near-duplicate favorite.
   const currentAlreadySaved =
     current &&
+    current.lat != null &&
+    current.lon != null &&
     places.some(
-      (p) => p.lat === current.lat && p.lon === current.lon && p.label === current.label
+      (p) =>
+        p.lat != null &&
+        p.lon != null &&
+        p.lat.toFixed(4) === current.lat!.toFixed(4) &&
+        p.lon.toFixed(4) === current.lon!.toFixed(4) &&
+        p.label === current.label
     );
 
   const kindLabel = { home: "Home", work: "Work", favorite: "favorites" } as const;

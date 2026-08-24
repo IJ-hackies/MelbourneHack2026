@@ -54,8 +54,26 @@ async function fetchAllFountains(): Promise<{ lat: number; lon: number }[]> {
 // Nearest real fountains to any point along the route's own path, not just
 // the destination -- a walker wants a stop they'll actually pass, not one
 // that happens to be close to where they end up.
+// Caps how many path points the O(fountains × points) nearest-distance scan
+// below actually checks. Consecutive routed-graph vertices sit only a few
+// metres apart, far denser than the 350m detour radius cares about, so
+// evenly thinning a long path down to this many points barely changes which
+// fountains qualify while keeping the scan bounded regardless of how many
+// vertices the real route happens to have.
+const MAX_PATH_SAMPLES = 150;
+
+function sampleAlongPath(path: Coordinates[]): Coordinates[] {
+  if (path.length <= MAX_PATH_SAMPLES) return path;
+  const stride = path.length / MAX_PATH_SAMPLES;
+  const sampled: Coordinates[] = [];
+  for (let i = 0; i < MAX_PATH_SAMPLES; i++) sampled.push(path[Math.floor(i * stride)]);
+  if (sampled[sampled.length - 1] !== path[path.length - 1]) sampled.push(path[path.length - 1]);
+  return sampled;
+}
+
 export async function getWaterStopsNearRoute(path: Coordinates[]): Promise<WaterStop[]> {
   if (path.length === 0) return [];
+  const samples = sampleAlongPath(path);
 
   let fountains: { lat: number; lon: number }[];
   try {
@@ -67,7 +85,7 @@ export async function getWaterStopsNearRoute(path: Coordinates[]): Promise<Water
   const stops: WaterStop[] = [];
   for (const fountain of fountains) {
     let nearestM = Infinity;
-    for (const point of path) {
+    for (const point of samples) {
       const d = haversineM(fountain, point);
       if (d < nearestM) nearestM = d;
     }
