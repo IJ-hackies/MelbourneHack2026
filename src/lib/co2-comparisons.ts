@@ -9,7 +9,6 @@
 // - smartphone charge: ~8.4g CO2e per full charge
 // - video streaming: ~36g CO2e per hour of HD streaming
 // - LED bulb: ~4g CO2e per hour (10W bulb, average grid intensity)
-// - coffee: ~21g CO2e per cup brewed
 // - plastic bottle: ~80g CO2e per 500ml bottle produced
 // - tree: a mature tree absorbs ~21kg CO2 a year, ~0.0575kg/day
 //
@@ -40,10 +39,6 @@ const COMPARISONS: Comparison[] = [
     describe: (n) => `${Math.round(n)} ${plural(Math.round(n), "hour")} less video streaming`,
   },
   {
-    kgPerUnit: 0.021,
-    describe: (n) => `${Math.round(n)} fewer ${plural(Math.round(n), "cup")} of coffee brewed`,
-  },
-  {
     kgPerUnit: 0.0084,
     describe: (n) => `${Math.round(n)} fewer smartphone ${plural(Math.round(n), "charge")}`,
   },
@@ -52,6 +47,14 @@ const COMPARISONS: Comparison[] = [
     describe: (n) => `an LED bulb switched off for ${Math.round(n)} ${plural(Math.round(n), "hour")}`,
   },
 ];
+
+// Rotates strictly through every eligible comparison in turn rather than
+// picking independently at random each time -- independent random draws
+// can and did streak (the same comparison landing several views in a row
+// purely by chance), which reads as "broken" even though it's statistically
+// fine. A shared counter that advances on every call guarantees each
+// comparison gets its fair turn before any of them repeats.
+let rotation = 0;
 
 // Only a comparison whose count actually rounds to something worth saying
 // (>= 1 unit) is eligible — a tiny walk shouldn't produce "0 plastic
@@ -64,6 +67,7 @@ export function co2Comparison(kg: number): string | null {
   const eligible = COMPARISONS.filter((c) => Math.round(kg / c.kgPerUnit) >= 1);
   if (eligible.length === 0) return null;
 
-  const pick = eligible[Math.floor(Math.random() * eligible.length)];
+  const pick = eligible[rotation % eligible.length];
+  rotation += 1;
   return pick.describe(kg / pick.kgPerUnit);
 }
