@@ -99,9 +99,9 @@ export function ConditionsPanel({
   }
 
   return (
-    <div className="grid grid-cols-3 gap-2 lg:grid-cols-1 lg:gap-2.5">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-1 lg:gap-2.5">
       {conditions === null
-        ? Array.from({ length: 3 }, (_, i) => <ConditionSkeleton key={i} />)
+        ? Array.from({ length: 5 }, (_, i) => <ConditionSkeleton key={i} />)
         : conditions.map((c) => (
             <div
               key={c.label}

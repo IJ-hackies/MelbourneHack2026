@@ -28,14 +28,72 @@ function feelsLabel(tempC: number): string {
   return "Feels hot";
 }
 
+// The standard WHO/EPA UV Index bands used on Australian sun-safety advice
+// (sunsmart.com.au uses the same 3/6/8/11 cut-offs) — "protection needed"
+// starts at 3, not just at the "extreme" end, so this reflects real
+// sun-safety guidance rather than only flagging the worst case.
+function uvLabel(uv: number): string {
+  if (uv < 3) return "Low UV";
+  if (uv < 6) return "Moderate UV";
+  if (uv < 8) return "High UV";
+  if (uv < 11) return "Very high UV";
+  return "Extreme UV";
+}
+
+// US EPA AQI bands, same scale Open-Meteo's air-quality API reports
+// (us_aqi) — used as-is rather than inventing a different cutoff scheme.
+function airQualityLabel(aqi: number): string {
+  if (aqi <= 50) return "Good air quality";
+  if (aqi <= 100) return "Moderate air quality";
+  if (aqi <= 150) return "Unhealthy for sensitive groups";
+  if (aqi <= 200) return "Unhealthy air quality";
+  if (aqi <= 300) return "Very unhealthy air quality";
+  return "Hazardous air quality";
+}
+
+type AirQualityResponse = {
+  conditions: { usAqi: number; pm25: number } | null;
+};
+
 class LiveConditionProvider implements ConditionProvider {
   async getConditions(input: ConditionQueryInput): Promise<Condition[]> {
-    const [weatherCondition, crowdCondition, shadeCondition] = await Promise.all([
-      this.getWeatherCondition(input),
+    const [weatherConditions, crowdCondition, shadeCondition, airQualityCondition] = await Promise.all([
+      this.getWeatherConditions(input),
       this.getCrowdCondition(input),
       this.getShadeCondition(input),
+      this.getAirQualityCondition(input),
     ]);
-    return [weatherCondition, crowdCondition, shadeCondition];
+    return [...weatherConditions, airQualityCondition, crowdCondition, shadeCondition];
+  }
+
+  private async getAirQualityCondition(input: ConditionQueryInput): Promise<Condition> {
+    // Real, current PM2.5-derived AQI (Open-Meteo's air-quality API, same
+    // provider already used for weather, no API key required) — the
+    // "helping people cope with the climate impacts already happening" half
+    // of the app's climate-action framing, since bushfire smoke is exactly
+    // that kind of impact and previously had no surface here at all.
+    try {
+      const url = new URL("/api/air-quality", await getBaseUrl());
+      url.searchParams.set("lat", String(input.lat));
+      url.searchParams.set("lon", String(input.lon));
+
+      const res = await fetch(url, { cache: "no-store" });
+      const data: AirQualityResponse = await res.json();
+
+      if (!res.ok || !data.conditions) {
+        return { label: "Air quality", value: "Unavailable", tone: "primary" };
+      }
+
+      const { usAqi, pm25 } = data.conditions;
+      return {
+        label: airQualityLabel(usAqi),
+        value: `AQI ${Math.round(usAqi)}`,
+        detail: `PM2.5: ${pm25.toFixed(1)} µg/m³`,
+        tone: "primary",
+      };
+    } catch {
+      return { label: "Air quality", value: "Unavailable", tone: "primary" };
+    }
   }
 
   private async getShadeCondition(input: ConditionQueryInput): Promise<Condition> {
@@ -69,7 +127,10 @@ class LiveConditionProvider implements ConditionProvider {
     }
   }
 
-  private async getWeatherCondition(input: ConditionQueryInput): Promise<Condition> {
+  // Fetched once and split into two conditions (temperature, UV) — both
+  // come from the same /api/weather call, so this avoids firing a second
+  // request just to read a different field off the same response.
+  private async getWeatherConditions(input: ConditionQueryInput): Promise<Condition[]> {
     try {
       const url = new URL("/api/weather", await getBaseUrl());
       url.searchParams.set("lat", String(input.lat));
@@ -79,17 +140,27 @@ class LiveConditionProvider implements ConditionProvider {
       const data: WeatherResponse = await res.json();
 
       if (!res.ok || !data.conditions) {
-        return { label: "Temperature", value: "Unavailable", tone: "heat" };
+        return [
+          { label: "Temperature", value: "Unavailable", tone: "heat" },
+          { label: "UV index", value: "Unavailable", tone: "heat" },
+        ];
       }
 
-      const c = data.conditions.temperatureC;
-      return {
-        label: feelsLabel(c),
-        value: `${Math.round(c)}°C`,
-        tone: "heat",
-      };
+      const { temperatureC, uvIndex } = data.conditions;
+      return [
+        { label: feelsLabel(temperatureC), value: `${Math.round(temperatureC)}°C`, tone: "heat" },
+        {
+          label: uvLabel(uvIndex),
+          value: uvIndex.toFixed(1),
+          detail: uvIndex >= 8 ? "Sun protection recommended" : undefined,
+          tone: "heat",
+        },
+      ];
     } catch {
-      return { label: "Temperature", value: "Unavailable", tone: "heat" };
+      return [
+        { label: "Temperature", value: "Unavailable", tone: "heat" },
+        { label: "UV index", value: "Unavailable", tone: "heat" },
+      ];
     }
   }
 

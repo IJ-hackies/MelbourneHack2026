@@ -278,7 +278,8 @@ export function MarketingPage({
                       </div>
                       <p className="mt-1 text-[0.78rem] text-text-tertiary">
                         Real total across {communityImpact.totalWalks} logged{" "}
-                        {communityImpact.totalWalks === 1 ? "walk" : "walks"}, updated live.
+                        {communityImpact.totalWalks === 1 ? "walk" : "walks"}, updated live. That&apos;s
+                        like {(communityImpact.totalEmissionsKg / 0.19).toFixed(1)} km not driven.
                       </p>
                     </>
                   ) : (

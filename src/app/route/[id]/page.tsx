@@ -6,6 +6,7 @@ import { RouteMap } from "@/components/route-map-lazy";
 import { ShareRouteButton } from "@/components/share-route-button";
 import { routeProvider } from "@/lib/providers/route-provider";
 import { getQuietestHourToday } from "@/lib/providers/quietest-hour";
+import { getWaterStopsNearRoute } from "@/lib/providers/water-stops";
 import { LiveProgressProvider } from "@/lib/live-progress-context";
 import { createClient } from "@/lib/supabase/server";
 
@@ -69,7 +70,7 @@ export default async function RouteDetail({
     Number.isFinite(resolvedOriginLat) && Number.isFinite(resolvedOriginLon)
       ? { lat: resolvedOriginLat, lon: resolvedOriginLon }
       : undefined;
-  const [{ routes }, quietestHour] = await Promise.all([
+  const [{ routes, heatContext }, quietestHour] = await Promise.all([
     routeProvider.listRoutes({
       destination: { label: destination, lat: resolvedLat, lon: resolvedLon },
       origin,
@@ -78,6 +79,14 @@ export default async function RouteDetail({
   ]);
   const route = routes.find((r) => r.id === id);
   if (!route) notFound();
+
+  // Only worth fetching (a real network call to a third-party dataset) when
+  // there's an actual reason to route someone to a tap -- a live heat
+  // advisory, and a real routed path to check stops against.
+  const waterStops =
+    heatContext?.advisory && route.geometry.path
+      ? await getWaterStopsNearRoute(route.geometry.path)
+      : [];
 
   const supabase = await createClient();
   const {
@@ -226,6 +235,25 @@ export default async function RouteDetail({
               <span className="font-semibold">{quietestHour.label}</span> today, if you&apos;d
               rather wait.
             </p>
+          </div>
+        )}
+
+        {waterStops.length > 0 && (
+          <div className="flex items-start gap-2.5 rounded-2xl border border-heat/30 bg-heat-soft px-4 py-3">
+            <ConditionIcon tone="heat" className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="text-[0.84rem] text-text">
+              <p>
+                <strong className="font-semibold">Heat advisory:</strong> real public drinking
+                fountains within a short detour of this route.
+              </p>
+              <ul className="mt-2 flex flex-col gap-1 text-[0.78rem] text-text-secondary">
+                {waterStops.map((stop, i) => (
+                  <li key={`${stop.lat},${stop.lon}`}>
+                    Fountain {i + 1}: about {stop.distanceFromRouteM}m off the route
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         )}
 

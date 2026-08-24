@@ -62,6 +62,10 @@ export default async function History() {
   }).length;
 
   const totalEmissions = walks.reduce((sum, w) => sum + Number(w.emissions_kg), 0);
+  // Same 0.19 kg CO2e/km average-car factor emissions are estimated with in
+  // the first place (see lib/actions/walks.ts) — run backwards, this turns
+  // an abstract kg figure into a distance a driver can actually picture.
+  const carKmAvoided = totalEmissions / 0.19;
 
   const countByDay = new Map<string, number>();
   for (const w of walks) {
@@ -104,6 +108,11 @@ export default async function History() {
             Compared to an equivalent car trip. It&apos;s an estimate, not a
             guarantee you would have driven.
           </p>
+          {totalEmissions > 0 && (
+            <p className="mt-1.5 text-[0.75rem] font-medium text-surface/95">
+              That&apos;s like {carKmAvoided.toFixed(1)} km not driven.
+            </p>
+          )}
         </div>
 
         <div className="rounded-2xl border border-border bg-surface p-[18px]">
