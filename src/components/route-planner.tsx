@@ -89,8 +89,10 @@ function RouteCardSkeleton() {
 
 export function RoutePlanner({
   destination,
+  signedIn,
 }: {
   destination: { label: string; lat: number; lon: number };
+  signedIn: boolean;
 }) {
   const router = useRouter();
   const [routes, setRoutes] = useState<RouteOption[] | null>(null);
@@ -309,6 +311,14 @@ export function RoutePlanner({
               {fastest && route.id !== "fastest" && (
                 <p className="mt-1 text-[0.78rem] text-text-tertiary">
                   {tradeOffLabel(route, fastest)}
+                </p>
+              )}
+              {signedIn && route.recommended && routes.length > 1 && (
+                <p className="mt-1.5 flex items-center gap-1 text-[0.76rem] font-medium text-primary-strong">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
+                    <path d="M12 2l2.9 6.3 6.9.9-5 4.8 1.3 6.8L12 17.5 5.9 20.8l1.3-6.8-5-4.8 6.9-.9L12 2z" />
+                  </svg>
+                  Recommended for you, based on your preferences
                 </p>
               )}
               <div className="mt-2.5 flex flex-wrap gap-1.5">

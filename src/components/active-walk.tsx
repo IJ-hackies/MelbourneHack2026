@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useTransition, useState } from "react";
+import { useEffect, useMemo, useRef, useTransition, useState } from "react";
 import Link from "next/link";
 import { logWalk } from "@/lib/actions/walks";
 import { useLiveProgress } from "@/lib/live-progress-context";
 import { PENDING_WALK_STORAGE_KEY, type PendingWalk } from "@/lib/pending-walk";
+import { co2Comparison } from "@/lib/co2-comparisons";
 
 // Close enough to the destination to count as arrived — real GPS accuracy
 // on a phone is commonly 5-15m in open air, so this has to be a radius,
@@ -54,6 +55,10 @@ export function ActiveWalk({
   const done = manuallyFinished || confirmedArrival;
 
   const emissionsKg = (distanceKm * 0.19).toFixed(2);
+  // Memoized on the number itself (not recomputed on every re-render, e.g.
+  // when saveError changes) so the comparison shown for this walk stays put
+  // once it's picked, rather than jumping to a different one mid-view.
+  const comparison = useMemo(() => co2Comparison(distanceKm * 0.19), [distanceKm]);
   const percentComplete = progress
     ? Math.min(100, Math.max(0, Math.round((1 - progress.distanceRemainingKm / Math.max(distanceKm, 0.001)) * 100)))
     : 0;
@@ -115,6 +120,11 @@ export function ActiveWalk({
             <div className="text-xs text-surface/80">Est. CO₂e avoided</div>
           </div>
         </div>
+        {comparison && (
+          <p className="mt-2.5 text-[0.82rem] font-medium text-surface/95">
+            That&apos;s about the same as {comparison}.
+          </p>
+        )}
         <p className="mt-3 text-xs text-surface/80">
           {!signedIn && pendingStashFailed ? (
             <>

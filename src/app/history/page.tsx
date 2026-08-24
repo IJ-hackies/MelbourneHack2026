@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { WalkRow } from "@/components/walk-row";
 import { createClient } from "@/lib/supabase/server";
+import { co2Comparison } from "@/lib/co2-comparisons";
 
 const levelClass = [
   "bg-surface-sunk",
@@ -62,10 +63,10 @@ export default async function History() {
   }).length;
 
   const totalEmissions = walks.reduce((sum, w) => sum + Number(w.emissions_kg), 0);
-  // Same 0.19 kg CO2e/km average-car factor emissions are estimated with in
-  // the first place (see lib/actions/walks.ts) — run backwards, this turns
-  // an abstract kg figure into a distance a driver can actually picture.
-  const carKmAvoided = totalEmissions / 0.19;
+  // Recomputed on every render of this server page, so it's a different,
+  // still-accurate comparison each time someone checks their total rather
+  // than the same fixed "km not driven" line every visit.
+  const comparison = co2Comparison(totalEmissions);
 
   const countByDay = new Map<string, number>();
   for (const w of walks) {
@@ -108,9 +109,9 @@ export default async function History() {
             Compared to an equivalent car trip. It&apos;s an estimate, not a
             guarantee you would have driven.
           </p>
-          {totalEmissions > 0 && (
+          {comparison && (
             <p className="mt-1.5 text-[0.75rem] font-medium text-surface/95">
-              That&apos;s like {carKmAvoided.toFixed(1)} km not driven.
+              That&apos;s about the same as {comparison}.
             </p>
           )}
         </div>

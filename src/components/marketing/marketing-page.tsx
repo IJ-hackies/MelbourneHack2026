@@ -2,6 +2,7 @@ import { PendingLink } from "@/components/pending-link";
 import { ConditionIcon } from "@/components/condition-icon";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { ContactForm } from "@/components/marketing/contact-form";
+import { co2Comparison } from "@/lib/co2-comparisons";
 
 const FEATURES = [
   {
@@ -51,6 +52,11 @@ export function MarketingPage({
   appOrigin?: string;
   communityImpact?: { totalWalks: number; totalEmissionsKg: number } | null;
 }) {
+  // Recomputed on every render of this page, so it's a different, still-
+  // accurate comparison each time someone lands here rather than the same
+  // fixed "km not driven" line every visit.
+  const communityComparison = communityImpact ? co2Comparison(communityImpact.totalEmissionsKg) : null;
+
   return (
     <div>
       <MarketingHeader appOrigin={appOrigin} />
@@ -278,8 +284,8 @@ export function MarketingPage({
                       </div>
                       <p className="mt-1 text-[0.78rem] text-text-tertiary">
                         Real total across {communityImpact.totalWalks} logged{" "}
-                        {communityImpact.totalWalks === 1 ? "walk" : "walks"}, updated live. That&apos;s
-                        like {(communityImpact.totalEmissionsKg / 0.19).toFixed(1)} km not driven.
+                        {communityImpact.totalWalks === 1 ? "walk" : "walks"}, updated live.
+                        {communityComparison && <> That&apos;s about the same as {communityComparison}.</>}
                       </p>
                     </>
                   ) : (

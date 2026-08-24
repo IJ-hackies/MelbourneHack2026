@@ -161,12 +161,21 @@ export default async function RouteDetail({
                     </div>
                     <div className="text-left">
                       <div
-                        className={`text-[0.78rem] font-medium ${isCurrent ? "text-primary-strong" : "text-text-secondary"}`}
+                        className={`flex items-center gap-1 text-[0.78rem] font-medium ${isCurrent ? "text-primary-strong" : "text-text-secondary"}`}
                       >
                         {routeTypeLabel(r)}
+                        {Boolean(user) && r.recommended && (
+                          <svg viewBox="0 0 24 24" fill="currentColor" className="h-3 w-3 shrink-0 text-primary" aria-label="Recommended for you">
+                            <path d="M12 2l2.9 6.3 6.9.9-5 4.8 1.3 6.8L12 17.5 5.9 20.8l1.3-6.8-5-4.8 6.9-.9L12 2z" />
+                          </svg>
+                        )}
                       </div>
                       <div className="text-[0.7rem] text-text-tertiary">
-                        {isCurrent ? "Your current route" : "Switch to this route"}
+                        {isCurrent
+                          ? "Your current route"
+                          : Boolean(user) && r.recommended
+                            ? "Recommended for you"
+                            : "Switch to this route"}
                       </div>
                     </div>
                     {isCurrent && (

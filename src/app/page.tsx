@@ -120,7 +120,10 @@ async function PlanScreen({
             </p>
           </div>
         ) : (
-          <RoutePlanner destination={{ label: destination, lat: resolvedLat!, lon: resolvedLon! }} />
+          <RoutePlanner
+            destination={{ label: destination, lat: resolvedLat!, lon: resolvedLon! }}
+            signedIn={Boolean(userId)}
+          />
         )}
       </div>
     </main>
