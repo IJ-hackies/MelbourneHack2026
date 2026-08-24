@@ -110,10 +110,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <div className="sticky top-0 z-20 border-b border-border bg-bg/90 backdrop-blur-md">
               <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
                 <div className="flex items-center gap-2 font-display text-[1.05rem] font-semibold tracking-tight text-text">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[22px] w-[22px] text-primary">
-                    <path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21Z" />
-                    <circle cx="12" cy="9.5" r="2.4" />
-                  </svg>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a
+                      static brand mark, not a page image worth next/image's
+                      responsive-loading machinery */}
+                  <img src="/brand/leafroute-mark.png" alt="" className="h-[22px] w-[22px]" />
                   LeafRoute
                 </div>
                 <div className="flex items-center gap-3">

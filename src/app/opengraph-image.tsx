@@ -1,9 +1,22 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OpengraphImage() {
+// A light-mint recolor of the real brand mark (public/brand/leafroute-mark.png)
+// -- its teal fill would nearly disappear against this dark gradient, so this
+// variant swaps the leaf silhouette to a lighter tone while leaving the
+// route/pin detail as the transparent cutout it already is in the source
+// artwork, letting the gradient show through it directly.
+async function loadLogoDataUri(): Promise<string> {
+  const bytes = await readFile(join(process.cwd(), "public", "brand", "leafroute-mark-light.png"));
+  return `data:image/png;base64,${bytes.toString("base64")}`;
+}
+
+export default async function OpengraphImage() {
+  const logoSrc = await loadLogoDataUri();
   return new ImageResponse(
     (
       <div
@@ -20,10 +33,7 @@ export default function OpengraphImage() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7fd99a" strokeWidth="1.8">
-            <path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21Z" />
-            <circle cx="12" cy="9.5" r="2.4" fill="#7fd99a" stroke="none" />
-          </svg>
+          <img src={logoSrc} width={44} height={44} alt="" />
           <div style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.01em" }}>LeafRoute</div>
         </div>
         <div
