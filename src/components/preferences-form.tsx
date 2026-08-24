@@ -73,8 +73,7 @@ export function PreferencesForm({
           value={comfortBalance}
           onChange={setComfortBalance}
           valueLabel={comfortBalance < 50 ? "COMFORT" : "SPEED"}
-          hint="Saved for future route ranking. It doesn&apos;t affect route choices yet."
-          comingSoon
+          hint="Leaning toward comfort recommends the shaded or quieter option first, when one exists. This doesn't change which routes are offered."
         />
         <Slider
           label="Walking pace"
@@ -118,9 +117,11 @@ export function PreferencesForm({
           )}
           <Toggle
             name="Calendar suggestions"
-            description="Off by default. When it's on, we only read your next event's time and location, and always ask you to confirm before routing."
+            description="Not built yet, so this can't be turned on. Once it ships, it'll only read your next event's time and location, and always ask you to confirm before routing."
             checked={calendarSuggestions}
             onChange={setCalendarSuggestions}
+            comingSoon
+            disabled
           />
         </div>
       </div>

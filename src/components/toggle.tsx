@@ -8,6 +8,7 @@ export function Toggle({
   checked,
   onChange,
   comingSoon = false,
+  disabled = false,
 }: {
   name: string;
   description: string;
@@ -17,6 +18,10 @@ export function Toggle({
   // description already says so, but that's easy to skim past when every
   // control on the form otherwise looks equally "live".
   comingSoon?: boolean;
+  // For a control with no real feature behind it at all yet (not just
+  // "saved but not wired up") -- switching it on would otherwise look like
+  // it did something when it can't yet.
+  disabled?: boolean;
 }) {
   const labelId = useId();
   const descriptionId = useId();
@@ -41,8 +46,9 @@ export function Toggle({
         aria-checked={checked}
         aria-labelledby={labelId}
         aria-describedby={descriptionId}
+        disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative h-6 w-10 shrink-0 rounded-full transition-colors ${
+        className={`relative h-6 w-10 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
           checked ? "bg-primary" : "bg-surface-sunk"
         }`}
       >

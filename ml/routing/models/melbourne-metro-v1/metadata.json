@@ -2,8 +2,8 @@
   "schema_version": 2,
   "release": "melbourne-metro-v1",
   "graph_file": "graph.json",
-  "graph_bytes": 26248679,
-  "graph_sha256": "21496c32d84898e507e416832193c62a982e383976c25f16349f3d09c7d06808",
+  "graph_bytes": 26261419,
+  "graph_sha256": "b31276cc0fea1d44d87e6f368d6945dce0729f9cb6c8fab4fdce5c16497a07d5",
   "edge_shade_field": "canopy_density",
   "shade_grid_file": "shade_grid.json",
   "shade_grid_bytes": 3517343,
@@ -22,5 +22,5 @@
   "source_license_url": "https://creativecommons.org/licenses/by/4.0/ ; https://www.openstreetmap.org/copyright",
   "source_attribution": "City of Melbourne \u2014 Pedestrian Network; (c) OpenStreetMap contributors",
   "coverage_note": "Inner + middle-ring Melbourne (~15km radius from the CBD): City of Melbourne's own pedestrian network data stays authoritative inside that municipality (see the predecessor melbourne-inner-v1 release), merged with an OpenStreetMap extract (fetch_osm_extract.py, ODbL) covering the surrounding councils (Port Phillip, Yarra, Stonnington, inner Boroondara, Moreland/Merri-bek, Maribyrnong, inner Moonee Valley, inner Glen Eira). Still not full Greater Melbourne \u2014 outer suburbs remain outside this bbox and fall back to the straight-line estimate. Tree-canopy shade data (shade_source_dataset_id) is still City-of-Melbourne-only \u2014 the extended area routes on real streets but scores 0.0 canopy_density (not null) on every edge outside the original municipality; a wider Vicmap re-clip is a real, flagged follow-up, not implemented in this release.",
-  "built_at_utc": "2026-08-23T15:30:30.209495+00:00"
+  "built_at_utc": "2026-08-24T09:44:40.904261+00:00"
 }

@@ -36,14 +36,23 @@ function haversineKm(a: Coordinates, b: Coordinates): number {
 // the routing function at all). A preference set to its maximum or minimum
 // must always still return the same set of real route options; it only
 // changes which one is suggested first. Explicit "prefer quieter streets"
-// wins over heat sensitivity when both would apply, since it's a direct
-// toggle rather than a threshold on a continuous slider.
+// wins over heat sensitivity or comfort balance when more than one would
+// apply, since it's a direct toggle rather than a threshold on a continuous
+// slider — sliders only step in when no explicit toggle already decided it.
 function chooseRecommendedId(candidateIds: string[], preferences?: RouteQueryInput["preferences"]): string {
   if (preferences?.preferQuieterStreets && candidateIds.includes("quieter")) {
     return "quieter";
   }
   if ((preferences?.heatSensitivity ?? 0) >= 60 && candidateIds.includes("shaded")) {
     return "shaded";
+  }
+  // "Speed vs. comfort" leaning toward comfort favours whichever
+  // comfort-oriented candidate this search actually produced (shaded first,
+  // since it's the more common real trade-off, quieter otherwise) — leaning
+  // toward speed leaves the fastest fallback below untouched.
+  if ((preferences?.comfortBalance ?? 100) < 40) {
+    if (candidateIds.includes("shaded")) return "shaded";
+    if (candidateIds.includes("quieter")) return "quieter";
   }
   return candidateIds.includes("fastest") ? "fastest" : candidateIds[0];
 }

@@ -222,6 +222,7 @@ export default async function RouteDetail({
             segments={route.segments}
             routeId={route.id}
             quality={route.quality}
+            waterStops={waterStops}
           />
         </div>
 

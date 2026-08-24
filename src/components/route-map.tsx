@@ -110,6 +110,7 @@ export function RouteMap({
   segments,
   routeId,
   quality = "ok",
+  waterStops,
 }: {
   geometry: RouteGeometry;
   segments?: RouteOption["segments"];
@@ -120,6 +121,11 @@ export function RouteMap({
   // turn-by-turn path, and the 3D-buildings toggle (irrelevant to a straight
   // line, and misleading pitched over one) is hidden.
   quality?: RouteOption["quality"];
+  // Real public drinking fountains near this route (see water-stops.ts) —
+  // only ever passed on an active heat advisory, so this is never empty
+  // "decoration" on an ordinary day, only the walker's own genuine reason
+  // to see one on the map.
+  waterStops?: { lat: number; lon: number }[];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -248,6 +254,21 @@ export function RouteMap({
       new maplibregl.Marker({ color: "#e8703a" })
         .setLngLat([geometry.end.lon, geometry.end.lat])
         .addTo(map);
+
+      for (const stop of waterStops ?? []) {
+        const el = document.createElement("div");
+        el.className = "leafroute-fountain-marker";
+        el.innerHTML = `
+          <div class="leafroute-fountain-pin">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3c3 3.5 5 6.2 5 8.8a5 5 0 0 1-10 0C7 9.2 9 6.5 12 3Z" />
+            </svg>
+          </div>
+          <span class="leafroute-fountain-label">Water fountain</span>`;
+        new maplibregl.Marker({ element: el, anchor: "bottom" })
+          .setLngLat([stop.lon, stop.lat])
+          .addTo(map);
+      }
     };
 
     const fitToRoute = () => {
@@ -287,11 +308,12 @@ export function RouteMap({
       mapRef.current = null;
       liveMarkerRef.current = null;
     };
-    // geometry/segments intentionally re-mount the map on change rather than
-    // diffing sources in place — route details are read once per navigation.
-    // show3D is included so toggling it swaps style+pitch via a clean
-    // remount rather than trying to hot-swap style/source state in place.
-  }, [geometry, segments, show3D, quality]);
+    // geometry/segments/waterStops intentionally re-mount the map on change
+    // rather than diffing sources in place — route details are read once per
+    // navigation. show3D is included so toggling it swaps style+pitch via a
+    // clean remount rather than trying to hot-swap style/source state in
+    // place.
+  }, [geometry, segments, show3D, quality, waterStops]);
 
   // Live position updates: a separate, lighter effect that only moves the
   // live marker, keeps both the live position and destination in view, and

@@ -165,7 +165,21 @@ def build_graph(
                     continue
                 seen_edges.add(edge_key)
 
-                weight = haversine_m(lon1, lat1, lon2, lat2)
+                # Computed from the *resolved* node positions, not the raw
+                # (lon1, lat1)/(lon2, lat2) this edge's own feature geometry
+                # used -- either endpoint may have snapped onto an existing
+                # node up to snap_tolerance_m away rather than sitting at its
+                # own raw coordinate (see get_or_create_node). Using the raw
+                # coordinates here systematically understated a snapped
+                # edge's real length by however far its snap moved it, and
+                # across the many seam edges a typical route crosses, that
+                # compounded into serving a total route distance/time
+                # substantially shorter than the real, rendered path -- a
+                # live 0.56km/7min figure for what was actually a 1.6km/20min
+                # walk was traced back to exactly this.
+                a_lon, a_lat = node_coords[a]
+                b_lon, b_lat = node_coords[b]
+                weight = haversine_m(a_lon, a_lat, b_lon, b_lat)
                 # Pedestrians walk both directions.
                 adjacency[a].append((b, weight))
                 adjacency[b].append((a, weight))
