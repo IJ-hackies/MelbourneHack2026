@@ -1,6 +1,6 @@
 # LeafRoute
 
-LeafRoute is a Melbourne walking route planner built around climate action. It cuts emissions by making walking the easy choice instead of driving, and it helps people cope with the heat, sun, and air quality that are already here by routing them through shade and cooler streets in real time, using live public data .
+LeafRoute is a Melbourne walking route planner built around climate action. It cuts emissions by making walking the easy choice instead of driving, and it helps people cope with the heat, sun, and air quality that are already here by routing them through shade and cooler streets in real time, using live public data.
 
 ## What it does
 
